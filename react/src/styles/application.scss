@@ -1,0 +1,21 @@
+.loan_list_container {
+  height: 500px;
+  width: 100%;
+  overflow-y: scroll;
+}
+
+
+
+.loan_list_item {
+  height: 100px;
+  width: 100%;
+  img {
+    margin-right: 5px;
+    margin-left: -20px;
+    margin-top: -12px;
+  }
+}
+
+.float_left {
+  float: left;
+}
