@@ -6,9 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "browserify": {
-
-  },
+  "browserify": {},
   "author": "Paul Ericksen",
   "license": "ISC",
   "devDependencies": {
@@ -28,6 +26,8 @@
   "dependencies": {
     "react": "^0.13.3",
     "react-bootstrap": "^0.25.2",
+    "react-lazy-load": "^1.0.4",
+    "react-lazy-render": "^0.3.0",
     "react-router": "^1.0.0-rc1"
   }
 }

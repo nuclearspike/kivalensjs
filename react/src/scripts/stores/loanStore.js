@@ -5,17 +5,34 @@ import {loanActions} from '../actions'
 
 var loanStore = Reflux.createStore({
     listenables: [loanActions],
+    loans : [],
+    loans_hash: {},
     init:function(){
         console.log("loanStore:init")
     },
     onLoad:(options)=>{
         console.log("LoanAPI:onLoad")
-        LoanAPI.getLoans(options)
-            .done((result)=>{
-                loanActions.load.completed(result)
+        //var local_this = this;
+
+        /*if (local_this.loans.length > 0){
+            loanActions.load.completed(local_this.loans)
+            return
+        }*/
+
+        if (!options)
+            options = {}
+        options.region = 'af'
+        LoanAPI.getAllLoans(options)
+            .done(loans => {
+                //local_this.loans = loans;
+                loanActions.load.completed(loans)
             })
-            .fail((result)=>{
-                loanActions.load.failed(result)
+            .progress(progress => {
+                console.log("progress:", progress)
+                loanActions.load.progressed(progress)
+            })
+            .fail((result) =>{
+                loanActions.load.failed()
             })
     },
 
