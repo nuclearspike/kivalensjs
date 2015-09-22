@@ -1,5 +1,5 @@
 'use strict';
-
+import React from 'react'
 //if you see this message, it means in your import you wrote:
 // import component from '.'
 //   instead of

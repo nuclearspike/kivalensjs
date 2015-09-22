@@ -10,6 +10,8 @@
     margin-right: 5px;
     margin-left: -20px;
     margin-top: -12px; }
+  .loan_list_item .details {
+    width: 315px; }
 
 .float_left {
   float: left; }

@@ -20,6 +20,19 @@ var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 
 
+/**
+ * "transform": [
+ "browserify-shim"
+ ]
+ *
+"browserify-shim": {
+    "jquery": "$",
+        "react": "global:React",
+        "react-bootstrap": "global:ReactBootstrap",
+        "react-router": "global:ReactRouter",
+        "reflux": "global:Reflux"
+},**/
+
 gulp.task('browser-sync', function() {
   browserSync({
     server: {
@@ -58,9 +71,9 @@ function compile(watch) {
     if (watch) {
         bundler = watchify(bundler);
     }
-    //bundler.exclude("react");
-    //bundler.exclude("react-bootstrap");
-    //bundler.exclude("react-router");
+    //bundler.external("react");
+    //bundler.external("react-bootstrap");
+    //bundler.external("react-router");
 
     function rebundle() {
         bundler.bundle()
@@ -70,7 +83,7 @@ function compile(watch) {
             })
             .pipe(source('build.js'))
             .pipe(buffer())
-            .pipe(uglify({output: {ascii_only:true}}))
+            //.pipe(uglify({output: {ascii_only:true}}))
             .pipe(sourcemaps.init({ loadMaps: true }))
             .pipe(sourcemaps.write('./'))
             .pipe(gulp.dest('./javascript'))

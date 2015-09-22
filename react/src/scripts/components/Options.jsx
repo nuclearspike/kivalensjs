@@ -1,5 +1,7 @@
 'use strict';
 
+import React from 'react'
+
 class Options extends React.Component {
     render() {
         return (
@@ -7,6 +9,5 @@ class Options extends React.Component {
         );
     }
 }
-;
 
 module.exports = Options;

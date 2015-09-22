@@ -1,37 +1,39 @@
-'use strict'
+//'use strict'
 
-import {Route, DefaultRoute, NotFoundRoute, Redirect, RouteHandler} from 'react-router';
+import React from 'react'
+import Router from 'react-router'
+import {Route, Redirect, IndexRoute} from 'react-router';
+//import HashHistory from 'react-router/lib/HashHistory';
+//var HashHistory = require('react-router/lib/HashHistory');
 import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, NotFound} from "./components";
 
 class App extends React.Component {
     render(){
         return <div>
             <KLNav/>
-            <RouteHandler/>
+            {this.props.children}
             <KLFooter/>
             </div>
     }
-}
+} //
 
-var routes = (
-    <Route handler={App} path="/">
-        <Route name="search" handler={Search}>
-            <Route name="loan" path="loan/:id" handler={Loan}>
-                <DefaultRoute handler={Details}/>
-                <Route name="schedule" handler={Schedule}/>
-            </Route>
-        </Route>
-        <Route name="basket" handler={Basket}/>
-        <Route name="options" handler={Options}/>
-        <Route name="about" handler={About}/>
-        <Redirect from="" to="search"/>
-        <NotFoundRoute handler={NotFound}/>
-    </Route>
-);
-
+//When Page read, mount it.
 document.addEventListener("DOMContentLoaded", function(event) {
-    if (document.getElementById("body"))
-        ReactRouter.run(routes, function(Handler) { //Router.HistoryLocation,
-            React.render(React.createElement(Handler, null), document.getElementById("body"))
-        });
-});
+    if (document.getElementById("body")){
+        React.render((<Router>
+            <Route component={App} path="/">
+                <Route path="search" component={Search}>
+                    <Route path="loan/:id" component={Loan}>
+                        <IndexRoute component={Details}/>
+                        <Route path="schedule" component={Schedule}/>
+                    </Route>
+                </Route>
+                <Route path="basket" component={Basket}/>
+                <Route path="options" component={Options}/>
+                <Route path="about" component={About}/>
+                <Redirect from="" to="/search"/>
+                <Route path="*" component={NotFound}/>
+            </Route>
+        </Router>), document.getElementById("body"))
+    }
+}); //<NotFoundRoute component={NotFound}/>

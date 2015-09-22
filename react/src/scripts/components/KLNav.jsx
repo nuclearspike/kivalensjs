@@ -1,11 +1,12 @@
 'use strict';
 
+import React from 'react'
 import {Link} from 'react-router';
 import {Navbar, Nav, NavItem} from 'react-bootstrap';
 
 class KLNav extends React.Component {
     render() {
-        var Brand = <Link className="navbar-brand" to="search">KivaLens</Link>
+        var Brand = <Link className="navbar-brand" to="/#/search">KivaLens</Link>
         return (
             <Navbar brand={Brand} inverse={true} fluid={true}>
                 <Nav>

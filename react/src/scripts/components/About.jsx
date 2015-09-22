@@ -1,4 +1,5 @@
-'use strict';
+//'use strict';
+import React from 'react'
 
 class About extends React.Component {
     render() {
@@ -7,6 +8,5 @@ class About extends React.Component {
         );
     }
 }
-
 
 module.exports = About;

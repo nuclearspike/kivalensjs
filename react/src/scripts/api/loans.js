@@ -2,7 +2,7 @@
 
 class LoanAPI {
     static get(url){
-        return $.getJSON(url)
+        return $.getJSON(`http://api.kivaws.org/v1/${url}`)
             .done((result) => {
                 console.log(result);
             })
@@ -12,15 +12,15 @@ class LoanAPI {
     }
 
     static getLoan(id){
-        return this.get(`/loans/${id}.json`)
+        return this.get(`loans/${id}.json`)
     }
 
     static getLoanBatch(id_arr){
-        return this.get(`/loans/${id_arr.join(',')}.json`)
+        return this.get(`loans/${id_arr.join(',')}.json`)
     }
 
     static getLoans(options){
-        return this.get(`/loans/search.json`)
+        return this.get(`loans/search.json`)
     }
 }
 
