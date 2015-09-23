@@ -3,10 +3,9 @@ import Reflux from 'reflux'
 import {LoanAPI} from '../api/loans'
 import {loanActions} from '../actions'
 
+var all_loans = [];
 var loanStore = Reflux.createStore({
     listenables: [loanActions],
-    loans : [],
-    loans_hash: {},
     init:function(){
         console.log("loanStore:init")
     },
@@ -19,12 +18,18 @@ var loanStore = Reflux.createStore({
             return
         }*/
 
+        if (all_loans.length > 0){
+            loanActions.load.completed(all_loans);
+            return;
+        }
+
         if (!options)
             options = {}
         //options.region = 'af'
         LoanAPI.getAllLoans(options)
             .done(loans => {
                 //local_this.loans = loans;
+                all_loans = loans;
                 loanActions.load.completed(loans)
             })
             .progress(progress => {

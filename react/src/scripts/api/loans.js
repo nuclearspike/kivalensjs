@@ -1,5 +1,7 @@
 'use strict';
 
+require('linqjs')
+
 function serialize(obj, prefix) {
     var str = [];
     for (var p in obj) {
@@ -49,12 +51,13 @@ class LoanAPI {
         options.page = 1;
         options.status = 'fundraising'
         options.app_id = 'org.kiva.kivalens'
+
         //options.country_code = 'KE'
 
         var loans = [];
         var pages_to_do = null;
         var local_this = this;
-        const concurrent_max = 15;
+        const concurrent_max = 5; //15;
         var concurrent_current = 0;
         var results = {};
         var result_loan_count = 0;
@@ -64,12 +67,7 @@ class LoanAPI {
             concurrent_current--;
             if (pages_to_do == null) {
                 $def.notify({type: 'label', label: 'loading...'})
-
-                pages_to_do = []
-                for (var i = 2; i <= result.paging.pages; i++){
-                    pages_to_do.push(i)
-                    //console.log("i",i)
-                }
+                pages_to_do = Array.range(2, result.paging.pages)
                 console.log("pages_to_do:", pages_to_do)
             }
 
@@ -91,16 +89,16 @@ class LoanAPI {
                     }
                 }
             } else {
-                $def.notify({type: 'label', label: 'processing...'})
-                console.log("NO MORE PAGES: result_loan_count:", result_loan_count)
-                if (result_loan_count == result.paging.total){
-                    //console.log("result hash:", results)
-                    //$def.notify({type: 'label', label: 'processing...'})
+                console.log("NO MORE PAGES: result_loan_count:", result_loan_count, result.paging.total)
+                if (result_loan_count >= result.paging.total){
+                    $def.notify({type: 'label', label: 'processing...'})
                     for (var n = 1; n <= result.paging.pages; n++) {
                         loans = loans.concat(results[n])
                     }
-                    //console.log("ALL DONE!! RESOLVE():",loans)
+                    $def.notify({type: 'done'})
+                    console.log("resolving:", loans.length)
                     $def.resolve(loans)
+
                 }
             }
         }
