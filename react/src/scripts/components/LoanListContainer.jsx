@@ -1,7 +1,9 @@
 'use strict';
+//THIS FILE IS NO LONGER IN USE. SWITCHED TO INFINITE LIST.
+
 import React from 'react'
 //import LazyRender from 'react-lazy-render';
-import LazyLoad from 'react-lazy-load'
+//import LazyLoad from 'react-lazy-load'
 import {ListGroup} from 'react-bootstrap';
 import {LoanListItem} from '.';
 

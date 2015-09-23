@@ -38,24 +38,23 @@ class LoanAPI {
     }
 
     static getLoans(query){
-        return this.get(`loans/search.json`,query)
+        return this.get('loans/search.json',query)
     }
 
-    static getAllLoans(options, local_this){
+    static getAllLoans(options){
         var $def = $.Deferred()
 
-        if (!options)
-            options = {}
+        options = options || {}
         options.per_page = 100;
         options.page = 1;
         options.status = 'fundraising'
         options.app_id = 'org.kiva.kivalens'
-        options.country_code = 'KE'
+        //options.country_code = 'KE'
 
         var loans = [];
         var pages_to_do = null;
         var local_this = this;
-        const concurrent_max = 5;
+        const concurrent_max = 15;
         var concurrent_current = 0;
         var results = {};
         var result_loan_count = 0;
@@ -64,6 +63,8 @@ class LoanAPI {
             console.log("process:start",result.paging)
             concurrent_current--;
             if (pages_to_do == null) {
+                $def.notify({type: 'label', label: 'loading...'})
+
                 pages_to_do = []
                 for (var i = 2; i <= result.paging.pages; i++){
                     pages_to_do.push(i)
@@ -77,7 +78,7 @@ class LoanAPI {
             result_loan_count += result.loans.length;
 
             //notify any listener of changes
-            var notify_obj = {pages_total: result.paging.pages, pages_done: result.paging.pages - pages_to_do.length};
+            var notify_obj = {type: 'percent', pages_total: result.paging.pages, pages_done: result.paging.pages - pages_to_do.length};
             notify_obj.percentage = (notify_obj.pages_done * 100) / notify_obj.pages_total
             $def.notify(notify_obj)
 
@@ -90,9 +91,11 @@ class LoanAPI {
                     }
                 }
             } else {
+                $def.notify({type: 'label', label: 'processing...'})
                 console.log("NO MORE PAGES: result_loan_count:", result_loan_count)
                 if (result_loan_count == result.paging.total){
                     //console.log("result hash:", results)
+                    //$def.notify({type: 'label', label: 'processing...'})
                     for (var n = 1; n <= result.paging.pages; n++) {
                         loans = loans.concat(results[n])
                     }
@@ -103,7 +106,7 @@ class LoanAPI {
         }
 
         concurrent_current = 1;
-        local_this.getLoans(options, this).done(process)
+        local_this.getLoans(options).done(process)
 
         return $def
     }

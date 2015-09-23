@@ -1,10 +1,8 @@
-//'use strict'
+'use strict'
 
 import React from 'react'
 import Router from 'react-router'
 import {Route, Redirect, IndexRoute} from 'react-router';
-//import HashHistory from 'react-router/lib/HashHistory';
-//var HashHistory = require('react-router/lib/HashHistory');
 import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, NotFound} from "./components";
 
 class App extends React.Component {

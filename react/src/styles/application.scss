@@ -22,3 +22,13 @@
 .float_left {
   float: left;
 }
+
+.infinite-list {
+  overflow: auto;
+  position: relative;
+}
+
+.infinite-list-content {
+  margin: 0;
+  position: absolute;
+}

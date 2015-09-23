@@ -21,7 +21,7 @@ var loanStore = Reflux.createStore({
 
         if (!options)
             options = {}
-        options.region = 'af'
+        //options.region = 'af'
         LoanAPI.getAllLoans(options)
             .done(loans => {
                 //local_this.loans = loans;
