@@ -7,12 +7,11 @@ import {loanStore} from '../stores/loanStore'
 var LoadingLoansModal = React.createClass({
     mixins: [Reflux.ListenerMixin],
     getInitialState:function(){
-        return {progress_label: '...', progress: 0, show: this.props.show}
+        return {progress_label: '', progress: 0, show: this.props.show}
     },
     componentDidMount: function() {
-        console.log("LoadingLoansModal:componentDidMount")
         this.listenTo(loanActions.load.progressed, progress => {
-            console.log("progress:",progress)
+            //console.log("progress:",progress)
             var new_state = {show: true}
             if (progress.type == 'percent')
                 new_state.progress = progress.percentage
@@ -22,7 +21,6 @@ var LoadingLoansModal = React.createClass({
                 new_state.show = false
             this.setState(new_state)
         })
-        console.log("Search:loanActions.load call")
     },
     render() {
         return (

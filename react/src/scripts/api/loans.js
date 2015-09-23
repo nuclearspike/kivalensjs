@@ -66,7 +66,6 @@ class LoanAPI {
             console.log("process:start",result.paging)
             concurrent_current--;
             if (pages_to_do == null) {
-                $def.notify({type: 'label', label: 'loading...'})
                 pages_to_do = Array.range(2, result.paging.pages)
                 console.log("pages_to_do:", pages_to_do)
             }
