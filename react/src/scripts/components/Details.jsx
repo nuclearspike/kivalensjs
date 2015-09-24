@@ -3,10 +3,9 @@ import React from 'react'
 class Details extends React.Component {
     render() {
         return (
-            <div></div>
+            <div>Details</div>
         );
     }
 }
 
-
-module.exports = Details;
+export default Details;

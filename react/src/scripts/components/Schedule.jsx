@@ -10,4 +10,4 @@ class Schedule extends React.Component {
     }
 }
 
-module.exports = Schedule;
+export default Schedule;

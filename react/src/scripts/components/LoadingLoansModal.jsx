@@ -10,9 +10,7 @@ var LoadingLoansModal = React.createClass({
         return {progress_label: '', progress: 0, show: this.props.show}
     },
     componentDidMount: function() {
-        this.listenTo(loanActions.load.progressed, progress => {
-            //console.log("progress:",progress)
-            var new_state = {show: true}
+        this.listenTo(loanActions.load.progressed, progress => {var new_state = {show: true}
             if (progress.type == 'percent')
                 new_state.progress = progress.percentage
             else if (progress.type == 'label')
@@ -27,15 +25,17 @@ var LoadingLoansModal = React.createClass({
         <div className="static-modal">
             <Modal show={this.state.show} onHide={()=>{}}>
                 <Modal.Header>
-                    <Modal.Title>Loading Loans from Kiva.org</Modal.Title>
+                    <Modal.Title>Loading Fundraising Loans from Kiva.org</Modal.Title>
                 </Modal.Header>
 
                 <Modal.Body>
-                    <ProgressBar active now={this.state.progress} label={this.state.progress_label} />
-                    To greatly reduce load time, check out the "Options" tab to always exclude certain types of loans from the initial load.
+                    <ProgressBar active now={this.state.progress} />
+                    <p>To greatly reduce load time, check out the "Options"
+                        tab to always exclude certain types of loans from the initial load.</p>
                 </Modal.Body>
 
                 <Modal.Footer>
+                    {this.state.progress_label}
                 </Modal.Footer>
             </Modal>
         </div>
@@ -43,5 +43,6 @@ var LoadingLoansModal = React.createClass({
         );
     }
 })
+
 
 module.exports = LoadingLoansModal;

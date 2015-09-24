@@ -1,7 +1,8 @@
 'use strict';
 
-require('linqjs')
+var loans_from_kiva = []
 
+//turns {json: 'object'} into ?json=object
 function serialize(obj, prefix) {
     var str = [];
     for (var p in obj) {
@@ -51,13 +52,13 @@ class LoanAPI {
         options.page = 1;
         options.status = 'fundraising'
         options.app_id = 'org.kiva.kivalens'
+       // options.country_code = 'KE'
 
-        //options.country_code = 'KE'
-
+        $def.notify({type:'label',label: 'Preparing to download...'})
         var loans = [];
         var pages_to_do = null;
         var local_this = this;
-        const concurrent_max = 5; //15;
+        var concurrent_max =5; //15;
         var concurrent_current = 0;
         var results = {};
         var result_loan_count = 0;
@@ -66,8 +67,11 @@ class LoanAPI {
             console.log("process:start",result.paging)
             concurrent_current--;
             if (pages_to_do == null) {
+                $def.notify({type:'label',label: 'Downloading...'})
                 pages_to_do = Array.range(2, result.paging.pages)
                 console.log("pages_to_do:", pages_to_do)
+                concurrent_max = Math.min(concurrent_max, result.paging.pages / 3)
+                console.log("concurrent_max:",concurrent_max)
             }
 
             //add loans returned to array, for now this is happening one at a time sequentially.
@@ -75,9 +79,8 @@ class LoanAPI {
             result_loan_count += result.loans.length;
 
             //notify any listener of changes
-            var notify_obj = {type: 'percent', pages_total: result.paging.pages, pages_done: result.paging.pages - pages_to_do.length};
-            notify_obj.percentage = (notify_obj.pages_done * 100) / notify_obj.pages_total
-            $def.notify(notify_obj)
+            $def.notify({type: 'percent', percentage: (result_loan_count*100)/result.paging.total})
+            $def.notify({type:'label',label:`${result_loan_count}/${result.paging.total} downloaded`})
 
             if (pages_to_do.length > 0) { //if more to do...
                 while (concurrent_current < concurrent_max) {
@@ -95,7 +98,6 @@ class LoanAPI {
                         loans = loans.concat(results[n])
                     }
                     $def.notify({type: 'done'})
-                    console.log("resolving:", loans.length)
                     $def.resolve(loans)
 
                 }
@@ -104,9 +106,11 @@ class LoanAPI {
 
         concurrent_current = 1;
         local_this.getLoans(options).done(process)
-
+        $def.done(loans=>{
+            loans_from_kiva = loans;
+        })
         return $def
     }
 }
 
-export {LoanAPI}
+export {LoanAPI, loans_from_kiva}

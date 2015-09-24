@@ -42629,21 +42629,29 @@ var loanActions = _reflux2['default'].createActions({
     "load": { children: ["progressed", "completed", "failed"] }
 });
 
+var criteriaActions = _reflux2['default'].createActions(["change"]);
+
+criteriaActions.getLast = _reflux2['default'].createAction({
+    children: ["completed"]
+});
+
 exports.loanActions = loanActions;
+exports.criteriaActions = criteriaActions;
 
 },{"reflux":465}],469:[function(require,module,exports){
 'use strict';
 
-Object.defineProperty(exports, '__esModule', {
+Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-require('linqjs');
+var loans_from_kiva = [];
 
+//turns {json: 'object'} into ?json=object
 function serialize(obj, prefix) {
     var str = [];
     for (var p in obj) {
@@ -42662,12 +42670,12 @@ var LoanAPI = (function () {
     }
 
     _createClass(LoanAPI, null, [{
-        key: 'get',
+        key: "get",
         value: function get(url, query) {
             console.log('get():', query);
             var query_string;
             if (query) query_string = serialize(query);
-            var url = 'http://api.kivaws.org/v1/' + url + '?' + query_string;
+            var url = "http://api.kivaws.org/v1/" + url + "?" + query_string;
             console.log(url);
             return $.getJSON(url).done(function (result) {
                 console.log(result);
@@ -42676,22 +42684,22 @@ var LoanAPI = (function () {
             });
         }
     }, {
-        key: 'getLoan',
+        key: "getLoan",
         value: function getLoan(id) {
-            return this.get('loans/' + id + '.json');
+            return this.get("loans/" + id + ".json");
         }
     }, {
-        key: 'getLoanBatch',
+        key: "getLoanBatch",
         value: function getLoanBatch(id_arr) {
-            return this.get('loans/' + id_arr.join(',') + '.json');
+            return this.get("loans/" + id_arr.join(',') + ".json");
         }
     }, {
-        key: 'getLoans',
+        key: "getLoans",
         value: function getLoans(query) {
             return this.get('loans/search.json', query);
         }
     }, {
-        key: 'getAllLoans',
+        key: "getAllLoans",
         value: function getAllLoans(options) {
             var $def = $.Deferred();
 
@@ -42700,9 +42708,9 @@ var LoanAPI = (function () {
             options.page = 1;
             options.status = 'fundraising';
             options.app_id = 'org.kiva.kivalens';
+            // options.country_code = 'KE'
 
-            //options.country_code = 'KE'
-
+            $def.notify({ type: 'label', label: 'Preparing to download...' });
             var loans = [];
             var pages_to_do = null;
             var local_this = this;
@@ -42715,8 +42723,11 @@ var LoanAPI = (function () {
                 console.log("process:start", result.paging);
                 concurrent_current--;
                 if (pages_to_do == null) {
+                    $def.notify({ type: 'label', label: 'Downloading...' });
                     pages_to_do = Array.range(2, result.paging.pages);
                     console.log("pages_to_do:", pages_to_do);
+                    concurrent_max = Math.min(concurrent_max, result.paging.pages / 3);
+                    console.log("concurrent_max:", concurrent_max);
                 }
 
                 //add loans returned to array, for now this is happening one at a time sequentially.
@@ -42724,9 +42735,8 @@ var LoanAPI = (function () {
                 result_loan_count += result.loans.length;
 
                 //notify any listener of changes
-                var notify_obj = { type: 'percent', pages_total: result.paging.pages, pages_done: result.paging.pages - pages_to_do.length };
-                notify_obj.percentage = notify_obj.pages_done * 100 / notify_obj.pages_total;
-                $def.notify(notify_obj);
+                $def.notify({ type: 'percent', percentage: result_loan_count * 100 / result.paging.total });
+                $def.notify({ type: 'label', label: result_loan_count + "/" + result.paging.total + " downloaded" });
 
                 if (pages_to_do.length > 0) {
                     //if more to do...
@@ -42745,7 +42755,6 @@ var LoanAPI = (function () {
                             loans = loans.concat(results[n]);
                         }
                         $def.notify({ type: 'done' });
-                        console.log("resolving:", loans.length);
                         $def.resolve(loans);
                     }
                 }
@@ -42753,7 +42762,9 @@ var LoanAPI = (function () {
 
             concurrent_current = 1;
             local_this.getLoans(options).done(process);
-
+            $def.done(function (loans) {
+                exports.loans_from_kiva = loans_from_kiva = loans;
+            });
             return $def;
         }
     }]);
@@ -42762,8 +42773,9 @@ var LoanAPI = (function () {
 })();
 
 exports.LoanAPI = LoanAPI;
+exports.loans_from_kiva = loans_from_kiva;
 
-},{"linqjs":3}],470:[function(require,module,exports){
+},{}],470:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -42785,6 +42797,8 @@ var _reactRouter = require('react-router');
 var _reactRouter2 = _interopRequireDefault(_reactRouter);
 
 var _components = require("./components");
+
+require('linqjs');
 
 var App = (function (_React$Component) {
     _inherits(App, _React$Component);
@@ -42831,7 +42845,8 @@ document.addEventListener("DOMContentLoaded", function (event) {
                         { path: 'loan/:id', component: _components.Loan },
                         _react2['default'].createElement(_reactRouter.IndexRoute, { component: _components.Details }),
                         _react2['default'].createElement(_reactRouter.Route, { path: 'schedule', component: _components.Schedule })
-                    )
+                    ),
+                    _react2['default'].createElement(_reactRouter.IndexRoute, { component: _components.Criteria })
                 ),
                 _react2['default'].createElement(_reactRouter.Route, { path: 'basket', component: _components.Basket }),
                 _react2['default'].createElement(_reactRouter.Route, { path: 'options', component: _components.Options }),
@@ -42841,9 +42856,9 @@ document.addEventListener("DOMContentLoaded", function (event) {
             )
         ), document.getElementById("body"));
     }
-}); //<NotFoundRoute component={NotFound}/>
+});
 
-},{"./components":484,"react":448,"react-router":251}],471:[function(require,module,exports){
+},{"./components":485,"linqjs":3,"react":448,"react-router":251}],471:[function(require,module,exports){
 //'use strict';
 'use strict';
 
@@ -42979,6 +42994,105 @@ module.exports = CatchNoCurlies;
 },{"react":448}],474:[function(require,module,exports){
 'use strict';
 
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _reactAddons = require('react/addons');
+
+var _reactAddons2 = _interopRequireDefault(_reactAddons);
+
+var _reflux = require('reflux');
+
+var _reflux2 = _interopRequireDefault(_reflux);
+
+var _actions = require('../actions');
+
+var _storesCriteriaStore = require('../stores/criteriaStore');
+
+var _reactBootstrap = require('react-bootstrap');
+
+var Criteria = _reactAddons2['default'].createClass({
+    displayName: 'Criteria',
+
+    mixins: [_reflux2['default'].ListenerMixin, _reactAddons2['default'].addons.LinkedStateMixin],
+    getInitialState: function getInitialState() {
+        console.log("Criteria.getInitialState()");
+        return {};
+    },
+    componentDidMount: function componentDidMount() {
+        var _this = this;
+
+        console.log("Criteria.componentDidMount()");
+        this.listenTo(_actions.criteriaActions.getLast.completed, function (criteria) {
+            console.log("criteriaActions.getLast.completed");
+            _this.setState(criteria);
+        });
+        _actions.criteriaActions.getLast();
+    },
+    criteriaChanged: function criteriaChanged() {
+        console.log("Criteria.criteriaChanged()");
+        _actions.criteriaActions.change(this.state);
+    },
+    clearCriteria: function clearCriteria() {
+        this.replaceState({});
+        _actions.criteriaActions.change({});
+    },
+    render: function render() {
+        console.log("Criteria.render()");
+        return _reactAddons2['default'].createElement(
+            'div',
+            null,
+            _reactAddons2['default'].createElement(
+                'h1',
+                null,
+                'Criteria'
+            ),
+            _reactAddons2['default'].createElement(
+                _reactBootstrap.Row,
+                null,
+                _reactAddons2['default'].createElement(_reactBootstrap.Input, { type: 'text', label: 'Use', labelClassName: 'col-md-2', wrapperClassName: 'col-md-6', valueLink: this.linkState('use'), onKeyUp: this.criteriaChanged })
+            ),
+            _reactAddons2['default'].createElement(
+                _reactBootstrap.Row,
+                null,
+                _reactAddons2['default'].createElement(_reactBootstrap.Input, { type: 'text', label: 'Name', labelClassName: 'col-md-2', wrapperClassName: 'col-md-6', valueLink: this.linkState('name'), onKeyUp: this.criteriaChanged })
+            ),
+            _reactAddons2['default'].createElement(
+                _reactBootstrap.Row,
+                null,
+                _reactAddons2['default'].createElement(_reactBootstrap.Input, { type: 'text', label: 'Country', labelClassName: 'col-md-2', wrapperClassName: 'col-md-6', valueLink: this.linkState('country'), onKeyUp: this.criteriaChanged })
+            ),
+            _reactAddons2['default'].createElement(
+                _reactBootstrap.Row,
+                null,
+                _reactAddons2['default'].createElement(_reactBootstrap.Input, { type: 'text', label: 'Sector', labelClassName: 'col-md-2', wrapperClassName: 'col-md-6', valueLink: this.linkState('sector'), onKeyUp: this.criteriaChanged })
+            ),
+            _reactAddons2['default'].createElement(
+                _reactBootstrap.Row,
+                null,
+                _reactAddons2['default'].createElement(_reactBootstrap.Input, { type: 'text', label: 'Activity', labelClassName: 'col-md-2', wrapperClassName: 'col-md-6', valueLink: this.linkState('activity'), onKeyUp: this.criteriaChanged })
+            ),
+            _reactAddons2['default'].createElement(
+                _reactBootstrap.Button,
+                { onClick: this.clearCriteria },
+                'Clear'
+            )
+        );
+    }
+});
+
+exports['default'] = Criteria;
+module.exports = exports['default'];
+
+},{"../actions":468,"../stores/criteriaStore":486,"react-bootstrap":75,"react/addons":276,"reflux":465}],475:[function(require,module,exports){
+'use strict';
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
 var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
@@ -43005,16 +43119,21 @@ var Details = (function (_React$Component) {
     _createClass(Details, [{
         key: 'render',
         value: function render() {
-            return _react2['default'].createElement('div', null);
+            return _react2['default'].createElement(
+                'div',
+                null,
+                'Details'
+            );
         }
     }]);
 
     return Details;
 })(_react2['default'].Component);
 
-module.exports = Details;
+exports['default'] = Details;
+module.exports = exports['default'];
 
-},{"react":448}],475:[function(require,module,exports){
+},{"react":448}],476:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -43056,7 +43175,7 @@ var KLFooter = (function (_React$Component) {
 
 module.exports = KLFooter;
 
-},{"react":448}],476:[function(require,module,exports){
+},{"react":448}],477:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -43130,7 +43249,7 @@ var KLNav = (function (_React$Component) {
 
 module.exports = KLNav;
 
-},{"react":448,"react-bootstrap":75,"react-router":251}],477:[function(require,module,exports){
+},{"react":448,"react-bootstrap":75,"react-router":251}],478:[function(require,module,exports){
 'use strict';
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
@@ -43160,7 +43279,6 @@ var LoadingLoansModal = _react2['default'].createClass({
         var _this = this;
 
         this.listenTo(_actions.loanActions.load.progressed, function (progress) {
-            //console.log("progress:",progress)
             var new_state = { show: true };
             if (progress.type == 'percent') new_state.progress = progress.percentage;else if (progress.type == 'label') new_state.progress_label = progress.label;else if (progress.type == 'done') new_state.show = false;
             _this.setState(new_state);
@@ -43179,16 +43297,24 @@ var LoadingLoansModal = _react2['default'].createClass({
                     _react2['default'].createElement(
                         _reactBootstrap.Modal.Title,
                         null,
-                        'Loading Loans from Kiva.org'
+                        'Loading Fundraising Loans from Kiva.org'
                     )
                 ),
                 _react2['default'].createElement(
                     _reactBootstrap.Modal.Body,
                     null,
-                    _react2['default'].createElement(_reactBootstrap.ProgressBar, { active: true, now: this.state.progress, label: this.state.progress_label }),
-                    'To greatly reduce load time, check out the "Options" tab to always exclude certain types of loans from the initial load.'
+                    _react2['default'].createElement(_reactBootstrap.ProgressBar, { active: true, now: this.state.progress }),
+                    _react2['default'].createElement(
+                        'p',
+                        null,
+                        'To greatly reduce load time, check out the "Options" tab to always exclude certain types of loans from the initial load.'
+                    )
                 ),
-                _react2['default'].createElement(_reactBootstrap.Modal.Footer, null)
+                _react2['default'].createElement(
+                    _reactBootstrap.Modal.Footer,
+                    null,
+                    this.state.progress_label
+                )
             )
         );
     }
@@ -43196,7 +43322,7 @@ var LoadingLoansModal = _react2['default'].createClass({
 
 module.exports = LoadingLoansModal;
 
-},{"../actions":468,"../stores/loanStore":485,"react":448,"react-bootstrap":75,"reflux":465}],478:[function(require,module,exports){
+},{"../actions":468,"../stores/loanStore":487,"react":448,"react-bootstrap":75,"reflux":465}],479:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -43238,7 +43364,7 @@ var Loan = (function (_React$Component) {
 
 module.exports = Loan;
 
-},{"react":448}],479:[function(require,module,exports){
+},{"react":448}],480:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -43282,14 +43408,19 @@ var LoanListItem = (function (_React$Component) {
                     { className: 'float_left details' },
                     _react2['default'].createElement(
                         'p',
-                        { className: 'large' },
+                        null,
                         loan.name
                     ),
                     loan.location.country,
                     ' | ',
                     loan.sector,
                     ' | ',
-                    loan.activity
+                    loan.activity,
+                    _react2['default'].createElement(
+                        'p',
+                        null,
+                        loan.use
+                    )
                 )
             );
         }
@@ -43300,7 +43431,7 @@ var LoanListItem = (function (_React$Component) {
 
 module.exports = LoanListItem;
 
-},{"react":448,"react-bootstrap":75}],480:[function(require,module,exports){
+},{"react":448,"react-bootstrap":75}],481:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -43348,7 +43479,7 @@ var NotFound = (function (_React$Component) {
 
 module.exports = NotFound;
 
-},{"react":448}],481:[function(require,module,exports){
+},{"react":448}],482:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -43390,8 +43521,12 @@ var Options = (function (_React$Component) {
 
 module.exports = Options;
 
-},{"react":448}],482:[function(require,module,exports){
+},{"react":448}],483:[function(require,module,exports){
 'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
@@ -43430,9 +43565,10 @@ var Schedule = (function (_React$Component) {
     return Schedule;
 })(_react2['default'].Component);
 
-module.exports = Schedule;
+exports['default'] = Schedule;
+module.exports = exports['default'];
 
-},{"react":448}],483:[function(require,module,exports){
+},{"react":448}],484:[function(require,module,exports){
 'use strict';
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
@@ -43457,50 +43593,62 @@ var _reactInfiniteList = require('react-infinite-list');
 
 var _reactInfiniteList2 = _interopRequireDefault(_reactInfiniteList);
 
-require('linqjs');
-
-var SEARCH_NOT_READY = 0;
-var SEARCH_DOWNLOADING = 1;
-var SEARCH_READY = 2;
+var _apiLoans = require('../api/loans');
 
 var Search = _reactAddons2['default'].createClass({
     displayName: 'Search',
 
     mixins: [_reflux2['default'].ListenerMixin, _reactAddons2['default'].addons.LinkedStateMixin],
-    all_loans: [],
     getInitialState: function getInitialState() {
-        return { displayed_loans: [], ready_state: SEARCH_NOT_READY };
+        return { filtered_loans: _apiLoans.loans_from_kiva, loan_count: _apiLoans.loans_from_kiva.length };
     },
     componentDidMount: function componentDidMount() {
         var _this = this;
 
+        //initial state works when flipping to Search after stuff is loaded. listenTo works when it's waiting
+        //it should only fetch loans that are filtered.
         this.listenTo(_actions.loanActions.load.completed, function (loans) {
             console.log("listen:loanActions.load.completed");
             if (loans) {
-                _this.all_loans = loans;
-                _this.setState({ displayed_loans: loans, loan_count: loans.length, ready_state: SEARCH_READY });
+                _this.setState({ filtered_loans: loans, loan_count: loans.length });
             }
         });
-        _actions.loanActions.load();
+        this.listenTo(_actions.criteriaActions.change, this.performSearch);
     },
-    performSearch: function performSearch(e) {
-        e.preventDefault();
-        //break this into another unit
-        var search_text = this.state.search_text;
+    performSearch: function performSearch(c) {
+        //break this into another unit --store? LoansAPI.filter(loans, criteria)
+        var search_text = c.search_text;
         if (search_text) search_text = search_text.toUpperCase();
         //console.log("search_text:",search_text)
-        var loans = this.all_loans.where(function (l) {
-            return l.name.toUpperCase().indexOf(search_text) >= 0 || l.location.country.toUpperCase().indexOf(search_text) >= 0 || l.sector.toUpperCase().indexOf(search_text) >= 0 || l.activity.toUpperCase().indexOf(search_text) >= 0;
+        var loans = _apiLoans.loans_from_kiva;
+
+        if (search_text) {
+            loans = loans.where(function (l) {
+                return l.name.toUpperCase().indexOf(search_text) >= 0 || l.location.country.toUpperCase().indexOf(search_text) >= 0 || l.sector.toUpperCase().indexOf(search_text) >= 0 || l.activity.toUpperCase().indexOf(search_text) >= 0;
+            });
+        }
+        if (c.use) loans = loans.where(function (l) {
+            return l.use.toUpperCase().indexOf(c.use.toUpperCase()) >= 0;
         });
-        this.setState({ displayed_loans: loans, loan_count: loans.length });
+        if (c.country) loans = loans.where(function (l) {
+            return l.location.country.toUpperCase().indexOf(c.country.toUpperCase()) >= 0;
+        });
+        if (c.sector) loans = loans.where(function (l) {
+            return l.sector.toUpperCase().indexOf(c.sector.toUpperCase()) >= 0;
+        });
+        if (c.activity) loans = loans.where(function (l) {
+            return l.activity.toUpperCase().indexOf(c.activity.toUpperCase()) >= 0;
+        });
+        if (c.name) loans = loans.where(function (l) {
+            return l.name.toUpperCase().indexOf(c.name.toUpperCase()) >= 0;
+        });
+        this.setState({ filtered_loans: loans, loan_count: loans.length });
     },
     render: function render() {
         console.log("Search:render()");
         var style = { height: '100%', width: '100%' };
         //var response = {"paging":{"page":1,"total":7460,"page_size":20,"pages":373},"loans":[{"id":942930,"name":"Nigube","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971310,"template_id":1},"activity":"Clothing","sector":"Clothing","use":"to purchase bales of clothes for resale","location":{"country_code":"KE","country":"Kenya","town":"Tiribe","geo":{"level":"town","pairs":"1 38","type":"point"}},"partner_id":164,"posted_date":"2015-09-06T16:50:09Z","planned_expiration_date":"2015-10-06T16:50:09Z","loan_amount":100,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":943097,"name":"German","description":{"languages":["es","en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971598,"template_id":1},"activity":"Furniture Making","sector":"Manufacturing","use":"to buy wood, nails, a handsaw, a hammer, among other materials.","location":{"country_code":"NI","country":"Nicaragua","town":"Rivas","geo":{"level":"town","pairs":"11.3 -85.75","type":"point"}},"partner_id":176,"posted_date":"2015-09-06T16:50:09Z","planned_expiration_date":"2015-10-06T16:50:09Z","loan_amount":375,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":943226,"name":"Sokkhom","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1970897,"template_id":1},"activity":"Home Energy","sector":"Personal Use","themes":["Green"],"use":"to pay for solar home system.","location":{"country_code":"KH","country":"Cambodia","town":"Achen Village, Kampong Cham Commune, Sambo Distric","geo":{"level":"town","pairs":"13 105","type":"point"}},"partner_id":407,"posted_date":"2015-09-06T16:50:09Z","planned_expiration_date":"2015-10-06T16:50:09Z","loan_amount":650,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":false,"tags":[]},{"id":942926,"name":"Ali","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1970951,"template_id":1},"activity":"Electronics Repair","sector":"Services","themes":["Rural Exclusion"],"use":"to buy spare parts for use in his mechanic's workshop.","location":{"country_code":"UG","country":"Uganda","town":"Bundibugyo","geo":{"level":"town","pairs":"2 33","type":"point"}},"partner_id":163,"posted_date":"2015-09-06T16:50:07Z","planned_expiration_date":"2015-10-06T16:50:07Z","loan_amount":125,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":942927,"name":"Amadan","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1970941,"template_id":1},"activity":"General Store","sector":"Retail","themes":["Rural Exclusion"],"use":"to buy general merchadise such as salt, rice, maize flour and soap to sell.","location":{"country_code":"UG","country":"Uganda","town":"Bundibugyo","geo":{"level":"town","pairs":"2 33","type":"point"}},"partner_id":163,"posted_date":"2015-09-06T16:50:07Z","planned_expiration_date":"2015-10-06T16:50:07Z","loan_amount":700,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":942928,"name":"Harutyun","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971307,"template_id":1},"activity":"Education provider","sector":"Education","use":"to pay for that courses which will significantly help him in his teaching process and he will also buy some professional literature","location":{"country_code":"AM","country":"Armenia","town":"Vanadzor","geo":{"level":"town","pairs":"40 45","type":"point"}},"partner_id":146,"posted_date":"2015-09-06T16:50:05Z","planned_expiration_date":"2015-10-06T16:50:04Z","loan_amount":875,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":false,"tags":[]},{"id":943231,"name":"Jonalyn","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971728,"template_id":1},"activity":"Farming","sector":"Agriculture","use":"to buy fertilizers and other farm supplies","location":{"country_code":"PH","country":"Philippines","town":"Dumarao, Capiz","geo":{"level":"town","pairs":"13 122","type":"point"}},"partner_id":145,"posted_date":"2015-09-06T16:50:04Z","planned_expiration_date":"2015-10-06T16:50:04Z","loan_amount":325,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":943232,"name":"Elsa","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971729,"template_id":1},"activity":"General Store","sector":"Retail","use":"to buy items to sell like canned goods, beverages, personal care products, and other groceries.","location":{"country_code":"PH","country":"Philippines","town":"Cordova, Cebu","geo":{"level":"town","pairs":"13 122","type":"point"}},"partner_id":145,"posted_date":"2015-09-06T16:50:04Z","planned_expiration_date":"2015-10-06T16:50:04Z","loan_amount":300,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":943233,"name":"Evelyn","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971731,"template_id":1},"activity":"Pigs","sector":"Agriculture","use":"to buy feeds and other supplies to raise her pig","location":{"country_code":"PH","country":"Philippines","town":"Dumarao, Capiz","geo":{"level":"town","pairs":"13 122","type":"point"}},"partner_id":145,"posted_date":"2015-09-06T16:50:04Z","planned_expiration_date":"2015-10-06T16:50:04Z","loan_amount":200,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":943234,"name":"Jeason","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971733,"template_id":1},"activity":"Crafts","sector":"Arts","use":"to buy shell covers, thread, and other materials needed in her business.","location":{"country_code":"PH","country":"Philippines","town":"Cordova, Cebu","geo":{"level":"town","pairs":"13 122","type":"point"}},"partner_id":145,"posted_date":"2015-09-06T16:50:04Z","planned_expiration_date":"2015-10-06T16:50:04Z","loan_amount":400,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":943235,"name":"Imelda","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971735,"template_id":1},"activity":"Farming","sector":"Agriculture","use":"to buy fertilizers and other farm supplies","location":{"country_code":"PH","country":"Philippines","town":"Dumarao, Capiz","geo":{"level":"town","pairs":"13 122","type":"point"}},"partner_id":145,"posted_date":"2015-09-06T16:50:04Z","planned_expiration_date":"2015-10-06T16:50:04Z","loan_amount":275,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":943236,"name":"Marian","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971738,"template_id":1},"activity":"Crafts","sector":"Arts","use":"to buy shell covers and other supplies to use in her business.","location":{"country_code":"PH","country":"Philippines","town":"Cordova, Cebu","geo":{"level":"town","pairs":"13 122","type":"point"}},"partner_id":145,"posted_date":"2015-09-06T16:50:04Z","planned_expiration_date":"2015-10-06T16:50:04Z","loan_amount":325,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":943224,"name":"Seng Hong","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1970910,"template_id":1},"activity":"Home Energy","sector":"Personal Use","themes":["Green"],"use":"to pay for solar home system","location":{"country_code":"KH","country":"Cambodia","town":"Achen Village, Kampong Cham Commune, Sambo Distric","geo":{"level":"town","pairs":"13 105","type":"point"}},"partner_id":407,"posted_date":"2015-09-06T16:40:04Z","planned_expiration_date":"2015-10-06T16:40:04Z","loan_amount":650,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":false,"tags":[]},{"id":943225,"name":"Vanna","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1970901,"template_id":1},"activity":"Home Energy","sector":"Personal Use","themes":["Green"],"use":"to pay for solar home system.","location":{"country_code":"KH","country":"Cambodia","town":"Achen Village, Kampong Cham Commune, Sambo Distric","geo":{"level":"town","pairs":"13 105","type":"point"}},"partner_id":407,"posted_date":"2015-09-06T16:40:04Z","planned_expiration_date":"2015-10-06T16:40:04Z","loan_amount":650,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":false,"tags":[]},{"id":943229,"name":"Arlene","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971725,"template_id":1},"activity":"Crafts","sector":"Arts","use":"to buy more shells and other supplies to use in her business.","location":{"country_code":"PH","country":"Philippines","town":"Cordova, Cebu","geo":{"level":"town","pairs":"13 122","type":"point"}},"partner_id":145,"posted_date":"2015-09-06T16:40:03Z","planned_expiration_date":"2015-10-06T16:40:03Z","loan_amount":350,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":943230,"name":"Belinda","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1971726,"template_id":1},"activity":"Charcoal Sales","sector":"Retail","use":"to buy more sacks of charcoal to sell","location":{"country_code":"PH","country":"Philippines","town":"Dumarao, Capiz","geo":{"level":"town","pairs":"13 122","type":"point"}},"partner_id":145,"posted_date":"2015-09-06T16:40:03Z","planned_expiration_date":"2015-10-06T16:40:03Z","loan_amount":125,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":true,"tags":[]},{"id":943220,"name":"Phallen","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1970928,"template_id":1},"activity":"Home Energy","sector":"Personal Use","themes":["Green"],"use":"to pay for a solar home system.","location":{"country_code":"KH","country":"Cambodia","town":"Achen Village, Kampong Cham Commune, Sambo Distric","geo":{"level":"town","pairs":"13 105","type":"point"}},"partner_id":407,"posted_date":"2015-09-06T16:30:05Z","planned_expiration_date":"2015-10-06T16:30:04Z","loan_amount":650,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":false,"tags":[]},{"id":943221,"name":"Sokh Neat","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1970921,"template_id":1},"activity":"Home Energy","sector":"Personal Use","themes":["Green"],"use":"to pay for a solar home system.","location":{"country_code":"KH","country":"Cambodia","town":"Achen Village, Kampong Cham Commune, Sambo Distric","geo":{"level":"town","pairs":"13 105","type":"point"}},"partner_id":407,"posted_date":"2015-09-06T16:30:05Z","planned_expiration_date":"2015-10-06T16:30:05Z","loan_amount":650,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":false,"tags":[]},{"id":943223,"name":"Sophal","description":{"languages":["en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1970917,"template_id":1},"activity":"Home Energy","sector":"Personal Use","themes":["Green"],"use":"to pay for a solar home system.","location":{"country_code":"KH","country":"Cambodia","town":"Achen Village, Kampong Cham Commune, Sambo Distric","geo":{"level":"town","pairs":"13 105","type":"point"}},"partner_id":407,"posted_date":"2015-09-06T16:30:05Z","planned_expiration_date":"2015-10-06T16:30:05Z","loan_amount":650,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":false,"tags":[]},{"id":941021,"name":"Essi","description":{"languages":["fr","en"]},"status":"fundraising","funded_amount":0,"basket_amount":0,"image":{"id":1968716,"template_id":1},"activity":"Home Products Sales","sector":"Retail","use":"to buy five dozen platters and five dozen cups.","location":{"country_code":"TG","country":"Togo","town":"Tokoin","geo":{"level":"town","pairs":"8 1.166667","type":"point"}},"partner_id":296,"posted_date":"2015-09-06T16:30:04Z","planned_expiration_date":"2015-10-06T16:30:04Z","loan_amount":100,"borrower_count":1,"lender_count":0,"bonus_credit_eligibility":false,"tags":[]}]}
-        var modal;
-        if (this.state.ready_state == SEARCH_NOT_READY) //will be this when switching back to this page.
-            modal = _reactAddons2['default'].createElement(_.LoadingLoansModal, { show: true });
+        var modal = _reactAddons2['default'].createElement(_.LoadingLoansModal, { show: _apiLoans.loans_from_kiva.length == 0 });
         return _reactAddons2['default'].createElement(
             _reactBootstrap.Grid,
             { style: style, fluid: true },
@@ -43509,19 +43657,14 @@ var Search = _reactAddons2['default'].createClass({
                 _reactBootstrap.Col,
                 { md: 4 },
                 _reactAddons2['default'].createElement(
-                    _reactBootstrap.Row,
+                    'span',
                     null,
-                    _reactAddons2['default'].createElement(_reactBootstrap.Input, { type: 'text', label: 'Search', labelClassName: 'col-md-2', wrapperClassName: 'col-md-6', valueLink: this.linkState('search_text'), onKeyUp: this.performSearch }),
-                    _reactAddons2['default'].createElement(
-                        'span',
-                        null,
-                        'Count: ',
-                        this.state.loan_count
-                    )
+                    'Count: ',
+                    this.state.loan_count
                 ),
                 _reactAddons2['default'].createElement(_reactInfiniteList2['default'], {
                     className: 'loan_list_container',
-                    items: this.state.displayed_loans,
+                    items: this.state.filtered_loans,
                     height: 600,
                     itemHeight: 100,
                     listItemClass: _.LoanListItem
@@ -43538,7 +43681,7 @@ var Search = _reactAddons2['default'].createClass({
 
 module.exports = Search;
 
-},{".":484,"../actions":468,"../stores/loanStore":485,"linqjs":3,"react-bootstrap":75,"react-infinite-list":233,"react/addons":276,"reflux":465}],484:[function(require,module,exports){
+},{".":485,"../actions":468,"../api/loans":469,"../stores/loanStore":487,"react-bootstrap":75,"react-infinite-list":233,"react/addons":276,"reflux":465}],485:[function(require,module,exports){
 'use strict';
 
 //PAGES
@@ -43600,6 +43743,10 @@ var _LoadingLoansModalJsx = require('./LoadingLoansModal.jsx');
 
 var _LoadingLoansModalJsx2 = _interopRequireDefault(_LoadingLoansModalJsx);
 
+var _CriteriaJsx = require('./Criteria.jsx');
+
+var _CriteriaJsx2 = _interopRequireDefault(_CriteriaJsx);
+
 //when mistakenly importing without {}'s around variable name. prevents obscure errors.
 
 var _CatchNoCurliesJsx = require('./CatchNoCurlies.jsx');
@@ -43619,8 +43766,43 @@ exports.KLNav = _KLNavJsx2['default'];
 exports.KLFooter = _KLFooterJsx2['default'];
 exports.LoadingLoansModal = _LoadingLoansModalJsx2['default'];
 exports.LoanListItem = _LoanListItemJsx2['default'];
+exports.Criteria = _CriteriaJsx2['default'];
 
-},{"./About.jsx":471,"./Basket.jsx":472,"./CatchNoCurlies.jsx":473,"./Details.jsx":474,"./KLFooter.jsx":475,"./KLNav.jsx":476,"./LoadingLoansModal.jsx":477,"./Loan.jsx":478,"./LoanListItem.jsx":479,"./NotFound.jsx":480,"./Options.jsx":481,"./Schedule.jsx":482,"./Search.jsx":483}],485:[function(require,module,exports){
+},{"./About.jsx":471,"./Basket.jsx":472,"./CatchNoCurlies.jsx":473,"./Criteria.jsx":474,"./Details.jsx":475,"./KLFooter.jsx":476,"./KLNav.jsx":477,"./LoadingLoansModal.jsx":478,"./Loan.jsx":479,"./LoanListItem.jsx":480,"./NotFound.jsx":481,"./Options.jsx":482,"./Schedule.jsx":483,"./Search.jsx":484}],486:[function(require,module,exports){
+'use strict';
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _reflux = require('reflux');
+
+var _reflux2 = _interopRequireDefault(_reflux);
+
+var _actions = require('../actions');
+
+var criteriaStore = _reflux2['default'].createStore({
+    listenables: [_actions.criteriaActions],
+    last_known: {},
+    init: function init() {
+        console.log("criteriaStore:init");
+        //load from local storage.
+    },
+    onChange: function onChange(criteria) {
+        console.log("criteriaStore:onChange", criteria);
+        this.last_known = criteria;
+    },
+    onGetLast: function onGetLast() {
+        console.log("criteriaStore:onGetLast");
+        _actions.criteriaActions.getLast.completed(this.last_known);
+        _actions.criteriaActions.change(this.last_known);
+    }
+});
+
+exports.criteriaStore = criteriaStore;
+
+},{"../actions":468,"reflux":465}],487:[function(require,module,exports){
 'use strict';
 Object.defineProperty(exports, '__esModule', {
     value: true
@@ -43641,6 +43823,7 @@ var loanStore = _reflux2['default'].createStore({
     listenables: [_actions.loanActions],
     init: function init() {
         console.log("loanStore:init");
+        _actions.loanActions.load();
     },
     onLoad: function onLoad(options) {
         console.log("LoanAPI:onLoad");

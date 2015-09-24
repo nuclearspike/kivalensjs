@@ -9,10 +9,12 @@
 .loan_list_item {
   height: 100px;
   width: 100%;
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  overflow-y: hidden;
   img {
     margin-right: 5px;
     margin-left: -20px;
-    margin-top: -12px;
   }
   .details {
     width: 305px;

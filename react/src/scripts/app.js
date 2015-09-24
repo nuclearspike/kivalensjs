@@ -1,9 +1,10 @@
 'use strict'
 
+require('linqjs')
 import React from 'react'
 import Router from 'react-router'
 import {Route, Redirect, IndexRoute} from 'react-router';
-import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, NotFound} from "./components";
+import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, Criteria, NotFound} from "./components";
 
 class App extends React.Component {
     render(){
@@ -25,6 +26,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
                         <IndexRoute component={Details}/>
                         <Route path="schedule" component={Schedule}/>
                     </Route>
+                    <IndexRoute component={Criteria}/>
                 </Route>
                 <Route path="basket" component={Basket}/>
                 <Route path="options" component={Options}/>
@@ -34,4 +36,4 @@ document.addEventListener("DOMContentLoaded", function(event) {
             </Route>
         </Router>), document.getElementById("body"))
     }
-}); //<NotFoundRoute component={NotFound}/>
+});

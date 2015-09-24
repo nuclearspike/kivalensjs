@@ -16,6 +16,7 @@ import KLFooter from './KLFooter.jsx';
 //import LoanListContainer from './LoanListContainer.jsx';
 import LoanListItem from './LoanListItem.jsx';
 import LoadingLoansModal from './LoadingLoansModal.jsx'
+import Criteria from './Criteria.jsx'
 
 //when mistakenly importing without {}'s around variable name. prevents obscure errors.
 import CatchNoCurlies from './CatchNoCurlies.jsx';
@@ -23,4 +24,4 @@ import CatchNoCurlies from './CatchNoCurlies.jsx';
 export default CatchNoCurlies;
 
 export {Search, Details, Loan, NotFound, Schedule, About, Basket, Options,
-    KLNav, KLFooter, LoadingLoansModal, LoanListItem}
+    KLNav, KLFooter, LoadingLoansModal, LoanListItem, Criteria}

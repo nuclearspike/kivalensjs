@@ -8,6 +8,7 @@ var loanStore = Reflux.createStore({
     listenables: [loanActions],
     init:function(){
         console.log("loanStore:init")
+        loanActions.load();
     },
     onLoad:(options)=>{
         console.log("LoanAPI:onLoad")
