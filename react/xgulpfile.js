@@ -73,6 +73,45 @@ gulp.task('server', function() {
         }));
 });
 
+/**
+ * "browserify": {
+    "transform": [
+      "browserify-shim"
+    ]
+  },
+ "browserify-shim": {
+    "react": "global:React",
+    "react/addons": "global:React",
+    "react-bootstrap": "global:ReactBootstrap",
+    "reflux": "global:Reflux"
+  },
+ */
+
+/**
+ * "transform": [
+ "browserify-shim"
+ ]
+ *
+ * "react": "^0.13.3",
+ * "react-bootstrap": "^0.25.2",
+ *
+ "browserify-shim": {
+    "jquery": "$",
+        "react": "global:React",
+        "react-bootstrap": "global:ReactBootstrap",
+        "react-router": "global:ReactRouter",
+        "reflux": "global:Reflux"
+},**/
+
+/**
+ var libs = {
+    "react": "window.React",
+    "react/addons": "window.React",
+    "react-bootstrap": "window.ReactBootstrap",
+    "reflux": "window.Reflux"
+}; **/
+
+//.transform(literalify.configure(libs))
 
 notify("Restarted...");
 

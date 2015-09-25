@@ -12,7 +12,7 @@ var browserSync = require('browser-sync');
 
 var browserify = require('browserify');
 var watchify = require('watchify');
-var notify = require("gulp-notify");
+var notifier = require('node-notifier');
 var babelify = require('babelify');
 var sourcemaps = require('gulp-sourcemaps');
 var source = require('vinyl-source-stream');
@@ -23,35 +23,7 @@ var ftp = require( 'vinyl-ftp' );
 var argv = require('yargs').argv,
     gulpif = require('gulp-if');
 
-/**
- * "browserify": {
-    "transform": [
-      "browserify-shim"
-    ]
-  },
- "browserify-shim": {
-    "react": "global:React",
-    "react/addons": "global:React",
-    "react-bootstrap": "global:ReactBootstrap",
-    "reflux": "global:Reflux"
-  },
- */
-
-/**
- * "transform": [
- "browserify-shim"
- ]
- *
- * "react": "^0.13.3",
- * "react-bootstrap": "^0.25.2",
- *
-"browserify-shim": {
-    "jquery": "$",
-        "react": "global:React",
-        "react-bootstrap": "global:ReactBootstrap",
-        "react-router": "global:ReactRouter",
-        "reflux": "global:Reflux"
-},**/
+var production = false; //todo: find what node production environment settings do.
 
 gulp.task('browser-sync', function() {
   browserSync({
@@ -68,6 +40,7 @@ gulp.task('bs-reload', function () {
 });
 
 gulp.task('styles', function(){
+  notifier.notify({title: 'Gulp', message: 'Styles changed'});
   gulp.src(['src/styles/**/*.scss'])
     .pipe(plumber({
       errorHandler: function (error) {
@@ -76,24 +49,13 @@ gulp.task('styles', function(){
     }}))
     .pipe(sass())
     //.pipe(postcss([autoprefixer]).process())
-    .pipe(autoprefixer('last 2 versions'))
+    .pipe(gulpif(production, autoprefixer('last 2 versions')))
     .pipe(gulp.dest('css/'))
     .pipe(rename({suffix: '.min'}))
-    .pipe(minifycss())
+    .pipe(gulpif(production, minifycss())) //skip minification, it still goes into the .min unminified if non-prod
     .pipe(gulp.dest('css/'))
     .pipe(browserSync.reload({stream:true}))
 });
-
-/**
-var libs = {
-    "react": "window.React",
-    "react/addons": "window.React",
-    "react-bootstrap": "window.ReactBootstrap",
-    "reflux": "window.Reflux"
-}; **/
-
-//.transform(literalify.configure(libs))
-var production = false;
 
 function compile(watch) {
     var bundler = browserify('./src/scripts/app.js',
@@ -108,13 +70,12 @@ function compile(watch) {
     function rebundle() {
         bundler.bundle()
             .on('error', function(err) {
-                notify('An error occurred during building. Check the console for details.');
+                notifier.notify({title: 'Gulp', message: 'An error occurred during building. Check the console for details. ' + err});
                 console.error(err); this.emit('end');
             })
             .pipe(source('build.js'))
             .pipe(buffer())
-            .pipe(gulpif(production, uglify()))
-            //.pipe(uglify({output: {ascii_only:true}}))
+            .pipe(gulpif(production, uglify({output: {ascii_only:true}})))
             .pipe(sourcemaps.init({ loadMaps: true }))
             .pipe(sourcemaps.write('./'))
             .pipe(gulp.dest('./javascript'))
@@ -124,22 +85,18 @@ function compile(watch) {
     if (watch) {
         console.log('watching for changes...');
         bundler.on('update', function() {
-            notify("Change Detected");
+            notifier.notify({title: 'Gulp', message: "Change Detected"});
             console.log('-> change:bundling...');
             rebundle();
+            notifier.notify({title: 'Gulp', message: "Done"});
             console.log('-> done.');
             console.log('waiting...');
-            notify("Done");
         });
     }
-
     rebundle();
 }
 
-gulp.task( 'deploy', function () {
-    //build with production flag
-    production = true
-    compile(false)
+gulp.task('upload', function(){
     var conn = ftp.create( {
         host:     'ftp.nuclearspike.com',
         user:     argv.u,
@@ -156,19 +113,35 @@ gulp.task( 'deploy', function () {
 
     // using base = '.' will transfer everything to /public_html correctly
     // turn off buffering in gulp.src for best performance
-
     return gulp.src( globs, { base: '.', buffer: false } )
         .pipe( conn.newer( '/kivalens_org/react' ) ) // only upload newer files
         .pipe( conn.dest( '/kivalens_org/react' ) );
+})
 
-} );
+gulp.task("production", function(){
+    console.log("SWITCHING TO PRODUCTION MODE")
+    production = true
+})
 
-///
-///kivalens_org/react
+//SERVER
+gulp.task('s', function() {
+    var webserver = require('gulp-webserver');
+    gulp.src('./')
+        .pipe(webserver({
+            fallback: 'index.html',
+            livereload: true,
+            open: true,
+            enable: true
+        }));
+});
 
 gulp.task('scripts', function() { return compile(false); });
 
+//deploy~: gulp d --u 'gjgjgjg' --pw djfjffj
+gulp.task('d', ['production','styles','scripts','upload']);
+
 gulp.task('default', ['styles','scripts', 'browser-sync'], function(){
+  notifier.notify({title: 'Gulp', message: 'Watching for changes'})
   gulp.watch("src/styles/**/*.scss", ['styles']);
   gulp.watch("src/scripts/**/*.jsx", ['scripts']);
   gulp.watch("src/scripts/**/*.js", ['scripts']);
