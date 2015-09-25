@@ -84,12 +84,14 @@ gulp.task('styles', function(){
     .pipe(browserSync.reload({stream:true}))
 });
 
+/**
 var libs = {
     "react": "window.React",
     "react/addons": "window.React",
     "react-bootstrap": "window.ReactBootstrap",
     "reflux": "window.Reflux"
-};
+}; **/
+
 //.transform(literalify.configure(libs))
 var production = false;
 
@@ -140,7 +142,7 @@ gulp.task( 'deploy', function () {
     compile(false)
     var conn = ftp.create( {
         host:     'ftp.nuclearspike.com',
-        user:     '0099798|nuclearspik',
+        user:     argv.u,
         password: argv.pw,
         parallel: 10,
         log:      gutil.log

@@ -20,4 +20,4 @@ class KLNav extends React.Component {
     }
 }
 
-module.exports = KLNav;
+export default KLNav;
