@@ -1,14 +1,17 @@
-import React from 'react/addons';
+import React from 'react';
 import Reflux from 'reflux'
 import {loanActions} from '../actions'
 import Highcharts from 'react-highcharts'
-import {Row} from 'react-bootstrap';
+import {Collapse,Well} from 'react-bootstrap';
 
 //var timeoutHandle = null;
 const ChartDistribution = React.createClass({
-    mixins: [Reflux.ListenerMixin, React.addons.LinkedStateMixin],
+    mixins: [Reflux.ListenerMixin],
+    getDefaultProps: function(){
+        return {open: true}
+    },
     getInitialState: function () {
-        return {}
+        return {open: this.props.open}
     },
     componentDidMount: function () {
         this.listenTo(loanActions.filter.completed, this.redoCharts)
@@ -55,7 +58,7 @@ const ChartDistribution = React.createClass({
                 {
                     type: 'pie',
                     name: 'Countries',
-                    center: ["10%", "50%"],
+                    center: ["15%", "50%"],
                     innerSize: '70%',
                     data: []
                 },
@@ -69,33 +72,35 @@ const ChartDistribution = React.createClass({
                 {
                     type: 'pie',
                     name: 'Activities',
-                    center: ["90%", "50%"],
+                    center: ["85%", "50%"],
                     innerSize: '70%',
                     data: []
                 }]
         }
+        loanActions.filter()
         return result;
     },
     redoCharts: function(loans){
         //console.log("Criteria.redoCharts()",loans)
-        //clearTimeout(timeoutHandle);
-        //timeoutHandle =setTimeout(()=>{
-            console.log("Criteria.redoCharts():timeout()")
-            let chart = this.refs.chart.getChart();
-            var countryData  = loans.groupBy(l=>{return l.location.country}).map(g=>{return {name: g[0].location.country, y: g.length}})
-            var sectorData   = loans.groupBy(l=>{return l.sector}).map(g=>{ return {name: g[0].sector, y: g.length}})
-            var activityData = loans.groupBy(l=>{return l.activity}).map(g=>{return {name: g[0].activity, y: g.length}})
-            chart.series[0].setData(countryData)
-            chart.series[1].setData(sectorData)
-            chart.series[2].setData(activityData)
-        //}, 20)
+        console.log("Criteria.redoCharts():timeout()")
+        let chart = this.refs.chart.getChart();
+        var countryData  = loans.groupBy(l=>{return l.location.country}).map(g=>{return {name: g[0].location.country, y: g.length}})
+        var sectorData   = loans.groupBy(l=>{return l.sector}).map(g=>{ return {name: g[0].sector, y: g.length}})
+        var activityData = loans.groupBy(l=>{return l.activity}).map(g=>{return {name: g[0].activity, y: g.length}})
+        chart.series[0].setData(countryData)
+        chart.series[1].setData(sectorData)
+        chart.series[2].setData(activityData)
     },
     render: function () {
         return (
-            <Row style={{height:'200px'}} >
-                <Highcharts style={{height: '200px'}} config={this.produceChart()} ref='chart' />
-            </Row>
-        );
+            <Collapse in={this.props.open}>
+                <div>
+                    <Well>
+                        <Highcharts style={{height: '200px'}} config={this.produceChart()} ref='chart' />
+                    </Well>
+                </div>
+            </Collapse>
+                   );
     }
 })
 

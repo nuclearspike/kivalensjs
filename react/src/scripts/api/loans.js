@@ -1,7 +1,5 @@
 'use strict';
 
-var loans_from_kiva = []
-
 //turns {json: 'object'} into ?json=object
 function serialize(obj, prefix) {
     var str = [];
@@ -107,11 +105,8 @@ class LoanAPI {
 
         concurrent_current = 1;
         local_this.getLoans(options).done(process)
-        $def.done(loans=>{
-            loans_from_kiva = loans;
-        })
         return $def
     }
 }
 
-export {LoanAPI, loans_from_kiva}
+export {LoanAPI}

@@ -14,7 +14,6 @@ import Criteria from './Criteria.jsx'
 //COMPONENTS
 import KLNav from './KLNav.jsx';
 import KLFooter from './KLFooter.jsx';
-//import LoanListContainer from './LoanListContainer.jsx';
 import LoanListItem from './LoanListItem.jsx';
 import LoadingLoansModal from './LoadingLoansModal.jsx'
 import KivaImage from './KivaImage.jsx'

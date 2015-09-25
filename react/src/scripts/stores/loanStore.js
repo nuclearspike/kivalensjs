@@ -14,13 +14,13 @@ var loanStore = Reflux.createStore({
     onLoad: function(options) {
         console.log("LoanAPI:onLoad")
 
+        //we already have the loans, just spit them back.
         if (loans_from_kiva.length > 0){
             loanActions.load.completed(loans_from_kiva);
             return;
         }
 
-        if (!options)
-            options = {}
+        options = options || {}
 
         //options.region = 'af'
         LoanAPI.getAllLoans(options)
@@ -77,7 +77,8 @@ var loanStore = Reflux.createStore({
             //'%': (word)=>{return new RegEx()}, //word like
             '-': (word)=>{return new RegExp()}, //does not have word
             '~': (word)=>{return new RegExp()}, //word contains
-            '' : (word)=>{return new RegExp()} //word starts with
+            '=' : (word)=>{return new RegExp()} //exact "rose" wouldn't return rosenda
+            //word starts with
         }
 
         var testForText = function(field, search){

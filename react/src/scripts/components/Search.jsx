@@ -18,14 +18,12 @@ var Search = React.createClass({
         //initial state works when flipping to Search after stuff is loaded. listenTo works when it's waiting
         //it should only fetch loans that are filtered.
         this.listenTo(loanActions.filter.completed, loans => {
-            //console.log("Search!!!!! listen:loanActions.filter.completed", loans)
             if (loans){
                 this.setState({filtered_loans: loans, loan_count: loans.length})
             }
         })
         //if we enter the page and loans are not done yet.
         this.listenTo(loanActions.load.completed, loans => {
-            //console.log("Search!!!!! listen:loanActions.load.completed")
             loanActions.filter()
         })
         loanActions.filter() //triggers the graphs.

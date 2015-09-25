@@ -9,17 +9,21 @@
   "author": "Paul Ericksen",
   "license": "ISC",
   "devDependencies": {
-    "browserify": "*",
     "browser-sync": "2.6.5",
+    "browserify": "*",
     "gulp": "^3.9.0",
     "gulp-autoprefixer": "2.1.0",
     "gulp-concat": "2.5.2",
+    "gulp-if": "^1.2.5",
     "gulp-jshint": "1.10.0",
     "gulp-minify-css": "1.0.0",
     "gulp-plumber": "1.0.0",
     "gulp-rename": "1.2.2",
     "gulp-sass": "1.3.3",
-    "gulp-uglify": "1.2.0"
+    "gulp-uglify": "1.2.0",
+    "gulp-util": "^3.0.6",
+    "vinyl-ftp": "^0.4.5",
+    "yargs": "^3.26.0"
   },
   "dependencies": {
     "classnames": "^2.1.3",

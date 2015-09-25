@@ -5,25 +5,26 @@ import {criteriaStore} from '../stores/criteriaStore'
 import {Grid,Row,Col,Input,Button,Tabs,Tab} from 'react-bootstrap';
 import {ChartDistribution} from '.'
 
+var timeoutHandle=0
 const Criteria = React.createClass({
     mixins: [Reflux.ListenerMixin],
     getInitialState: function() {
         console.log("Criteria.getInitialState()")
-        return {}
+        return {show_graphs: true}
     },
     componentDidMount: function() {
         console.log("Criteria.componentDidMount()")
         this.setState(criteriaStore.syncGetLast)
     },
     criteriaChanged: function() {
-        criteriaActions.change(this.getRefs())
+        clearTimeout(timeoutHandle);
+        timeoutHandle = setTimeout(()=> {
+            criteriaActions.change(this.getRefs())
+        }, 150)
     },
     clearCriteria: function(){
         this.replaceState({})
         criteriaActions.change({})
-    },
-    setRefs: function(state){
-        this.setState(state)
     },
     getRefs: function(){
         return {
@@ -39,8 +40,8 @@ const Criteria = React.createClass({
         console.log("Criteria.render()")
         return (
             <div>
-                <h1>Criteria</h1>
-                <ChartDistribution/>
+                <h1>Criteria <Button onClick={ ()=> this.setState({ show_graphs: !this.state.show_graphs })}>Graphs</Button></h1>
+                <ChartDistribution open={this.state.show_graphs}/>
                 <Tabs defaultActiveKey={1}>
                     <Tab eventKey={1} title="General">
                         <Row>

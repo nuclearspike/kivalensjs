@@ -18,6 +18,10 @@ var sourcemaps = require('gulp-sourcemaps');
 var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var literalify = require('literalify');
+var gutil = require( 'gulp-util' );
+var ftp = require( 'vinyl-ftp' );
+var argv = require('yargs').argv,
+    gulpif = require('gulp-if');
 
 /**
  * "browserify": {
@@ -87,6 +91,7 @@ var libs = {
     "reflux": "window.Reflux"
 };
 //.transform(literalify.configure(libs))
+var production = false;
 
 function compile(watch) {
     var bundler = browserify('./src/scripts/app.js',
@@ -106,6 +111,7 @@ function compile(watch) {
             })
             .pipe(source('build.js'))
             .pipe(buffer())
+            .pipe(gulpif(production, uglify()))
             //.pipe(uglify({output: {ascii_only:true}}))
             .pipe(sourcemaps.init({ loadMaps: true }))
             .pipe(sourcemaps.write('./'))
@@ -127,6 +133,36 @@ function compile(watch) {
 
     rebundle();
 }
+
+gulp.task( 'deploy', function () {
+    //build with production flag
+    production = true
+    compile(false)
+    var conn = ftp.create( {
+        host:     'ftp.nuclearspike.com',
+        user:     '0099798|nuclearspik',
+        password: argv.pw,
+        parallel: 10,
+        log:      gutil.log
+    } );
+
+    var globs = [
+        'css/**',
+        'javascript/**',
+        'index.html'
+    ];
+
+    // using base = '.' will transfer everything to /public_html correctly
+    // turn off buffering in gulp.src for best performance
+
+    return gulp.src( globs, { base: '.', buffer: false } )
+        .pipe( conn.newer( '/kivalens_org/react' ) ) // only upload newer files
+        .pipe( conn.dest( '/kivalens_org/react' ) );
+
+} );
+
+///
+///kivalens_org/react
 
 gulp.task('scripts', function() { return compile(false); });
 
