@@ -2,6 +2,7 @@
 
 import React from 'react'
 import {ListGroupItem, Row} from 'react-bootstrap';
+import {KivaImage} from '.'
 
 class LoanListItem extends React.Component {
     render() {
@@ -11,8 +12,7 @@ class LoanListItem extends React.Component {
                 className="loan_list_item"
                 key={loan.id}
                 href={`/#/search/loan/${loan.id}`}>
-
-                <img className="float_left" src={`//s3-1.kiva.org/img/s113/${loan.image.id}.jpg`} height={90} width={90}/>
+                <KivaImage className="float_left" type="square" loan={loan} image_width={113} height={90} width={90}/>
                 <div className="float_left details">
                     <p>{loan.name}</p>
                     {loan.location.country} | {loan.sector} | {loan.activity}
@@ -25,4 +25,4 @@ class LoanListItem extends React.Component {
     }
 }
 
-module.exports = LoanListItem;
+export default LoanListItem;

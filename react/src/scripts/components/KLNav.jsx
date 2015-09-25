@@ -2,7 +2,7 @@
 
 import React from 'react'
 import {Link} from 'react-router';
-import {Navbar, Nav, NavItem} from 'react-bootstrap';
+import {Navbar, Nav, NavItem, Badge} from 'react-bootstrap';
 
 class KLNav extends React.Component {
     render() {
@@ -11,7 +11,7 @@ class KLNav extends React.Component {
             <Navbar brand={Brand} inverse={true} fluid={true}>
                 <Nav>
                     <NavItem key={1} href="/#/search">Search</NavItem>
-                    <NavItem key={2} href="/#/basket">Basket</NavItem>
+                    <NavItem key={2} href="/#/basket">Basket<Badge>0</Badge></NavItem>
                     <NavItem key={3} href="/#/options">Options</NavItem>
                     <NavItem key={4} href="/#/about">About</NavItem>
                 </Nav>

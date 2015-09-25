@@ -58,10 +58,11 @@ class LoanAPI {
         var loans = [];
         var pages_to_do = null;
         var local_this = this;
-        var concurrent_max =5; //15;
+        var concurrent_max = 8; //15;
         var concurrent_current = 0;
         var results = {};
         var result_loan_count = 0;
+
         var process = function(result){
             //if first time through... set up the list of things to do.
             console.log("process:start",result.paging)

@@ -9,6 +9,7 @@ import Schedule from './Schedule.jsx';
 import About from './About.jsx';
 import Basket from './Basket.jsx';
 import Options from './Options.jsx';
+import Criteria from './Criteria.jsx'
 
 //COMPONENTS
 import KLNav from './KLNav.jsx';
@@ -16,7 +17,8 @@ import KLFooter from './KLFooter.jsx';
 //import LoanListContainer from './LoanListContainer.jsx';
 import LoanListItem from './LoanListItem.jsx';
 import LoadingLoansModal from './LoadingLoansModal.jsx'
-import Criteria from './Criteria.jsx'
+import KivaImage from './KivaImage.jsx'
+import ChartDistribution from './ChartDistribution.jsx'
 
 //when mistakenly importing without {}'s around variable name. prevents obscure errors.
 import CatchNoCurlies from './CatchNoCurlies.jsx';
@@ -24,4 +26,5 @@ import CatchNoCurlies from './CatchNoCurlies.jsx';
 export default CatchNoCurlies;
 
 export {Search, Details, Loan, NotFound, Schedule, About, Basket, Options,
-    KLNav, KLFooter, LoadingLoansModal, LoanListItem, Criteria}
+    KLNav, KLFooter, LoadingLoansModal, LoanListItem, Criteria, KivaImage,
+    ChartDistribution}

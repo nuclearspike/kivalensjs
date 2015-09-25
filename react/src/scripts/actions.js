@@ -2,7 +2,8 @@
 import Reflux from 'reflux'
 
 var loanActions = Reflux.createActions({
-    "load": {children: ["progressed","completed","failed"]}
+    "load": {children: ["progressed","completed","failed"]},
+    "filter": {children: ["completed"]}
 });
 
 var criteriaActions = Reflux.createActions([
