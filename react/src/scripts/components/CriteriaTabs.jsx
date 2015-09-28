@@ -43,7 +43,6 @@ const CriteriaTabs = React.createClass({
                     <Row>
                         <Input type='text' label='Activity' labelClassName='col-md-2' wrapperClassName='col-md-6'  valueLink={this.linkState('activity')} onKeyUp={this.criteriaChanged} />
                     </Row>
-
                 </Tab>
                 <Tab eventKey={2} title="Partner">
                     Always Exclude list of IDs.

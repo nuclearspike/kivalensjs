@@ -49,7 +49,7 @@ gulp.task('styles', function(){
     }}))
     .pipe(sass())
     //.pipe(postcss([autoprefixer]).process())
-    .pipe(gulpif(production, autoprefixer('last 2 versions')))
+    .pipe(gulpif(production, autoprefixer('last 5 versions')))
     .pipe(gulp.dest('css/'))
     .pipe(rename({suffix: '.min'}))
     .pipe(gulpif(production, minifycss())) //skip minification, it still goes into the .min unminified if non-prod

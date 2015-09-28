@@ -2,39 +2,30 @@ import React from 'react';
 
 const KivaImage = React.createClass({
     getDefaultProps: function(){
-        return {
-            type : 'width'
-        }
+        return {type : 'width'}
     },
     render: function(){
         //if loan={loan} is set to a valid API loan object, it knows how to get the image id
-        var image_id;
-        if (this.props.loan){
-            image_id = this.props.loan.image.id
-        } else {
-            image_id = this.props.image_id
-        }
+        var image_id = (this.props.loan) ? this.props.loan.image.id : this.props.image_id
 
         //set width if width is not defined (?)
         if (this.props.image_width && !this.props.width){
             this.props.width = this.props.image_width
         }
 
-        //supports 'square' type else it defaults to 'width'
-        var image_dir;
-        if (this.props.type == 'square'){
-            image_dir = `s${this.props.image_width}`
-        } else {
-            image_dir = `w${this.props.image_width}`
-        }
+        var alt_text = (this.props.loan) ? this.props.loan.name : ''
 
+        //supports 'square' type else it defaults to 'width'
+        var image_dir = (this.props.type == 'square') ? `s${this.props.image_width}` : `w${this.props.image_width}`
+
+        //build the URL
         var image_url = `//s3-1.kiva.org/img/${image_dir}/${image_id}.jpg`;
 
-        return (<img {...this.props} src={image_url} />)
+        return (<img {...this.props} alt={alt_text} src={image_url} />)
     }
 })
 
-//optionally wrap it in a link?
+//optionally wrap it in a link? not exported at this time.
 const KivaThumbnail = React.createClass({
     render: function(){
         return (
