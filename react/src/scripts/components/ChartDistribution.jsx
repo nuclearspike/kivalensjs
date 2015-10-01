@@ -1,6 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux'
-import {loanActions} from '../actions'
+import a from '../actions'
 import Highcharts from 'react-highcharts'
 import {Collapse,Well} from 'react-bootstrap';
 
@@ -14,8 +14,8 @@ const ChartDistribution = React.createClass({
         return {open: this.props.open}
     },
     componentDidMount: function () {
-        this.listenTo(loanActions.filter.completed, this.redoCharts)
-        loanActions.filter()
+        this.listenTo(a.loans.filter.completed, this.redoCharts)
+        a.loans.filter()
     },
     produceChart: function(){
         var result;
@@ -77,7 +77,7 @@ const ChartDistribution = React.createClass({
                     data: []
                 }]
         }
-        loanActions.filter()
+        a.loans.filter()
         return result;
     },
     redoCharts: function(loans){

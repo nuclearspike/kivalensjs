@@ -1,22 +1,22 @@
 'use strict';
 import Reflux from 'reflux'
-import {LoanAPI} from '../api/loans'
-import {loanActions} from '../actions'
-import {criteriaStore} from './criteriaStore'
+import LoanAPI from '../api/loans'
+import a from '../actions'
+import criteriaStore from './criteriaStore'
 
 var loans_from_kiva = [];
 var loanStore = Reflux.createStore({
-    listenables: [loanActions],
+    listenables: [a.loans],
     init:function(){
         console.log("loanStore:init")
-        loanActions.load();
+        a.loans.load();
     },
     onLoad: function(options) {
-        console.log("LoanAPI:onLoad")
+        console.log("loanStore:onLoad")
 
         //we already have the loans, just spit them back.
         if (loans_from_kiva.length > 0){
-            loanActions.load.completed(loans_from_kiva);
+            a.loans.load.completed(loans_from_kiva);
             return;
         }
 
@@ -27,20 +27,20 @@ var loanStore = Reflux.createStore({
             .done(loans => {
                 //local_this.loans = loans;
                 loans_from_kiva = loans;
-                loanActions.load.completed(loans)
+                a.loans.load.completed(loans)
             })
             .progress(progress => {
                 console.log("progress:", progress)
-                loanActions.load.progressed(progress)
+                a.loans.load.progressed(progress)
             })
             .fail((result) =>{
-                loanActions.load.failed()
+                a.loans.load.failed()
             })
     },
 
     onFilter: function(c){
         //console.log("loanStore:onFilter:",c)
-        loanActions.filter.completed(this.syncFilterLoans(c))
+        a.loans.filter.completed(this.syncFilterLoans(c))
     },
 
     syncHasLoadedLoans: function(){
@@ -140,4 +140,4 @@ var loanStore = Reflux.createStore({
     }**/
 });
 
-export {loanStore}
+export default loanStore

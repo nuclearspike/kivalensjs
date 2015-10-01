@@ -1,8 +1,7 @@
 import React from 'react'
 import Reflux from 'reflux'
 import {Modal,ProgressBar} from 'react-bootstrap'
-import {loanActions} from '../actions'
-import {loanStore} from '../stores/loanStore'
+import a from '../actions'
 
 var LoadingLoansModal = React.createClass({
     mixins: [Reflux.ListenerMixin],
@@ -10,7 +9,8 @@ var LoadingLoansModal = React.createClass({
         return {progress_label: '', progress: 0, show: this.props.show}
     },
     componentDidMount: function() {
-        this.listenTo(loanActions.load.progressed, progress => {var new_state = {show: true}
+        this.listenTo(a.loans.load.progressed, progress => {
+            var new_state = {show: true}
             if (progress.type == 'percent')
                 new_state.progress = progress.percentage
             else if (progress.type == 'label')
@@ -43,6 +43,5 @@ var LoadingLoansModal = React.createClass({
         );
     }
 })
-
 
 module.exports = LoadingLoansModal;

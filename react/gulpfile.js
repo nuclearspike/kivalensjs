@@ -96,27 +96,6 @@ function compile(watch) {
     rebundle();
 }
 
-gulp.task('upload', function(){
-    var conn = ftp.create( {
-        host:     'ftp.nuclearspike.com',
-        user:     argv.u,
-        password: argv.pw,
-        parallel: 10,
-        log:      gutil.log
-    } );
-
-    var globs = [
-        'css/**',
-        'javascript/**',
-        'index.html'
-    ];
-
-    // using base = '.' will transfer everything to /public_html correctly
-    // turn off buffering in gulp.src for best performance
-    return gulp.src( globs, { base: '.', buffer: false } )
-        .pipe( conn.newer( '/kivalens_org/react' ) ) // only upload newer files
-        .pipe( conn.dest( '/kivalens_org/react' ) );
-})
 
 gulp.task("production", function(){
     console.log("SWITCHING TO PRODUCTION MODE")
@@ -138,7 +117,28 @@ gulp.task('s', function() {
 gulp.task('scripts', function() { return compile(false); });
 
 //deploy~: gulp d --u 'gjgjgjg' --pw djfjffj
-gulp.task('d', ['production','styles','scripts','upload']);
+gulp.task('d', ['production','styles','scripts'], function() {
+        var conn = ftp.create({
+            host: 'ftp.nuclearspike.com',
+            user: argv.u,
+            password: argv.pw,
+            parallel: 10,
+            log: gutil.log
+        });
+
+        var globs = [
+            'css/**',
+            'javascript/**',
+            'index.html'
+        ];
+
+        // using base = '.' will transfer everything to /public_html correctly
+        // turn off buffering in gulp.src for best performance
+        return gulp.src(globs, {base: '.', buffer: false})
+            .pipe(conn.newer('/kivalens_org/react')) // only upload newer files
+            .pipe(conn.dest('/kivalens_org/react'));
+    }
+);
 
 gulp.task('default', ['styles','scripts', 'browser-sync'], function(){
   notifier.notify({title: 'Gulp', message: 'Watching for changes'})

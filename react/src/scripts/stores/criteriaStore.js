@@ -1,9 +1,9 @@
 'use strict';
 import Reflux from 'reflux'
-import {criteriaActions, loanActions} from '../actions'
+import a from '../actions'
 
 var criteriaStore = Reflux.createStore({
-    listenables: [criteriaActions],
+    listenables: [a.criteria],
     last_known:{},
     init:function(){
         //console.log("criteriaStore:init")
@@ -12,16 +12,16 @@ var criteriaStore = Reflux.createStore({
     onChange: function(criteria){
         //console.log("criteriaStore:onChange", criteria)
         this.last_known = criteria
-        loanActions.filter(criteria)
+        a.loans.filter(criteria)
     },
     onGetLast: function(){
         //console.log("criteriaStore:onGetLast")
-        criteriaActions.getLast.completed(this.last_known)
-        criteriaActions.change(this.last_known)
+        a.criteria.getLast.completed(this.last_known)
+        a.criteria.change(this.last_known)
     },
     syncGetLast: function(){
         return this.last_known
     }
 })
 
-export {criteriaStore}
+export default criteriaStore

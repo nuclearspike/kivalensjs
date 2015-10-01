@@ -1,7 +1,7 @@
 import React from 'react/addons';
 import Reflux from 'reflux'
-import {criteriaActions, loanActions} from '../actions'
-import {criteriaStore} from '../stores/criteriaStore'
+import a from '../actions'
+import s from '../stores/'
 import {Grid,Row,Col,Input,Button,Tabs,Tab} from 'react-bootstrap';
 
 var timeoutHandle=0
@@ -11,18 +11,15 @@ const CriteriaTabs = React.createClass({
         return {}
     },
     componentDidMount: function () {
-        //this.listenTo(loanActions.filter.completed, this.redoCharts)
-        this.setState(criteriaStore.syncGetLast)
+        this.setState(s.criteria.syncGetLast)
     },
     criteriaChanged: function(){
         clearTimeout(timeoutHandle);
-        timeoutHandle = setTimeout(()=> {
-            criteriaActions.change(this.state)
-        }, 150)
+        timeoutHandle = setTimeout(a.criteria.change.bind(this, this.state), 150)
     },
     clearCriteria: function(){
         this.replaceState({})
-        criteriaActions.change({})
+        a.criteria.change({})
     },
     render: function () {
         return (<div>

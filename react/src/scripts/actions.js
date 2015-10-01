@@ -1,17 +1,24 @@
 'use strict';
+
 import Reflux from 'reflux'
 
-var loanActions = Reflux.createActions({
+var a = {loans: null, criteria: null, partners: null};
+
+a.loans = Reflux.createActions({
     "load": {children: ["progressed","completed","failed"]},
     "filter": {children: ["completed"]}
 });
 
-var criteriaActions = Reflux.createActions([
+a.partners = Reflux.createActions({
+    "load": {children: ["progressed","completed","failed"]}
+});
+
+a.criteria  = Reflux.createActions([
     "change"
 ])
 
-criteriaActions.getLast = Reflux.createAction({
+a.criteria.getLast = Reflux.createAction({
     children: ["completed"]
 });
 
-export {loanActions, criteriaActions}
+export default a
