@@ -19,7 +19,7 @@ var partnerStore = Reflux.createStore({
             return;
         }
 
-        options = options || {}
+        options = options || {} //?
 
         PartnerAPI.getAllPartners(options)
             .done(partners => {

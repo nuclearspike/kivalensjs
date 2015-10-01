@@ -24,6 +24,7 @@
     "gulp-util": "^3.0.6",
     "node-notifier": "^4.3.1",
     "run-sequence": "^1.1.4",
+    "semaphore": "^1.0.3",
     "vinyl-ftp": "^0.4.5",
     "yargs": "^3.26.0"
   },

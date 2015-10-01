@@ -62128,6 +62128,77 @@ module.exports = function(listenables){
 };
 
 },{"reflux-core/lib/ListenerMethods":454}],470:[function(require,module,exports){
+(function (process){
+'use strict';
+
+module.exports = function(capacity) {
+	var semaphore = {
+		capacity: capacity || 1,
+		current: 0,
+		queue: [],
+
+		take: function() {
+			var item = { n: 1 };
+
+			if (typeof arguments[0] == 'function') {
+				item.task = arguments[0];
+			} else {
+				item.n = arguments[0];
+			}
+
+			if (arguments.length >= 2)  {
+				if (typeof arguments[1] == 'function') item.task = arguments[1];
+				else item.n = arguments[1];
+			}
+
+			var task = item.task;
+			item.task = function() { task(semaphore.leave); };
+
+			if (semaphore.current + item.n > semaphore.capacity) {
+				return semaphore.queue.push(item);
+			}
+
+			semaphore.current += item.n;
+			item.task(semaphore.leave);
+		},
+
+		leave: function(n) {
+			n = n || 1;
+
+			semaphore.current -= n;
+
+			if (!semaphore.queue.length) {
+				if (semaphore.current < 0) {
+					throw new Error('leave called too many times.');
+				}
+
+				return;
+			}
+
+			var item = semaphore.queue[0];
+
+			if (item.n + semaphore.current > semaphore.capacity) {
+				return;
+			}
+
+			semaphore.queue.shift();
+			semaphore.current += item.n;
+
+			if (typeof process != 'undefined' && process && typeof process.nextTick == 'function') {
+				// node.js and the like
+				process.nextTick(item.task);
+			} else {
+				setTimeout(item.task,0);
+			}
+		}
+	};
+
+	return semaphore;
+};
+
+}).call(this,require('_process'))
+
+},{"_process":1}],471:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62160,7 +62231,7 @@ a.criteria.getLast = _reflux2['default'].createAction({
 exports['default'] = a;
 module.exports = exports['default'];
 
-},{"reflux":467}],471:[function(require,module,exports){
+},{"reflux":467}],472:[function(require,module,exports){
 //turns {json: 'object'} into ?json=object
 "use strict";
 
@@ -62171,6 +62242,8 @@ Object.defineProperty(exports, "__esModule", {
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var sem = require('semaphore')(8);
 
 function serialize(obj, prefix) {
     var str = [];
@@ -62184,24 +62257,32 @@ function serialize(obj, prefix) {
     return str.join("&");
 }
 
+var api_options = {};
+
 var K = (function () {
     function K() {
         _classCallCheck(this, K);
     }
 
     _createClass(K, null, [{
-        key: "get",
+        key: "setAPIOptions",
+        value: function setAPIOptions(options) {
+            api_options = options;
+        }
 
         //when the results are not paged or when you know it's only one page, this is faster.
+    }, {
+        key: "get",
         value: function get(url, options) {
             options = options || {};
-            options.app_id = options.app_id || 'org.kiva.kivalens';
+            options = $.extend(options, { app_id: api_options.app_id });
 
             console.log('get():', options);
             var query_string;
             if (options) query_string = serialize(options);
             var url = "http://api.kivaws.org/v1/" + url + "?" + query_string;
             console.log(url);
+            //have this semaphored. create a wrapper deferred object
             return $.getJSON(url).done(function (result) {
                 console.log(result);
             }).fail(function (xhr, status, err) {
@@ -62209,68 +62290,50 @@ var K = (function () {
             });
         }
     }, {
-        key: "get_paged",
-        value: function get_paged(url, collection, options) {
+        key: "getPaged",
+        value: function getPaged(url, collection, options) {
             console.log("get_paged:", url, collection, options);
 
             var $def = $.Deferred();
-            options = options || {};
-            options.per_page = 100;
-            options.page = 1;
-            options.app_id = 'org.kiva.kivalens';
+            options = $.extend(options, { per_page: 100, page: 1, app_id: api_options.app_id });
 
             $def.notify({ type: 'label', label: 'Preparing to download...' });
             var result_objects = [];
-            var pages_to_do = null;
-            var concurrent_max = 8;
-            var concurrent_current = 0;
-            var results = {};
+            var pages = {};
             var result_object_count = 0;
 
-            var process = function process(result) {
-                //if first time through... set up the list of things to do.
-                console.log("process:start", result.paging);
-                concurrent_current--;
-                if (pages_to_do == null) {
-                    $def.notify({ type: 'label', label: 'Downloading...' });
-                    pages_to_do = Array.range(2, result.paging.pages);
-                    console.log("pages_to_do:", pages_to_do);
-                    concurrent_max = Math.min(concurrent_max, Math.max(result.paging.pages / 3, 1));
-                    console.log("concurrent_max:", concurrent_max);
+            //all data is processed, combine them all into one single array of loans.
+            var wrapUp = function wrapUp(total_pages) {
+                $def.notify({ type: 'label', label: 'processing...' });
+                for (var n = 1; n <= total_pages; n++) {
+                    result_objects = result_objects.concat(pages[n]);
                 }
+                $def.notify({ type: 'done' });
+                $def.resolve(result_objects);
+            };
 
-                //add results returned to array, for now this is happening one at a time sequentially.
-                results[result.paging.page] = result[collection];
+            //process the results from a single page of results.
+            var processResults = function processResults(result) {
+                pages[result.paging.page] = result[collection];
                 result_object_count += result[collection].length;
-
-                //notify any listener of changes
                 $def.notify({ type: 'percent', percentage: result_object_count * 100 / result.paging.total });
                 $def.notify({ type: 'label', label: result_object_count + "/" + result.paging.total + " downloaded" });
+                if (result_object_count == result.paging.total) wrapUp(result.paging.pages);
+            };
 
-                if (pages_to_do.length > 0) {
-                    //if more to do...
-                    while (concurrent_current < concurrent_max) {
-                        if (pages_to_do.length > 0) {
-                            concurrent_current++;
-                            options.page = pages_to_do.shift();
-                            this.get(url, options).done(process.bind(this));
-                        }
-                    }
-                } else {
-                    console.log("NO MORE PAGES: result_object_count:", result_object_count, result.paging.total);
-                    if (result_object_count >= result.paging.total) {
-                        $def.notify({ type: 'label', label: 'processing...' });
-                        for (var n = 1; n <= result.paging.pages; n++) {
-                            result_objects = result_objects.concat(results[n]);
-                        }
-                        $def.notify({ type: 'done' });
-                        $def.resolve(result_objects);
-                    }
+            //process the first page of results and make semaphored calls to get more pages.
+            var processPaging = function processPaging(result) {
+                $def.notify({ type: 'label', label: 'Downloading...' });
+                for (var page = 2; page <= result.paging.pages; page++) {
+                    sem.take((function (page) {
+                        this.get(url, $.extend(options, { page: page })).done(sem.leave).done(processResults.bind(this));
+                    }).bind(this, page));
                 }
             };
 
-            concurrent_current = 1;
-            this.get(url, options).done(process.bind(this));
+            //get the first page, reads the paging data that starts the rest, then processes the results of the first page.
+            this.get(url, options).done(processPaging.bind(this)).done(processResults.bind(this));
+
             return $def;
         }
     }]);
@@ -62281,7 +62344,7 @@ var K = (function () {
 exports["default"] = K;
 module.exports = exports["default"];
 
-},{}],472:[function(require,module,exports){
+},{"semaphore":470}],473:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62320,7 +62383,7 @@ var LoanAPI = (function (_kiva) {
         key: 'getLoanBatch',
         value: function getLoanBatch(id_arr) {
             ///needs to handle more loans passed in than allowed to break it into multiple reqs.
-            //this can call get_paged... or does Kiva API not allow more than n ids listed?
+            //this can call getPaged... Kiva API not allow more than 100 ids at a time?
             return this.get('loans/' + id_arr.join(',') + '.json');
         }
     }, {
@@ -62333,7 +62396,7 @@ var LoanAPI = (function (_kiva) {
         value: function getAllLoans(options) {
             options = options || {};
             options.status = options.status || 'fundraising';
-            return this.get_paged('loans/search.json', 'loans', options);
+            return this.getPaged('loans/search.json', 'loans', options);
         }
     }]);
 
@@ -62343,7 +62406,7 @@ var LoanAPI = (function (_kiva) {
 exports['default'] = LoanAPI;
 module.exports = exports['default'];
 
-},{"./kiva":471}],473:[function(require,module,exports){
+},{"./kiva":472}],474:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62402,7 +62465,7 @@ var PartnerAPI = (function (_kiva) {
 exports['default'] = PartnerAPI;
 module.exports = exports['default'];
 
-},{"./kiva":471}],474:[function(require,module,exports){
+},{"./kiva":472}],475:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -62425,7 +62488,13 @@ var _reactRouter2 = _interopRequireDefault(_reactRouter);
 
 var _components = require("./components");
 
+var _apiKiva = require('./api/kiva');
+
+var _apiKiva2 = _interopRequireDefault(_apiKiva);
+
 require('linqjs');
+
+_apiKiva2['default'].setAPIOptions({ app_id: 'org.kiva.kivalens', max_concurrent: 8 });
 
 var App = (function (_React$Component) {
     _inherits(App, _React$Component);
@@ -62485,7 +62554,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
     }
 });
 
-},{"./components":492,"linqjs":3,"react":450,"react-router":253}],475:[function(require,module,exports){
+},{"./api/kiva":472,"./components":493,"linqjs":3,"react":450,"react-router":253}],476:[function(require,module,exports){
 //'use strict';
 'use strict';
 
@@ -62528,7 +62597,7 @@ var About = (function (_React$Component) {
 
 module.exports = About;
 
-},{"react":450}],476:[function(require,module,exports){
+},{"react":450}],477:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -62570,7 +62639,7 @@ var Basket = (function (_React$Component) {
 
 module.exports = Basket;
 
-},{"react":450}],477:[function(require,module,exports){
+},{"react":450}],478:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -62618,7 +62687,7 @@ var CatchNoCurlies = (function (_React$Component) {
 
 module.exports = CatchNoCurlies;
 
-},{"react":450}],478:[function(require,module,exports){
+},{"react":450}],479:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62763,7 +62832,7 @@ var ChartDistribution = _react2['default'].createClass({
 exports['default'] = ChartDistribution;
 module.exports = exports['default'];
 
-},{"../actions":470,"react":450,"react-bootstrap":75,"react-highcharts":234,"reflux":467}],479:[function(require,module,exports){
+},{"../actions":471,"react":450,"react-bootstrap":75,"react-highcharts":234,"reflux":467}],480:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62823,7 +62892,7 @@ var Criteria = _reactAddons2['default'].createClass({
 exports['default'] = Criteria;
 module.exports = exports['default'];
 
-},{".":492,"react-bootstrap":75,"react/addons":278,"reflux":467}],480:[function(require,module,exports){
+},{".":493,"react-bootstrap":75,"react/addons":278,"reflux":467}],481:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -62932,7 +63001,7 @@ var CriteriaTabs = _reactAddons2['default'].createClass({
 exports['default'] = CriteriaTabs;
 module.exports = exports['default'];
 
-},{"../actions":470,"../stores/":494,"react-bootstrap":75,"react/addons":278,"reflux":467}],481:[function(require,module,exports){
+},{"../actions":471,"../stores/":495,"react-bootstrap":75,"react/addons":278,"reflux":467}],482:[function(require,module,exports){
 'use strict';
 Object.defineProperty(exports, '__esModule', {
     value: true
@@ -62981,7 +63050,7 @@ var Details = (function (_React$Component) {
 exports['default'] = Details;
 module.exports = exports['default'];
 
-},{".":492,"react":450}],482:[function(require,module,exports){
+},{".":493,"react":450}],483:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -63023,7 +63092,7 @@ var KLFooter = (function (_React$Component) {
 
 module.exports = KLFooter;
 
-},{"react":450}],483:[function(require,module,exports){
+},{"react":450}],484:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63107,7 +63176,7 @@ var KLNav = (function (_React$Component) {
 exports['default'] = KLNav;
 module.exports = exports['default'];
 
-},{"react":450,"react-bootstrap":75,"react-router":253}],484:[function(require,module,exports){
+},{"react":450,"react-bootstrap":75,"react-router":253}],485:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63161,7 +63230,7 @@ var KivaThumbnail = _react2['default'].createClass({
 exports['default'] = KivaImage;
 module.exports = exports['default'];
 
-},{"react":450}],485:[function(require,module,exports){
+},{"react":450}],486:[function(require,module,exports){
 'use strict';
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
@@ -63234,7 +63303,7 @@ var LoadingLoansModal = _react2['default'].createClass({
 
 module.exports = LoadingLoansModal;
 
-},{"../actions":470,"react":450,"react-bootstrap":75,"reflux":467}],486:[function(require,module,exports){
+},{"../actions":471,"react":450,"react-bootstrap":75,"reflux":467}],487:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -63280,7 +63349,7 @@ var Loan = (function (_React$Component) {
 
 module.exports = Loan;
 
-},{".":492,"react":450}],487:[function(require,module,exports){
+},{".":493,"react":450}],488:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63354,7 +63423,7 @@ var LoanListItem = (function (_React$Component) {
 exports['default'] = LoanListItem;
 module.exports = exports['default'];
 
-},{".":492,"react":450,"react-bootstrap":75}],488:[function(require,module,exports){
+},{".":493,"react":450,"react-bootstrap":75}],489:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -63402,7 +63471,7 @@ var NotFound = (function (_React$Component) {
 
 module.exports = NotFound;
 
-},{"react":450}],489:[function(require,module,exports){
+},{"react":450}],490:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -63444,7 +63513,7 @@ var Options = (function (_React$Component) {
 
 module.exports = Options;
 
-},{"react":450}],490:[function(require,module,exports){
+},{"react":450}],491:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63491,7 +63560,7 @@ var Schedule = (function (_React$Component) {
 exports['default'] = Schedule;
 module.exports = exports['default'];
 
-},{"react":450}],491:[function(require,module,exports){
+},{"react":450}],492:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63586,7 +63655,7 @@ var Search = _reactAddons2['default'].createClass({
 exports['default'] = Search;
 module.exports = exports['default'];
 
-},{".":492,"../actions":470,"../stores":494,"react-bootstrap":75,"react-infinite-list":235,"react/addons":278,"reflux":467}],492:[function(require,module,exports){
+},{".":493,"../actions":471,"../stores":495,"react-bootstrap":75,"react-infinite-list":235,"react/addons":278,"reflux":467}],493:[function(require,module,exports){
 'use strict';
 
 //PAGES
@@ -63686,7 +63755,7 @@ exports.KivaImage = _KivaImageJsx2['default'];
 exports.ChartDistribution = _ChartDistributionJsx2['default'];
 exports.CriteriaTabs = _CriteriaTabsJsx2['default'];
 
-},{"./About.jsx":475,"./Basket.jsx":476,"./CatchNoCurlies.jsx":477,"./ChartDistribution.jsx":478,"./Criteria.jsx":479,"./CriteriaTabs.jsx":480,"./Details.jsx":481,"./KLFooter.jsx":482,"./KLNav.jsx":483,"./KivaImage.jsx":484,"./LoadingLoansModal.jsx":485,"./Loan.jsx":486,"./LoanListItem.jsx":487,"./NotFound.jsx":488,"./Options.jsx":489,"./Schedule.jsx":490,"./Search.jsx":491}],493:[function(require,module,exports){
+},{"./About.jsx":476,"./Basket.jsx":477,"./CatchNoCurlies.jsx":478,"./ChartDistribution.jsx":479,"./Criteria.jsx":480,"./CriteriaTabs.jsx":481,"./Details.jsx":482,"./KLFooter.jsx":483,"./KLNav.jsx":484,"./KivaImage.jsx":485,"./LoadingLoansModal.jsx":486,"./Loan.jsx":487,"./LoanListItem.jsx":488,"./NotFound.jsx":489,"./Options.jsx":490,"./Schedule.jsx":491,"./Search.jsx":492}],494:[function(require,module,exports){
 'use strict';
 Object.defineProperty(exports, '__esModule', {
     value: true
@@ -63727,7 +63796,7 @@ var criteriaStore = _reflux2['default'].createStore({
 exports['default'] = criteriaStore;
 module.exports = exports['default'];
 
-},{"../actions":470,"reflux":467}],494:[function(require,module,exports){
+},{"../actions":471,"reflux":467}],495:[function(require,module,exports){
 //this unit being required/imported anywhere will instantiate all stores listed below.
 //import s from '../stores
 //s.loans
@@ -63755,7 +63824,7 @@ var _loanStore2 = _interopRequireDefault(_loanStore);
 exports['default'] = { criteria: _criteriaStore2['default'], loans: _loanStore2['default'], partners: _partnerStore2['default'] };
 module.exports = exports['default'];
 
-},{"./criteriaStore":493,"./loanStore":495,"./partnerStore":496}],495:[function(require,module,exports){
+},{"./criteriaStore":494,"./loanStore":496,"./partnerStore":497}],496:[function(require,module,exports){
 'use strict';
 Object.defineProperty(exports, '__esModule', {
     value: true
@@ -63909,7 +63978,7 @@ var loanStore = _reflux2['default'].createStore({
 exports['default'] = loanStore;
 module.exports = exports['default'];
 
-},{"../actions":470,"../api/loans":472,"./criteriaStore":493,"reflux":467}],496:[function(require,module,exports){
+},{"../actions":471,"../api/loans":473,"./criteriaStore":494,"reflux":467}],497:[function(require,module,exports){
 'use strict';
 Object.defineProperty(exports, '__esModule', {
     value: true
@@ -63945,7 +64014,7 @@ var partnerStore = _reflux2['default'].createStore({
             return;
         }
 
-        options = options || {};
+        options = options || {}; //?
 
         _apiPartners2['default'].getAllPartners(options).done(function (partners) {
             partners_from_kiva = partners;
@@ -63966,7 +64035,7 @@ var partnerStore = _reflux2['default'].createStore({
 exports['default'] = partnerStore;
 module.exports = exports['default'];
 
-},{"../actions":470,"../api/partners":473,"reflux":467}]},{},[474])
+},{"../actions":471,"../api/partners":474,"reflux":467}]},{},[475])
 
 
 //# sourceMappingURL=build.js.map

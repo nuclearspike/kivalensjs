@@ -8,7 +8,7 @@ class LoanAPI extends kiva {
     }
 
     static getLoanBatch(id_arr){///needs to handle more loans passed in than allowed to break it into multiple reqs.
-        //this can call get_paged... or does Kiva API not allow more than n ids listed?
+        //this can call getPaged... Kiva API not allow more than 100 ids at a time?
         return this.get(`loans/${id_arr.join(',')}.json`)
     }
 
@@ -19,7 +19,7 @@ class LoanAPI extends kiva {
     static getAllLoans(options){
         options = options || {}
         options.status = options.status || 'fundraising'
-        return this.get_paged('loans/search.json', 'loans', options)
+        return this.getPaged('loans/search.json', 'loans', options)
     }
 }
 

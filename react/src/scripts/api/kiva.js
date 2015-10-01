@@ -1,4 +1,6 @@
 //turns {json: 'object'} into ?json=object
+var sem = require('semaphore')(8);
+
 function serialize(obj, prefix) {
     var str = [];
     for (var p in obj) {
@@ -11,11 +13,17 @@ function serialize(obj, prefix) {
     return str.join("&");
 }
 
+var api_options = {}
+
 export default class K {
+    static setAPIOptions(options){
+        api_options = options
+    }
+
     //when the results are not paged or when you know it's only one page, this is faster.
     static get(url, options){
         options = options || {}
-        options.app_id = options.app_id || 'org.kiva.kivalens'
+        options = $.extend(options, {app_id: api_options.app_id})
 
         console.log('get():',options)
         var query_string
@@ -23,6 +31,7 @@ export default class K {
             query_string = serialize(options);
         var url = `http://api.kivaws.org/v1/${url}?${query_string}`;
         console.log(url);
+        //have this semaphored. create a wrapper deferred object
         return $.getJSON(url)
             .done(result => {
                 console.log(result);
@@ -32,66 +41,49 @@ export default class K {
             })
     }
 
-    static get_paged(url, collection, options){
+    static getPaged(url, collection, options){
         console.log("get_paged:", url, collection, options)
 
         var $def = $.Deferred()
-        options = options || {}
-        options.per_page = 100;
-        options.page = 1;
-        options.app_id = 'org.kiva.kivalens'
+        options = $.extend(options, {per_page: 100, page: 1, app_id: api_options.app_id})
 
         $def.notify({type:'label',label: 'Preparing to download...'})
         var result_objects = [];
-        var pages_to_do = null;
-        var concurrent_max = 8;
-        var concurrent_current = 0;
-        var results = {};
+        var pages = {};
         var result_object_count = 0;
 
-        var process = function(result){
-            //if first time through... set up the list of things to do.
-            console.log("process:start",result.paging)
-            concurrent_current--;
-            if (pages_to_do == null) {
-                $def.notify({type:'label',label: 'Downloading...'})
-                pages_to_do = Array.range(2, result.paging.pages)
-                console.log("pages_to_do:", pages_to_do)
-                concurrent_max = Math.min(concurrent_max, Math.max(result.paging.pages / 3, 1))
-                console.log("concurrent_max:", concurrent_max)
+        //all data is processed, combine them all into one single array of loans.
+        var wrapUp = function(total_pages){
+            $def.notify({type: 'label', label: 'processing...'})
+            for (var n = 1; n <= total_pages; n++) {
+                result_objects = result_objects.concat(pages[n])
             }
+            $def.notify({type: 'done'})
+            $def.resolve(result_objects)
+        }
 
-            //add results returned to array, for now this is happening one at a time sequentially.
-            results[result.paging.page] = result[collection]
+        //process the results from a single page of results.
+        var processResults = function(result){
+            pages[result.paging.page] = result[collection]
             result_object_count += result[collection].length;
-
-            //notify any listener of changes
             $def.notify({type: 'percent', percentage: (result_object_count*100)/result.paging.total})
             $def.notify({type:'label',label: `${result_object_count}/${result.paging.total} downloaded`})
+            if (result_object_count == result.paging.total) wrapUp(result.paging.pages);
+        }
 
-            if (pages_to_do.length > 0) { //if more to do...
-                while (concurrent_current < concurrent_max) {
-                    if (pages_to_do.length > 0) {
-                        concurrent_current++;
-                        options.page = pages_to_do.shift();
-                        this.get(url, options).done(process.bind(this))
-                    }
-                }
-            } else {
-                console.log("NO MORE PAGES: result_object_count:", result_object_count, result.paging.total)
-                if (result_object_count >= result.paging.total){
-                    $def.notify({type: 'label', label: 'processing...'})
-                    for (var n = 1; n <= result.paging.pages; n++) {
-                        result_objects = result_objects.concat(results[n])
-                    }
-                    $def.notify({type: 'done'})
-                    $def.resolve(result_objects)
-                }
+        //process the first page of results and make semaphored calls to get more pages.
+        var processPaging = function(result){
+            $def.notify({type:'label', label: 'Downloading...'})
+            for (var page = 2; page <= result.paging.pages; page++) {
+                sem.take(function(page){
+                    this.get(url, $.extend(options, {page: page})).done(sem.leave).done(processResults.bind(this))
+                }.bind(this, page))
             }
         }
 
-        concurrent_current = 1;
-        this.get(url, options).done(process.bind(this))
+        //get the first page, reads the paging data that starts the rest, then processes the results of the first page.
+        this.get(url, options).done(processPaging.bind(this)).done(processResults.bind(this))
+
         return $def
     }
 }

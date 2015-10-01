@@ -5,6 +5,9 @@ import React from 'react'
 import Router from 'react-router'
 import {Route, Redirect, IndexRoute} from 'react-router';
 import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, Criteria, NotFound} from "./components";
+import KivaAPI from './api/kiva'
+
+KivaAPI.setAPIOptions({app_id: 'org.kiva.kivalens', max_concurrent: 8})
 
 class App extends React.Component {
     render(){
