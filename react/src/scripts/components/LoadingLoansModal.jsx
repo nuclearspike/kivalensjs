@@ -11,11 +11,11 @@ var LoadingLoansModal = React.createClass({
     componentDidMount: function() {
         this.listenTo(a.loans.load.progressed, progress => {
             var new_state = {show: true}
-            if (progress.type == 'percent')
+            if (progress.percentage) {
                 new_state.progress = progress.percentage
-            else if (progress.type == 'label')
                 new_state.progress_label = progress.label
-            else if (progress.type == 'done')
+            }
+            if (progress.done)
                 new_state.show = false
             this.setState(new_state)
         })

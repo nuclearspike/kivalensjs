@@ -4,6 +4,7 @@ import LoanAPI from '../api/loans'
 import a from '../actions'
 import criteriaStore from './criteriaStore'
 
+//array of api loan objects that are sorted in the order they were returned.
 var loans_from_kiva = [];
 var loanStore = Reflux.createStore({
     listenables: [a.loans],
@@ -28,6 +29,7 @@ var loanStore = Reflux.createStore({
                 //local_this.loans = loans;
                 loans_from_kiva = loans;
                 a.loans.load.completed(loans)
+                this.onDetails()
             })
             .progress(progress => {
                 console.log("progress:", progress)
@@ -45,6 +47,32 @@ var loanStore = Reflux.createStore({
 
     syncHasLoadedLoans: function(){
         return loans_from_kiva.length > 0
+    },
+
+    mergeLoan: function(d_loan){
+        var loan = loans_from_kiva.first(loan => { return loan.id == d_loan.id })
+        if (loan)
+            $.extend(loan, d_loan)
+    },
+
+    onSingle: function(){
+        ///
+    },
+
+    //kicks off the whole fetch.
+    onDetails: function(){
+        LoanAPI.getLoanBatch(loans_from_kiva.select(loan=>{return loan.id}), true)
+            .progress(progress => {
+                if (progress.loan) {
+                    this.mergeLoan(progress.loan)
+                }
+                if (progress.label) {
+                    a.loans.details.progressed(progress)
+                }
+            })
+            .done(results => {
+                a.loans.details.completed()
+            })
     },
 
     syncFilterLoans: function(c){

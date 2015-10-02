@@ -62215,11 +62215,14 @@ var a = { loans: null, criteria: null, partners: null };
 
 a.loans = _reflux2['default'].createActions({
     "load": { children: ["progressed", "completed", "failed"] },
-    "filter": { children: ["completed"] }
+    "filter": { children: ["completed"] },
+    "single": { children: ["completed"] },
+    "details": { children: ["progressed", "completed"] }
 });
 
 a.partners = _reflux2['default'].createActions({
-    "load": { children: ["progressed", "completed", "failed"] }
+    "load": { children: ["progressed", "completed", "failed"] },
+    "single": { children: ["completed"] }
 });
 
 a.criteria = _reflux2['default'].createActions(["change"]);
@@ -62232,7 +62235,6 @@ exports['default'] = a;
 module.exports = exports['default'];
 
 },{"reflux":467}],472:[function(require,module,exports){
-//turns {json: 'object'} into ?json=object
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -62245,6 +62247,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var sem = require('semaphore')(8);
 
+//turns {json: 'object', app_id: 'com.me'} into ?json=object&app_id=com.me
 function serialize(obj, prefix) {
     var str = [];
     for (var p in obj) {
@@ -62274,14 +62277,9 @@ var K = (function () {
     }, {
         key: "get",
         value: function get(url, options) {
-            options = options || {};
-            options = $.extend(options, { app_id: api_options.app_id });
-
-            console.log('get():', options);
-            var query_string;
-            if (options) query_string = serialize(options);
-            var url = "http://api.kivaws.org/v1/" + url + "?" + query_string;
-            console.log(url);
+            options = $.extend({}, options, { app_id: api_options.app_id });
+            console.log('get():', url, options);
+            var url = "http://api.kivaws.org/v1/" + url + "?" + serialize(options);
             //have this semaphored. create a wrapper deferred object
             return $.getJSON(url).done(function (result) {
                 console.log(result);
@@ -62289,50 +62287,76 @@ var K = (function () {
                 console.error(status, err.toString());
             });
         }
+
+        //call this as much as you want, the requests queue up and will cap at the max concurrent connections and do them later,
+        // it returns a promise and you'll get your .done() later on. "collection" param is optional. when specified,
+        // instead of returning the full JSON object with paging data, it only returns the "loans" section or "partners"
+        // section. "isSingle" indicates whether it should return only the first item or a whole collection
+    }, {
+        key: "sem_get",
+        value: function sem_get(url, options, collection, isSingle, semaphore) {
+            var $def = $.Deferred();
+            semaphore = semaphore || sem;
+            semaphore.take((function () {
+                this.get(url, options).done(semaphore.leave).done($def.resolve).fail($def.reject).progress($def.notify);
+            }).bind(this));
+
+            if (collection) {
+                //'loans' 'partners' etc... then do another step of processing
+                return $def.then(function (result) {
+                    if (isSingle) return result[collection][0]; //will be undefined if no result.
+                    else return result[collection];
+                });
+            } else {
+                return $def;
+            }
+        }
+
+        //for requests that have 1 to * pages for results.
     }, {
         key: "getPaged",
         value: function getPaged(url, collection, options) {
-            console.log("get_paged:", url, collection, options);
+            console.log("getPaged:", url, collection, options);
 
             var $def = $.Deferred();
-            options = $.extend(options, { per_page: 100, page: 1, app_id: api_options.app_id });
+            $.extend(options, { per_page: 100, page: 1, app_id: api_options.app_id });
 
-            $def.notify({ type: 'label', label: 'Preparing to download...' });
+            $def.notify({ label: 'Preparing to download...' });
             var result_objects = [];
             var pages = {};
             var result_object_count = 0;
 
-            //all data is processed, combine them all into one single array of loans.
+            //all data is processed, combine them all into one single array of loans,
+            // assembled in the same order they came back from kiva
             var wrapUp = function wrapUp(total_pages) {
-                $def.notify({ type: 'label', label: 'processing...' });
+                $def.notify({ label: 'processing...' });
                 for (var n = 1; n <= total_pages; n++) {
                     result_objects = result_objects.concat(pages[n]);
                 }
-                $def.notify({ type: 'done' });
+                $def.notify({ done: true });
                 $def.resolve(result_objects);
             };
 
-            //process the results from a single page of results.
-            var processResults = function processResults(result) {
+            //process a single page of results.
+            var processSinglePageOfResults = function processSinglePageOfResults(result) {
                 pages[result.paging.page] = result[collection];
                 result_object_count += result[collection].length;
-                $def.notify({ type: 'percent', percentage: result_object_count * 100 / result.paging.total });
-                $def.notify({ type: 'label', label: result_object_count + "/" + result.paging.total + " downloaded" });
+                $def.notify({ percentage: result_object_count * 100 / result.paging.total,
+                    label: result_object_count + "/" + result.paging.total + " downloaded" });
                 if (result_object_count == result.paging.total) wrapUp(result.paging.pages);
             };
 
             //process the first page of results and make semaphored calls to get more pages.
-            var processPaging = function processPaging(result) {
-                $def.notify({ type: 'label', label: 'Downloading...' });
+            var processPagingAndQueueRequests = function processPagingAndQueueRequests(result) {
+                $def.notify({ label: 'Downloading...' });
                 for (var page = 2; page <= result.paging.pages; page++) {
-                    sem.take((function (page) {
-                        this.get(url, $.extend(options, { page: page })).done(sem.leave).done(processResults.bind(this));
-                    }).bind(this, page));
+                    //for every page of data from 2 to the max, queue up the requests.
+                    this.sem_get(url, $.extend({}, options, { page: page })).done(processSinglePageOfResults.bind(this));
                 }
             };
 
             //get the first page, reads the paging data that starts the rest, then processes the results of the first page.
-            this.get(url, options).done(processPaging.bind(this)).done(processResults.bind(this));
+            this.sem_get(url, options).done([processPagingAndQueueRequests.bind(this), processSinglePageOfResults.bind(this)]);
 
             return $def;
         }
@@ -62377,26 +62401,43 @@ var LoanAPI = (function (_kiva) {
     _createClass(LoanAPI, null, [{
         key: 'getLoan',
         value: function getLoan(id) {
-            return this.get('loans/' + id + '.json');
+            return this.sem_get('loans/' + id + '.json', 'loans', true);
         }
     }, {
         key: 'getLoanBatch',
-        value: function getLoanBatch(id_arr) {
-            ///needs to handle more loans passed in than allowed to break it into multiple reqs.
-            //this can call getPaged... Kiva API not allow more than 100 ids at a time?
-            return this.get('loans/' + id_arr.join(',') + '.json');
+        value: function getLoanBatch(id_arr, with_progress) {
+            //kiva does not allow more than 100 loans in a batch. break the list into chunks of up to 100 and process them.
+            // this will send progress messages with individual loan objects or just wait for the .done()
+            var chunks = id_arr.chunk(100);
+            var $def = $.Deferred();
+            var r_loans = [];
+            //var sem = require('semaphore')(4);
+
+            for (var i = 0; i < chunks.length; i++) {
+                $def.notify({ percentage: 0, label: 'Preparing to download...' });
+                this.sem_get('loans/' + chunks[i].join(',') + '.json', {}, 'loans', false).done(function (loans) {
+                    if (with_progress) loans.forEach(function (loan) {
+                        $def.notify({ loan: loan });
+                    });
+                    r_loans = r_loans.concat(loans);
+                    $def.notify({ percentage: r_loans.length * 100 / id_arr.length, label: r_loans.length + '/' + id_arr.length + ' downloaded' });
+                    if (r_loans.length == id_arr.length) {
+                        $def.resolve(r_loans);
+                        $def.notify({ done: true });
+                    }
+                });
+            }
+            return $def;
         }
-    }, {
-        key: 'getLoans',
-        value: function getLoans(query) {
-            return this.get('loans/search.json', query);
-        }
+
+        //static getLoans(query){
+        //    return this.sem_get('loans/search.json', query)
+        //}
+
     }, {
         key: 'getAllLoans',
         value: function getAllLoans(options) {
-            options = options || {};
-            options.status = options.status || 'fundraising';
-            return this.getPaged('loans/search.json', 'loans', options);
+            return this.getPaged('loans/search.json', 'loans', $.extend({}, options, { status: 'fundraising' }));
         }
     }]);
 
@@ -62439,7 +62480,7 @@ var PartnerAPI = (function (_kiva) {
     _createClass(PartnerAPI, null, [{
         key: 'getPartner',
         value: function getPartner(id) {
-            return this.get('partners/' + id + '.json');
+            return this.sem_get('partners/' + id + '.json', 'partners', true);
         }
 
         //static getPartnerBatch(id_arr){///needs to handle more loans passed in than allowed to break it into multiple reqs.
@@ -62453,9 +62494,8 @@ var PartnerAPI = (function (_kiva) {
     }, {
         key: 'getAllPartners',
         value: function getAllPartners(options) {
-            options = options || {};
             //return this.get_paged('partners.json', 'partners', options)
-            return this.get('partners.json', options);
+            return this.sem_get('partners.json', options, 'partners', false);
         }
     }]);
 
@@ -62495,6 +62535,12 @@ var _apiKiva2 = _interopRequireDefault(_apiKiva);
 require('linqjs');
 
 _apiKiva2['default'].setAPIOptions({ app_id: 'org.kiva.kivalens', max_concurrent: 8 });
+
+Array.prototype.chunk = function (chunkSize) {
+    var R = [];
+    for (var i = 0; i < this.length; i += chunkSize) R.push(this.slice(i, i + chunkSize));
+    return R;
+};
 
 var App = (function (_React$Component) {
     _inherits(App, _React$Component);
@@ -62925,10 +62971,20 @@ var CriteriaTabs = _reactAddons2['default'].createClass({
 
     mixins: [_reflux2['default'].ListenerMixin, _reactAddons2['default'].addons.LinkedStateMixin],
     getInitialState: function getInitialState() {
-        return {};
+        return { hasDetails: false, progress: 0, progress_label: 'Preparing to fetch extra loan details (schedules, details, etc)' };
     },
     componentDidMount: function componentDidMount() {
+        var _this = this;
+
         this.setState(_stores2['default'].criteria.syncGetLast);
+        this.listenTo(_actions2['default'].loans.details.completed, function () {
+            _this.setState({ hasDetails: true });
+        });
+        this.listenTo(_actions2['default'].loans.details.progressed, function (progress) {
+            if (progress.percentage) {
+                _this.setState({ progress: progress.percentage, progress_label: progress.label });
+            }
+        });
     },
     criteriaChanged: function criteriaChanged() {
         clearTimeout(timeoutHandle);
@@ -62939,6 +62995,15 @@ var CriteriaTabs = _reactAddons2['default'].createClass({
         _actions2['default'].criteria.change({});
     },
     render: function render() {
+        var hasD = _reactAddons2['default'].createElement(
+            'div',
+            null,
+            _reactAddons2['default'].createElement(_reactBootstrap.ProgressBar, { style: { width: "300px" }, active: true, now: this.state.progress }),
+            ' ',
+            this.state.progress_label
+        );
+        if (this.state.hasDetails) hasD = "Has Details!!";
+
         return _reactAddons2['default'].createElement(
             'div',
             null,
@@ -62948,6 +63013,7 @@ var CriteriaTabs = _reactAddons2['default'].createClass({
                 _reactAddons2['default'].createElement(
                     _reactBootstrap.Tab,
                     { eventKey: 1, title: 'Borrower' },
+                    hasD,
                     _reactAddons2['default'].createElement(
                         _reactBootstrap.Row,
                         null,
@@ -63261,7 +63327,11 @@ var LoadingLoansModal = _react2['default'].createClass({
 
         this.listenTo(_actions2['default'].loans.load.progressed, function (progress) {
             var new_state = { show: true };
-            if (progress.type == 'percent') new_state.progress = progress.percentage;else if (progress.type == 'label') new_state.progress_label = progress.label;else if (progress.type == 'done') new_state.show = false;
+            if (progress.percentage) {
+                new_state.progress = progress.percentage;
+                new_state.progress_label = progress.label;
+            }
+            if (progress.done) new_state.show = false;
             _this.setState(new_state);
         });
     },
@@ -63848,6 +63918,7 @@ var _criteriaStore = require('./criteriaStore');
 
 var _criteriaStore2 = _interopRequireDefault(_criteriaStore);
 
+//array of api loan objects that are sorted in the order they were returned.
 var loans_from_kiva = [];
 var loanStore = _reflux2['default'].createStore({
     listenables: [_actions2['default'].loans],
@@ -63856,6 +63927,8 @@ var loanStore = _reflux2['default'].createStore({
         _actions2['default'].loans.load();
     },
     onLoad: function onLoad(options) {
+        var _this = this;
+
         console.log("loanStore:onLoad");
 
         //we already have the loans, just spit them back.
@@ -63871,6 +63944,7 @@ var loanStore = _reflux2['default'].createStore({
             //local_this.loans = loans;
             loans_from_kiva = loans;
             _actions2['default'].loans.load.completed(loans);
+            _this.onDetails();
         }).progress(function (progress) {
             console.log("progress:", progress);
             _actions2['default'].loans.load.progressed(progress);
@@ -63886,6 +63960,35 @@ var loanStore = _reflux2['default'].createStore({
 
     syncHasLoadedLoans: function syncHasLoadedLoans() {
         return loans_from_kiva.length > 0;
+    },
+
+    mergeLoan: function mergeLoan(d_loan) {
+        var loan = loans_from_kiva.first(function (loan) {
+            return loan.id == d_loan.id;
+        });
+        if (loan) $.extend(loan, d_loan);
+    },
+
+    onSingle: function onSingle() {
+        ///
+    },
+
+    //kicks off the whole fetch.
+    onDetails: function onDetails() {
+        var _this2 = this;
+
+        _apiLoans2['default'].getLoanBatch(loans_from_kiva.select(function (loan) {
+            return loan.id;
+        }), true).progress(function (progress) {
+            if (progress.loan) {
+                _this2.mergeLoan(progress.loan);
+            }
+            if (progress.label) {
+                _actions2['default'].loans.details.progressed(progress);
+            }
+        }).done(function (results) {
+            _actions2['default'].loans.details.completed();
+        });
     },
 
     syncFilterLoans: function syncFilterLoans(c) {
@@ -64020,6 +64123,7 @@ var partnerStore = _reflux2['default'].createStore({
             partners_from_kiva = partners;
             _actions2['default'].partners.load.completed(partners);
         }).progress(function (progress) {
+            //not going to happen!
             console.log("progress:", progress);
             _actions2['default'].partners.load.progressed(progress);
         }).fail(function (result) {

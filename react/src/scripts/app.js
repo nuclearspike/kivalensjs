@@ -9,6 +9,13 @@ import KivaAPI from './api/kiva'
 
 KivaAPI.setAPIOptions({app_id: 'org.kiva.kivalens', max_concurrent: 8})
 
+Array.prototype.chunk = function(chunkSize) {
+    var R = [];
+    for (var i=0; i<this.length; i+=chunkSize)
+        R.push(this.slice(i,i+chunkSize));
+    return R;
+}
+
 class App extends React.Component {
     render(){
         return <div>

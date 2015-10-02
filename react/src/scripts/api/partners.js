@@ -4,7 +4,7 @@ import kiva from './kiva'
 
 class PartnerAPI extends kiva {
     static getPartner(id){
-        return this.get(`partners/${id}.json`)
+        return this.sem_get(`partners/${id}.json`, 'partners', true)
     }
 
     //static getPartnerBatch(id_arr){///needs to handle more loans passed in than allowed to break it into multiple reqs.
@@ -16,9 +16,8 @@ class PartnerAPI extends kiva {
     //}
 
     static getAllPartners(options){
-        options = options || {}
         //return this.get_paged('partners.json', 'partners', options)
-        return this.get('partners.json', options)
+        return this.sem_get('partners.json', options, 'partners', false)
     }
 }
 

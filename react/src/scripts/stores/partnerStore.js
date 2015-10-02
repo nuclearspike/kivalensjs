@@ -26,7 +26,7 @@ var partnerStore = Reflux.createStore({
                 partners_from_kiva = partners;
                 a.partners.load.completed(partners)
             })
-            .progress(progress => {
+            .progress(progress => {  //not going to happen!
                 console.log("progress:", progress)
                 a.partners.load.progressed(progress)
             })
