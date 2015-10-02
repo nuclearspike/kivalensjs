@@ -23,7 +23,7 @@ export default class K {
     //when the results are not paged or when you know it's only one page, this is faster.
     static get(url, options){
         options = $.extend({}, options, {app_id: api_options.app_id})
-        console.log('get():',url, options)
+        console.log('get():', url, options)
         var url = `http://api.kivaws.org/v1/${url}?${serialize(options)}`;
         //have this semaphored. create a wrapper deferred object
         return $.getJSON(url)
@@ -35,11 +35,10 @@ export default class K {
     // it returns a promise and you'll get your .done() later on. "collection" param is optional. when specified,
     // instead of returning the full JSON object with paging data, it only returns the "loans" section or "partners"
     // section. "isSingle" indicates whether it should return only the first item or a whole collection
-    static sem_get(url, options, collection, isSingle, semaphore){
+    static sem_get(url, options, collection, isSingle){
         var $def = $.Deferred()
-        semaphore = semaphore || sem
-        semaphore.take(function(){
-            this.get(url, options).done(semaphore.leave).done($def.resolve).fail($def.reject).progress($def.notify)
+        sem.take(function(){
+            this.get(url, options).done(()=>{sem.leave()}).done($def.resolve).fail($def.reject).progress($def.notify)
         }.bind(this))
 
         if (collection){ //'loans' 'partners' etc... then do another step of processing
@@ -56,6 +55,8 @@ export default class K {
 
     //for requests that have 1 to * pages for results.
     static getPaged(url, collection, options){
+        //options.country_code = 'KE' //TEMP@!!!!
+
         console.log("getPaged:", url, collection, options)
 
         var $def = $.Deferred()
@@ -66,7 +67,7 @@ export default class K {
         var pages = {};
         var result_object_count = 0;
 
-        //all data is processed, combine them all into one single array of loans,
+        //all data is downloaded, combine them all into one single array of loans,
         // assembled in the same order they came back from kiva
         var wrapUp = function(total_pages){
             $def.notify({label: 'processing...'})

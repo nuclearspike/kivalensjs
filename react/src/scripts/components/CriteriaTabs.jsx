@@ -8,13 +8,14 @@ var timeoutHandle=0
 const CriteriaTabs = React.createClass({
     mixins: [Reflux.ListenerMixin, React.addons.LinkedStateMixin],
     getInitialState: function () {
-        return {hasDetails: false, progress: 0, progress_label: 'Preparing to fetch extra loan details (schedules, details, etc)'}
+        return { hasDetails: false, progress: 0, progress_label: 'Preparing to fetch extra loan details (schedules, details, etc)' }
     },
     componentDidMount: function () {
-        this.setState(s.criteria.syncGetLast)
+        this.setState(s.criteria.syncGetLast) //todo: can this be criteria.use ?
+        this.setState({hasDetails: s.loans.syncHasAllDetails()})
         this.listenTo(a.loans.details.completed, ()=>{this.setState({hasDetails: true})})
         this.listenTo(a.loans.details.progressed, (progress)=>{
-            if (progress.percentage) {
+            if (progress.label) {
                 this.setState({progress: progress.percentage, progress_label: progress.label})
             }
         })
@@ -28,7 +29,7 @@ const CriteriaTabs = React.createClass({
         a.criteria.change({})
     },
     render: function () {
-        var hasD = (<div><ProgressBar style={{width:"300px"}} active now={this.state.progress} /> {this.state.progress_label}</div>)
+        var hasD = (<div className='full-width'><ProgressBar style={{width:"300px"}} active now={this.state.progress} /> {this.state.progress_label}</div>)
         if (this.state.hasDetails)
             hasD = "Has Details!!"
 

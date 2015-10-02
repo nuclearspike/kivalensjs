@@ -9,6 +9,7 @@ var loans_from_kiva = [];
 var loanStore = Reflux.createStore({
     listenables: [a.loans],
     init:function(){
+        this.hasAllDetails = false
         console.log("loanStore:init")
         a.loans.load();
     },
@@ -49,6 +50,10 @@ var loanStore = Reflux.createStore({
         return loans_from_kiva.length > 0
     },
 
+    syncHasAllDetails: function(){
+        return this.hasAllDetails
+    },
+
     mergeLoan: function(d_loan){
         var loan = loans_from_kiva.first(loan => { return loan.id == d_loan.id })
         if (loan)
@@ -71,6 +76,7 @@ var loanStore = Reflux.createStore({
                 }
             })
             .done(results => {
+                this.hasAllDetails = true
                 a.loans.details.completed()
             })
     },

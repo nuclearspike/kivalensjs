@@ -62294,11 +62294,12 @@ var K = (function () {
         // section. "isSingle" indicates whether it should return only the first item or a whole collection
     }, {
         key: "sem_get",
-        value: function sem_get(url, options, collection, isSingle, semaphore) {
+        value: function sem_get(url, options, collection, isSingle) {
             var $def = $.Deferred();
-            semaphore = semaphore || sem;
-            semaphore.take((function () {
-                this.get(url, options).done(semaphore.leave).done($def.resolve).fail($def.reject).progress($def.notify);
+            sem.take((function () {
+                this.get(url, options).done(function () {
+                    sem.leave();
+                }).done($def.resolve).fail($def.reject).progress($def.notify);
             }).bind(this));
 
             if (collection) {
@@ -62316,6 +62317,8 @@ var K = (function () {
     }, {
         key: "getPaged",
         value: function getPaged(url, collection, options) {
+            //options.country_code = 'KE' //TEMP@!!!!
+
             console.log("getPaged:", url, collection, options);
 
             var $def = $.Deferred();
@@ -62326,7 +62329,7 @@ var K = (function () {
             var pages = {};
             var result_object_count = 0;
 
-            //all data is processed, combine them all into one single array of loans,
+            //all data is downloaded, combine them all into one single array of loans,
             // assembled in the same order they came back from kiva
             var wrapUp = function wrapUp(total_pages) {
                 $def.notify({ label: 'processing...' });
@@ -62411,7 +62414,6 @@ var LoanAPI = (function (_kiva) {
             var chunks = id_arr.chunk(100);
             var $def = $.Deferred();
             var r_loans = [];
-            //var sem = require('semaphore')(4);
 
             for (var i = 0; i < chunks.length; i++) {
                 $def.notify({ percentage: 0, label: 'Preparing to download...' });
@@ -62976,12 +62978,13 @@ var CriteriaTabs = _reactAddons2['default'].createClass({
     componentDidMount: function componentDidMount() {
         var _this = this;
 
-        this.setState(_stores2['default'].criteria.syncGetLast);
+        this.setState(_stores2['default'].criteria.syncGetLast); //todo: can this be criteria.use ?
+        this.setState({ hasDetails: _stores2['default'].loans.syncHasAllDetails() });
         this.listenTo(_actions2['default'].loans.details.completed, function () {
             _this.setState({ hasDetails: true });
         });
         this.listenTo(_actions2['default'].loans.details.progressed, function (progress) {
-            if (progress.percentage) {
+            if (progress.label) {
                 _this.setState({ progress: progress.percentage, progress_label: progress.label });
             }
         });
@@ -62997,7 +63000,7 @@ var CriteriaTabs = _reactAddons2['default'].createClass({
     render: function render() {
         var hasD = _reactAddons2['default'].createElement(
             'div',
-            null,
+            { className: 'full-width' },
             _reactAddons2['default'].createElement(_reactBootstrap.ProgressBar, { style: { width: "300px" }, active: true, now: this.state.progress }),
             ' ',
             this.state.progress_label
@@ -63923,6 +63926,7 @@ var loans_from_kiva = [];
 var loanStore = _reflux2['default'].createStore({
     listenables: [_actions2['default'].loans],
     init: function init() {
+        this.hasAllDetails = false;
         console.log("loanStore:init");
         _actions2['default'].loans.load();
     },
@@ -63962,6 +63966,10 @@ var loanStore = _reflux2['default'].createStore({
         return loans_from_kiva.length > 0;
     },
 
+    syncHasAllDetails: function syncHasAllDetails() {
+        return this.hasAllDetails;
+    },
+
     mergeLoan: function mergeLoan(d_loan) {
         var loan = loans_from_kiva.first(function (loan) {
             return loan.id == d_loan.id;
@@ -63987,6 +63995,7 @@ var loanStore = _reflux2['default'].createStore({
                 _actions2['default'].loans.details.progressed(progress);
             }
         }).done(function (results) {
+            _this2.hasAllDetails = true;
             _actions2['default'].loans.details.completed();
         });
     },
@@ -64124,7 +64133,7 @@ var partnerStore = _reflux2['default'].createStore({
             _actions2['default'].partners.load.completed(partners);
         }).progress(function (progress) {
             //not going to happen!
-            console.log("progress:", progress);
+            console.log("%%%%%%%%%%%%%%%%%%%%% progress:", progress);
             _actions2['default'].partners.load.progressed(progress);
         }).fail(function (result) {
             _actions2['default'].partners.load.failed();

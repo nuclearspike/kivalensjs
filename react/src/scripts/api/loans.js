@@ -13,7 +13,6 @@ class LoanAPI extends kiva {
         var chunks = id_arr.chunk(100)
         var $def = $.Deferred()
         var r_loans = []
-        //var sem = require('semaphore')(4);
 
         for (var i = 0; i < chunks.length; i++){
             $def.notify({percentage: 0, label: 'Preparing to download...'})
