@@ -6,7 +6,7 @@ import a from '../actions'
 var LoadingLoansModal = React.createClass({
     mixins: [Reflux.ListenerMixin],
     getInitialState:function(){
-        return {progress_label: '', progress: 0, show: this.props.show}
+        return {progress_label: 'Please Wait', progress: 0, show: this.props.show}
     },
     componentDidMount: function() {
         this.listenTo(a.loans.load.progressed, progress => {
@@ -45,3 +45,4 @@ var LoadingLoansModal = React.createClass({
 })
 
 module.exports = LoadingLoansModal;
+//export {LoadingLoansModal}

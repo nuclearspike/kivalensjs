@@ -9,7 +9,6 @@ var loans_from_kiva = [];
 var loanStore = Reflux.createStore({
     listenables: [a.loans],
     init:function(){
-        this.hasAllDetails = false
         console.log("loanStore:init")
         a.loans.load();
     },
@@ -22,21 +21,21 @@ var loanStore = Reflux.createStore({
             return;
         }
 
-        options = options || {}
+        $.extend(options, {})
 
         //options.region = 'af'
         LoanAPI.getAllLoans(options)
             .done(loans => {
                 //local_this.loans = loans;
+                window.kiva_loans = loans
                 loans_from_kiva = loans;
                 a.loans.load.completed(loans)
-                this.onDetails()
             })
             .progress(progress => {
                 console.log("progress:", progress)
                 a.loans.load.progressed(progress)
             })
-            .fail((result) =>{
+            .fail(() =>{
                 a.loans.load.failed()
             })
     },
@@ -50,10 +49,6 @@ var loanStore = Reflux.createStore({
         return loans_from_kiva.length > 0
     },
 
-    syncHasAllDetails: function(){
-        return this.hasAllDetails
-    },
-
     mergeLoan: function(d_loan){
         var loan = loans_from_kiva.first(loan => { return loan.id == d_loan.id })
         if (loan)
@@ -64,91 +59,48 @@ var loanStore = Reflux.createStore({
         ///
     },
 
-    //kicks off the whole fetch.
-    onDetails: function(){
-        LoanAPI.getLoanBatch(loans_from_kiva.select(loan=>{return loan.id}), true)
-            .progress(progress => {
-                if (progress.loan) {
-                    this.mergeLoan(progress.loan)
-                }
-                if (progress.label) {
-                    a.loans.details.progressed(progress)
-                }
-            })
-            .done(results => {
-                this.hasAllDetails = true
-                a.loans.details.completed()
-            })
-    },
-
     syncFilterLoans: function(c){
         if (!c){
             c = criteriaStore.syncGetLast()
         }
         //break this into another unit --store? LoansAPI.filter(loans, criteria)
-        var search_text = c.search_text;
-        if (search_text) search_text = search_text.toUpperCase();
         var loans = loans_from_kiva
-
-        /**var makeTestArray = function(search){
-            if (!search) return []
-            var words = search.match(/(\w+)|-(\w+)|~(\w+)/g)
-            if (!words) return []
-            //words [agri, retail]
-            return words.map(word => {
-                //word: agri
-                //if -, ~, %
-                return {regexp: new RegExp(), func: function(to_test, regexp){
-
-                }};
-            })
-        }
-
-        var _c = {}
-        _c.sector = {raw: c.sector, tests: makeTestArray(c.sector)}
-
-        var funcs = {
-            //'%': (word)=>{return new RegEx()}, //word like
-            '-': (word)=>{return new RegExp()}, //does not have word
-            '~': (word)=>{return new RegExp()}, //word contains
-            '=' : (word)=>{return new RegExp()} //exact "rose" wouldn't return rosenda
-            //word starts with
-        }
-
-        var testForText = function(field, search){
-            var type = ''
-            if (search){
-
-            }
-        }
-
-        var tests = {
-            sector: {raw: '-retail', tests: ['-retail']},
-            country: {raw: 'peru philip', tests: ['peru','philip']}
-        }**/
 
         //for each search term for sector, break it into an array, ignoring spaces and commas
         //for each loan, test the sector against each search term.
 
-        if (search_text) {
-            loans = loans.where(l => {
-                return (l.name.toUpperCase().indexOf(search_text) >= 0)
-                    || (l.location.country.toUpperCase().indexOf(search_text) >= 0)
-                    || (l.sector.toUpperCase().indexOf(search_text) >= 0)
-                    || (l.activity.toUpperCase().indexOf(search_text) >= 0)
-            })
+        var makeSearchTester = function(text){
+            var result =  (text && text.length > 0) ? text.match(/(\w+)/g).distinct().select(word => { return word.toUpperCase() }) : []
+            console.log('makeSearchTester',result)
+            return {
+                startsWith: function(loan_attr){
+                    return result.length == 0 ? true : result.any( search_text => { return sStartsWith(loan_attr, search_text) } )
+                },
+                contains: function(loan_attr){
+                    return result.length == 0 ? true : result.any( search_text => { return loan_attr.toUpperCase().indexOf(search_text) > -1 } )
+                },
+                terms_arr: result}
         }
-        if (c.use)
-            loans = loans.where(l => l.use.toUpperCase().indexOf(c.use.toUpperCase()) >= 0)
-        if (c.country)
-            loans = loans.where(l => l.location.country.toUpperCase().indexOf(c.country.toUpperCase()) >= 0)
-        if (c.sector)
-            loans = loans.where(l => l.sector.toUpperCase().indexOf(c.sector.toUpperCase()) >= 0)
-        if (c.activity)
-            loans = loans.where(l => l.activity.toUpperCase().indexOf(c.activity.toUpperCase()) >= 0)
-        if (c.name)
-            loans = loans.where(l => l.name.toUpperCase().indexOf(c.name.toUpperCase()) >= 0)
-        //console.log("syncFilterLoans:result",loans)
+
+        var sStartsWith = function(loan_attr, test){
+            return (test) ? loan_attr.toUpperCase().startsWith(test) : true
+        }
+
+        var stSector = makeSearchTester(c.sector)
+        var stActivity = makeSearchTester(c.activity)
+        var stName = makeSearchTester(c.name)
+        var stCountry = makeSearchTester(c.country)
+        var stUse = makeSearchTester(c.use)
+
+        loans = loans.where(loan => {
+            return stSector.startsWith(loan.sector) &&
+                stActivity.startsWith(loan.activity) &&
+                stName.contains(loan.name) &&
+                stCountry.startsWith(loan.location.country) &&
+                stUse.terms_arr.all(search_term => { return loan.kl_use_or_descr_arr.any(w => { return w.startsWith(search_term) } ) } )
+        })
+
+        console.log('criteria', c)
         return loans
     }
 

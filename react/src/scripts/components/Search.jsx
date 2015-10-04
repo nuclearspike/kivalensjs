@@ -37,7 +37,7 @@ var Search = React.createClass({
             <Grid style={style} fluid >
                 {modal}
                 <Col md={4}>
-                    <span>Count: {this.state.loan_count}</span>
+                    <span>Results: {this.state.loan_count}</span>
                     <InfiniteList
                         className="loan_list_container"
                         items={this.state.filtered_loans}

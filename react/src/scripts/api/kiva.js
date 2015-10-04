@@ -18,6 +18,8 @@ var api_options = {}
 export default class K {
     static setAPIOptions(options){
         api_options = options
+        if (options.max_concurrent)
+            sem.capacity = options.max_concurrent
     }
 
     //when the results are not paged or when you know it's only one page, this is faster.
@@ -41,64 +43,80 @@ export default class K {
             this.get(url, options).done(()=>{sem.leave()}).done($def.resolve).fail($def.reject).progress($def.notify)
         }.bind(this))
 
-        if (collection){ //'loans' 'partners' etc... then do another step of processing
-            return $def.then(result=>{
-                if (isSingle)
-                    return result[collection][0] //will be undefined if no result.
-                else
-                    return result[collection]
-            })
+        if (collection){ //'loans' 'partners' etc... then do another step of processing. will resolve as undefined if no result.
+            return $def.then(result => { return isSingle ? result[collection][0] : result[collection] })
         } else {
             return $def
         }
     }
 
     //for requests that have 1 to * pages for results.
-    static getPaged(url, collection, options){
+    static getPaged(url, collection, options, visitorFunc){
         //options.country_code = 'KE' //TEMP@!!!!
-
+        //url, collection are required. options is optional
         console.log("getPaged:", url, collection, options)
 
         var $def = $.Deferred()
         $.extend(options, {per_page: 100, page: 1, app_id: api_options.app_id})
 
         $def.notify({label: 'Preparing to download...'})
-        var result_objects = [];
-        var pages = {};
-        var result_object_count = 0;
+        var result_objects = []
+        var pages = {}
+        var pages_count = 0
+        var total_object_count = 0
+        var result_object_count = 0
+        var id_pages_done = 0
 
         //all data is downloaded, combine them all into one single array of loans,
         // assembled in the same order they came back from kiva
-        var wrapUp = function(total_pages){
+        var wrapUp = function(){
             $def.notify({label: 'processing...'})
-            for (var n = 1; n <= total_pages; n++) {
+            for (var n = 1; n <= pages_count; n++) {
                 result_objects = result_objects.concat(pages[n])
             }
+
+            if (visitorFunc) { result_objects.forEach(visitorFunc) }
             $def.notify({done: true})
             $def.resolve(result_objects)
         }
 
+        var generalProcessResponse = function (objects, page){
+            pages[page] = objects
+            result_object_count += objects.length;
+            $def.notify({percentage: (result_object_count * 100)/total_object_count,
+                label: `${result_object_count}/${total_object_count} downloaded`})
+            if (result_object_count >= total_object_count) wrapUp();
+        }
+
+        var processSinglePageOfIDResults = function(result_ids){
+            id_pages_done++
+            $def.notify({percentage: (id_pages_done * 100 /  result_ids.paging.pages), label: `Getting the basics... Step 1 of 2`})
+            this.sem_get(`${collection}/${result_ids[collection].join(',')}.json`, {}, collection, false)
+                .done(function(result){ generalProcessResponse(result, result_ids.paging.page) })
+        }
+
         //process a single page of results.
         var processSinglePageOfResults = function(result){
-            pages[result.paging.page] = result[collection]
-            result_object_count += result[collection].length;
-            $def.notify({percentage: (result_object_count*100)/result.paging.total,
-                            label: `${result_object_count}/${result.paging.total} downloaded`})
-            if (result_object_count == result.paging.total) wrapUp(result.paging.pages);
+            generalProcessResponse(result[collection], result.paging.page)
         }
+
+        var processResponse = (options.ids_only) ? processSinglePageOfIDResults.bind(this) : processSinglePageOfResults.bind(this)
 
         //process the first page of results and make semaphored calls to get more pages.
         var processPagingAndQueueRequests = function(result){
             $def.notify({label: 'Downloading...'})
-            for (var page = 2; page <= result.paging.pages; page++) {
+            total_object_count = result.paging.total
+            pages_count = result.paging.pages
+            for (var page = 2; page <= pages_count; page++) {
                 //for every page of data from 2 to the max, queue up the requests.
-                this.sem_get(url, $.extend({}, options, {page: page})).done(processSinglePageOfResults.bind(this))
+                this.sem_get(url, $.extend({}, options, {page: page})).done(processResponse)
             }
         }
 
+
         //get the first page, reads the paging data that starts the rest, then processes the results of the first page.
         this.sem_get(url, options)
-            .done([processPagingAndQueueRequests.bind(this), processSinglePageOfResults.bind(this)])
+            .done([processPagingAndQueueRequests.bind(this), processResponse])
 
         return $def
     }

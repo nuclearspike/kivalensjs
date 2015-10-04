@@ -36,7 +36,45 @@ class LoanAPI extends kiva {
     //}
 
     static getAllLoans(options){
-        return this.getPaged('loans/search.json', 'loans', $.extend({}, options, {status: 'fundraising'}))
+        //using the ids_only option is not entirely clear that the function still returns all details. add options that
+        // don't get passed to kiva if it's ever valuable to only get the ids (to look for ones that are new since the
+        // page opened, for example)...
+        var common_descr =  ["THIS", "ARE", "SHE", "THAT", "HAS", "LOAN", "BE", "OLD", "BEEN", "YEARS", "FROM", "WITH", "INCOME", "WILL", "HAVE"]
+        var common_use = ["PURCHASE", "FOR", "AND", "BUY", "OTHER", "HER", "BUSINESS", "SELL", "MORE", "HIS", "THE", "PAY"]
+
+        //descrWords.where(word => {return word != undefined})
+        var processText = function(text, ignore_words){
+            if (text && text.length > 0){
+                //remove common words.
+                return text.match(/(\w+)/g).distinct()
+                    .where(word => {return word != undefined && word.length > 2})
+                    .select(word => {return word.toUpperCase()})
+                    .where(word=>{ return !ignore_words.contains(word) })
+            } else {
+                return [] //no indexable words.
+            }
+        }
+
+        var loanVisitor = function(loan){
+            var descr_arr
+            var use_arr
+
+            descr_arr = processText(loan.description.texts.en, common_descr)
+            use_arr = processText(loan.use, common_use)
+
+            var last_repay = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? new Date(Date.parse(loan.terms.scheduled_payments.last().due_date)): null
+
+            var addIt = {
+                kl_downloaded: new Date(),
+                kl_descr_search_arr: descr_arr,
+                kl_use_search_arr: use_arr,
+                kl_use_or_descr_arr: use_arr.concat(descr_arr).distinct(),
+                kl_last_repayment: last_repay  //on non-fundraising this won't work.
+            }
+            $.extend(loan, addIt)
+        }
+
+        return this.getPaged('loans/search.json', 'loans', $.extend({}, options, {status: 'fundraising', ids_only: 'true'}), loanVisitor)
     }
 }
 

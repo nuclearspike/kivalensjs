@@ -22,6 +22,7 @@ var gutil = require( 'gulp-util' );
 var ftp = require( 'vinyl-ftp' );
 var argv = require('yargs').argv,
     gulpif = require('gulp-if');
+var open = require('gulp-open');
 
 var production = false; //todo: find what node production environment settings do.
 
@@ -136,7 +137,9 @@ gulp.task('d', ['production','styles','scripts'], function() {
         // turn off buffering in gulp.src for best performance
         return gulp.src(globs, {base: '.', buffer: false})
             .pipe(conn.newer('/kivalens_org/react')) // only upload newer files
-            .pipe(conn.dest('/kivalens_org/react'));
+            .pipe(conn.dest('/kivalens_org/react'))
+            .pipe(open({uri: 'http://www.kivalens.org/react/#/search'}));
+
     }
 );
 
