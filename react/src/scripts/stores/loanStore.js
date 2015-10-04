@@ -18,18 +18,38 @@ var loanStore = Reflux.createStore({
         //we already have the loans, just spit them back.
         if (loans_from_kiva.length > 0){
             a.loans.load.completed(loans_from_kiva);
-            return;
+            return
         }
 
-        $.extend(options, {})
+        if (typeof localStorage === 'object') {
+            //var lsLoans = JSON.parse(localStorage.getItem('loans'))
+            //console.log("lsLoans:", lsLoans)
+            if (false) { //lsLoans &&
+                //alert(`found ${lsLoans.loans.length}`)
+                lsLoans.stored = new Date(Date.parse(lsLoans.stored))
+                if (((new Date()) - lsLoans.stored) < 24 * 60 * 60 * 1000) {
+                    loans_from_kiva = lsLoans.map(loan => {
+                        loan.kl_last_repayment = new Date(Date.parse(loan.kl_last_repayment))
+                        loan.kl_downloaded = new Date(Date.parse(loan.kl_downloaded))
+                        return loan
+                    })
+                    return
+                }
+            }
+        }
 
-        //options.region = 'af'
+        options = $.extend({}, options, {region: 'af'})
+
+        //region: 'af'
         LoanAPI.getAllLoans(options)
             .done(loans => {
                 //local_this.loans = loans;
+                a.loans.load.completed(loans)
                 window.kiva_loans = loans
                 loans_from_kiva = loans;
-                a.loans.load.completed(loans)
+                //if (typeof localStorage === 'object') {
+                    //localStorage.setItem('loans', JSON.stringify({stored: new Date(), loans: loans.take(1000)}))
+                //}
             })
             .progress(progress => {
                 console.log("progress:", progress)
@@ -45,7 +65,6 @@ var loanStore = Reflux.createStore({
     },
 
     onFilter: function(c){
-        //console.log("loanStore:onFilter:",c)
         a.loans.filter.completed(this.syncFilterLoans(c))
     },
 
@@ -55,8 +74,7 @@ var loanStore = Reflux.createStore({
 
     mergeLoan: function(d_loan){
         var loan = loans_from_kiva.first(loan => { return loan.id == d_loan.id })
-        if (loan)
-            $.extend(loan, d_loan)
+        if (loan) $.extend(loan, d_loan)
     },
 
     syncGet: function(id){
@@ -86,9 +104,7 @@ var loanStore = Reflux.createStore({
                 terms_arr: result}
         }
 
-        var sStartsWith = function(loan_attr, test){
-            return (test) ? loan_attr.toUpperCase().startsWith(test) : true
-        }
+        var sStartsWith = function(loan_attr, test){ return (test) ? loan_attr.toUpperCase().startsWith(test) : true }
 
         var stSector = makeSearchTester(c.sector)
         var stActivity = makeSearchTester(c.activity)
@@ -107,27 +123,6 @@ var loanStore = Reflux.createStore({
         console.log('criteria', c)
         return loans
     }
-
-    /**onSingle: (id)=>{
-        LoanAPI.getLoan(id)
-            .done((result)=>{
-                this.trigger(result);
-            })
-    },
-
-    onSearch: (options)=>{
-        LoanAPI.getLoans(options)
-            .done((result)=>{
-                this.trigger(result)
-            })
-    },
-
-    onBatch: (id_arr)=>{
-        LoanAPI.getLoanBatch(id_arr)
-            .done((result)=>{
-                this.trigger(result);
-            })
-    }**/
 });
 
 export default loanStore

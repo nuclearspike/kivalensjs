@@ -19,9 +19,9 @@ Array.prototype.chunk = function(chunkSize) {
 class App extends React.Component {
     render(){
         return <div>
-            <KLNav/>
-            {this.props.children}
-            <KLFooter/>
+                <KLNav/>
+                    {this.props.children}
+                <KLFooter/>
             </div>
     }
 } //

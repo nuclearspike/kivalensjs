@@ -16,7 +16,7 @@ class LoanListItem extends React.Component {
                 href={`#/search/loan/${loan.id}`}>
                 <KivaImage className="float_left" type="square" loan={loan} image_width={113} height={90} width={90}/>
                 <div className="float_left details">
-                    <p>{loan.name}</p>
+                    <p><b>{loan.name}</b></p>
                     {loan.location.country} | {loan.sector} | {loan.activity}
                     <p>
                     {loan.use}
