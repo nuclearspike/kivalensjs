@@ -3,12 +3,14 @@
 import React from 'react'
 import {ListGroupItem} from 'react-bootstrap';
 import {KivaImage} from '.'
+import a from '../actions'
 
 class LoanListItem extends React.Component {
     render() {
         var loan = this.props; //
         return (
             <ListGroupItem
+                onClick={a.loans.detail.bind(null, loan.id)}
                 className="loan_list_item"
                 key={loan.id}
                 href={`#/search/loan/${loan.id}`}>

@@ -60,6 +60,9 @@ class LoanAPI extends kiva {
             var use_arr
 
             descr_arr = processText(loan.description.texts.en, common_descr)
+            if (!loan.description.texts.en){
+                loan.description.texts.en = "No English description available."
+            }
             use_arr = processText(loan.use, common_use)
 
             var last_repay = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? new Date(Date.parse(loan.terms.scheduled_payments.last().due_date)): null
@@ -73,7 +76,7 @@ class LoanAPI extends kiva {
             }
             $.extend(loan, addIt)
         }
-
+        //country_code: 'IN'
         return this.getPaged('loans/search.json', 'loans', $.extend({}, options, {status: 'fundraising', ids_only: 'true'}), loanVisitor)
     }
 }

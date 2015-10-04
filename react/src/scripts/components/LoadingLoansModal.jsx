@@ -44,5 +44,5 @@ var LoadingLoansModal = React.createClass({
     }
 })
 
-module.exports = LoadingLoansModal;
-//export {LoadingLoansModal}
+//module.exports = LoadingLoansModal;
+export default LoadingLoansModal

@@ -40,6 +40,10 @@ var loanStore = Reflux.createStore({
             })
     },
 
+    onDetail: function(id){
+        a.loans.detail.completed(this.syncGet(id))
+    },
+
     onFilter: function(c){
         //console.log("loanStore:onFilter:",c)
         a.loans.filter.completed(this.syncFilterLoans(c))
@@ -55,8 +59,8 @@ var loanStore = Reflux.createStore({
             $.extend(loan, d_loan)
     },
 
-    onSingle: function(){
-        ///
+    syncGet: function(id){
+        return loans_from_kiva.first(loan => {return loan.id == id})
     },
 
     syncFilterLoans: function(c){
