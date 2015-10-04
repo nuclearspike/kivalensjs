@@ -64160,9 +64160,9 @@ var loanStore = _reflux2['default'].createStore({
             }
         }
 
-        options = $.extend({}, options, { region: 'af' });
+        options = $.extend({}, options);
+        //, {region: 'af'}
 
-        //region: 'af'
         _apiLoans2['default'].getAllLoans(options).done(function (loans) {
             //local_this.loans = loans;
             _actions2['default'].loans.load.completed(loans);

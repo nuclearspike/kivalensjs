@@ -38,9 +38,9 @@ var loanStore = Reflux.createStore({
             }
         }
 
-        options = $.extend({}, options, {region: 'af'})
+        options = $.extend({}, options)
+        //, {region: 'af'}
 
-        //region: 'af'
         LoanAPI.getAllLoans(options)
             .done(loans => {
                 //local_this.loans = loans;
