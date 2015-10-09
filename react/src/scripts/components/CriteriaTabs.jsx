@@ -25,7 +25,7 @@ const CriteriaTabs = React.createClass({
 
         return (<div>
             <Tabs defaultActiveKey={1}>
-                <Tab eventKey={1} title="Borrower">
+                <Tab eventKey={1} title="Borrower" className="ample-padding-top">
                     <Row>
                         <Input type='text' label='Use or Description' labelClassName='col-md-2' wrapperClassName='col-md-6'  valueLink={this.linkState('use')} onKeyUp={this.criteriaChanged} />
                     </Row>
@@ -42,10 +42,10 @@ const CriteriaTabs = React.createClass({
                         <Input type='text' label='Activity' labelClassName='col-md-2' wrapperClassName='col-md-6'  valueLink={this.linkState('activity')} onKeyUp={this.criteriaChanged} />
                     </Row>
                 </Tab>
-                <Tab eventKey={2} title="Partner">
+                <Tab eventKey={2} title="Partner" className="ample-padding-top">
                     Always Exclude list of IDs.
                 </Tab>
-                <Tab eventKey={3} title="Your Portfolio">
+                <Tab eventKey={3} title="Your Portfolio" className="ample-padding-top">
                     <Row>
                         <Input type='text' label='Kiva Lender ID' labelClassName='col-md-2' wrapperClassName='col-md-6'  valueLink={this.linkState('lender_id')} onKeyUp={this.criteriaChanged} />
                     </Row>

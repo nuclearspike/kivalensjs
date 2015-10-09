@@ -7,7 +7,8 @@ var a = {loans: null, criteria: null, partners: null};
 a.loans = Reflux.createActions({
     "load": {children: ["progressed", "completed", "failed"]},
     "filter": {children: ["completed"]},
-    "detail": {children: ["completed"]}
+    "detail": {children: ["completed"]},
+    "basket": {children: ["add", "remove", "changed","batchAdd","clear"]}
 });
 
 a.partners = Reflux.createActions({

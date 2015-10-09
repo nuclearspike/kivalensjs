@@ -97,12 +97,14 @@ process.umask = function() { return 0; };
   Licensed under the MIT License (MIT), see
   http://jedwatson.github.io/classnames
 */
+/* global define */
 
 (function () {
 	'use strict';
 
-	function classNames () {
+	var hasOwn = {}.hasOwnProperty;
 
+	function classNames () {
 		var classes = '';
 
 		for (var i = 0; i < arguments.length; i++) {
@@ -111,15 +113,13 @@ process.umask = function() { return 0; };
 
 			var argType = typeof arg;
 
-			if ('string' === argType || 'number' === argType) {
+			if (argType === 'string' || argType === 'number') {
 				classes += ' ' + arg;
-
 			} else if (Array.isArray(arg)) {
 				classes += ' ' + classNames.apply(null, arg);
-
-			} else if ('object' === argType) {
+			} else if (argType === 'object') {
 				for (var key in arg) {
-					if (arg.hasOwnProperty(key) && arg[key]) {
+					if (hasOwn.call(arg, key) && arg[key]) {
 						classes += ' ' + key;
 					}
 				}
@@ -131,15 +131,14 @@ process.umask = function() { return 0; };
 
 	if (typeof module !== 'undefined' && module.exports) {
 		module.exports = classNames;
-	} else if (typeof define === 'function' && typeof define.amd === 'object' && define.amd){
-		// AMD. Register as an anonymous module.
-		define(function () {
+	} else if (typeof define === 'function' && typeof define.amd === 'object' && define.amd) {
+		// register as 'classnames', consistent with npm package name
+		define('classnames', function () {
 			return classNames;
 		});
 	} else {
 		window.classNames = classNames;
 	}
-
 }());
 
 },{}],3:[function(require,module,exports){
@@ -62216,7 +62215,8 @@ var a = { loans: null, criteria: null, partners: null };
 a.loans = _reflux2['default'].createActions({
     "load": { children: ["progressed", "completed", "failed"] },
     "filter": { children: ["completed"] },
-    "detail": { children: ["completed"] }
+    "detail": { children: ["completed"] },
+    "basket": { children: ["add", "remove", "changed", "batchAdd", "clear"] }
 });
 
 a.partners = _reflux2['default'].createActions({
@@ -62244,7 +62244,7 @@ var _createClass = (function () { function defineProperties(target, props) { for
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var sem = require('semaphore')(8);
+var sem = require('semaphore')(7);
 
 //turns {json: 'object', app_id: 'com.me'} into ?json=object&app_id=com.me
 function serialize(obj, prefix) {
@@ -62279,12 +62279,10 @@ var K = (function () {
         value: function get(url, options) {
             options = $.extend({}, options, { app_id: api_options.app_id });
             console.log('get():', url, options);
-            var url = "http://api.kivaws.org/v1/" + url + "?" + serialize(options);
-            //have this semaphored. create a wrapper deferred object
-            return $.getJSON(url).done(function (result) {
-                console.log(result);
+            return $.getJSON("http://api.kivaws.org/v1/" + url + "?" + serialize(options)).done(function (result) {
+                return console.log(result);
             }).fail(function (xhr, status, err) {
-                console.error(status, err.toString());
+                return console.error(status, err.toString());
             });
         }
 
@@ -62298,7 +62296,7 @@ var K = (function () {
             var $def = $.Deferred();
             sem.take((function () {
                 this.get(url, options).done(function () {
-                    sem.leave();
+                    return sem.leave();
                 }).done($def.resolve).fail($def.reject).progress($def.notify);
             }).bind(this));
 
@@ -62315,15 +62313,16 @@ var K = (function () {
         //for requests that have 1 to * pages for results.
     }, {
         key: "getPaged",
-        value: function getPaged(url, collection, options, visitorFunc) {
+        value: function getPaged(url, collection, options, kl_options) {
             //options.country_code = 'KE' //TEMP@!!!!
             //url, collection are required. options is optional
             console.log("getPaged:", url, collection, options);
 
             var $def = $.Deferred();
             $.extend(options, { per_page: 100, page: 1, app_id: api_options.app_id });
-
+            kl_options = $.extend({}, kl_options);
             $def.notify({ label: 'Preparing to download...' });
+
             var result_objects = [];
             var pages = {};
             var pages_count = 0;
@@ -62334,18 +62333,18 @@ var K = (function () {
             //all data is downloaded, combine them all into one single array of loans,
             // assembled in the same order they came back from kiva
             var wrapUp = function wrapUp() {
-                $def.notify({ label: 'processing...' });
+                $def.notify({ label: 'Processing...' });
                 for (var n = 1; n <= pages_count; n++) {
                     result_objects = result_objects.concat(pages[n]);
                 }
-
-                if (visitorFunc) {
-                    result_objects.forEach(visitorFunc);
+                if (typeof kl_options.visitorFunc === 'function') {
+                    result_objects.forEach(kl_options.visitorFunc);
                 }
                 $def.notify({ done: true });
                 $def.resolve(result_objects);
             };
 
+            //can process from either a paged response or where the details are fetched separately from paged ids.
             var generalProcessResponse = function generalProcessResponse(objects, page) {
                 pages[page] = objects;
                 result_object_count += objects.length;
@@ -62354,15 +62353,16 @@ var K = (function () {
                 if (result_object_count >= total_object_count) wrapUp();
             };
 
+            //takes a bunch of ids and makes the request to get those object details and adds it to the queue of pages to fetch.
             var processSinglePageOfIDResults = function processSinglePageOfIDResults(result_ids) {
                 id_pages_done++;
                 $def.notify({ percentage: id_pages_done * 100 / result_ids.paging.pages, label: "Getting the basics... Step 1 of 2" });
                 this.sem_get(collection + "/" + result_ids[collection].join(',') + ".json", {}, collection, false).done(function (result) {
-                    generalProcessResponse(result, result_ids.paging.page);
+                    return generalProcessResponse(result, result_ids.paging.page);
                 });
             };
 
-            //process a single page of results.
+            //process a single page of results. used when paging normally through data (not getting just the ids first)
             var processSinglePageOfResults = function processSinglePageOfResults(result) {
                 generalProcessResponse(result[collection], result.paging.page);
             };
@@ -62414,6 +62414,9 @@ var _kiva2 = require('./kiva');
 
 var _kiva3 = _interopRequireDefault(_kiva2);
 
+var common_descr = ["THIS", "ARE", "SHE", "THAT", "HAS", "LOAN", "BE", "OLD", "BEEN", "YEARS", "FROM", "WITH", "INCOME", "WILL", "HAVE"];
+var common_use = ["PURCHASE", "FOR", "AND", "BUY", "OTHER", "HER", "BUSINESS", "SELL", "MORE", "HIS", "THE", "PAY"];
+
 var LoanAPI = (function (_kiva) {
     _inherits(LoanAPI, _kiva);
 
@@ -62424,88 +62427,113 @@ var LoanAPI = (function (_kiva) {
     }
 
     _createClass(LoanAPI, null, [{
+        key: 'processLoan',
+        value: function processLoan(loan) {
+            var processText = function processText(text, ignore_words) {
+                if (text && text.length > 0) {
+                    //remove common words.
+                    var matches = text.match(/(\w+)/g); //splits on word boundaries
+                    if (!Array.isArray(matches)) return [];
+                    return matches.distinct() //ignores repeats
+                    .where(function (word) {
+                        return word != undefined && word.length > 2;
+                    }) //ignores words 2 characters or less
+                    .select(function (word) {
+                        return word.toUpperCase();
+                    }) //UPPERCASE
+                    .where(function (word) {
+                        return !ignore_words.contains(word);
+                    }); //ignores common words
+                } else {
+                        return []; //no indexable words.
+                    }
+            };
+
+            var descr_arr;
+            var use_arr;
+
+            descr_arr = processText(loan.description.texts.en, common_descr);
+            if (!loan.description.texts.en) {
+                loan.description.texts.en = "No English description available.";
+            }
+            use_arr = processText(loan.use, common_use);
+
+            var last_repay = loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0 ? new Date(Date.parse(loan.terms.scheduled_payments.last().due_date)) : null;
+
+            var addIt = {
+                kl_downloaded: new Date(),
+                //kl_descr_search_arr: descr_arr,
+                //kl_use_search_arr: use_arr,
+                kl_use_or_descr_arr: use_arr.concat(descr_arr).distinct(),
+                kl_last_repayment: last_repay //on non-fundraising this won't work.
+            };
+            $.extend(loan, addIt);
+            return loan;
+        }
+    }, {
+        key: 'processLoans',
+        value: function processLoans(loans) {
+            //this alters the loans in the array. no real need to return the array
+            loans.where(function (loan) {
+                return loan.kl_downloaded == undefined;
+            }).forEach(LoanAPI.processLoan);
+            return loans;
+        }
+    }, {
+        key: 'refreshLoan',
+        value: function refreshLoan(loan) {
+            var $def = $.Deferred();
+            this.getLoan(loan.id).done(function (k_loan) {
+                return $def.resolve($.extend(loan, k_loan));
+            });
+            return $def;
+        }
+    }, {
         key: 'getLoan',
         value: function getLoan(id) {
-            return this.sem_get('loans/' + id + '.json', 'loans', true);
+            return this.sem_get('loans/' + id + '.json', {}, 'loans', true).then(LoanAPI.processLoan);
         }
     }, {
         key: 'getLoanBatch',
         value: function getLoanBatch(id_arr, with_progress) {
             //kiva does not allow more than 100 loans in a batch. break the list into chunks of up to 100 and process them.
             // this will send progress messages with individual loan objects or just wait for the .done()
-            var chunks = id_arr.chunk(100);
+            var chunks = id_arr.chunk(100); //breaks into an array of arrays of 100.
             var $def = $.Deferred();
             var r_loans = [];
 
             for (var i = 0; i < chunks.length; i++) {
                 $def.notify({ percentage: 0, label: 'Preparing to download...' });
                 this.sem_get('loans/' + chunks[i].join(',') + '.json', {}, 'loans', false).done(function (loans) {
-                    if (with_progress) loans.forEach(function (loan) {
-                        $def.notify({ loan: loan });
-                    });
-                    r_loans = r_loans.concat(loans);
                     $def.notify({ percentage: r_loans.length * 100 / id_arr.length, label: r_loans.length + '/' + id_arr.length + ' downloaded' });
-                    if (r_loans.length == id_arr.length) {
-                        $def.resolve(r_loans);
+                    processLoans(loans);
+                    //if (with_progress) loans.forEach(loan => $def.notify({index: id_arr.indexOf(loan.id), total: id_arr.length, loan: loan}) )
+                    r_loans = r_loans.concat(loans);
+                    if (r_loans.length >= id_arr.length) {
                         $def.notify({ done: true });
+                        $def.resolve(r_loans);
                     }
                 });
             }
             return $def;
         }
-
-        //static getLoans(query){
-        //    return this.sem_get('loans/search.json', query)
-        //}
-
+    }, {
+        key: 'getLenderLoans',
+        value: function getLenderLoans(lender_id) {
+            var shouldStop = function shouldStop(results) {
+                //if page of loan results contains a loan that was already cached as being in their loan list.
+                return false;
+            };
+            this.getPaged('/lenders/' + lender_id + '/loans', 'loans', {}, { stopPagingFunc: shouldStop });
+        }
     }, {
         key: 'getAllLoans',
         value: function getAllLoans(options) {
             //using the ids_only option is not entirely clear that the function still returns all details. add options that
             // don't get passed to kiva if it's ever valuable to only get the ids (to look for ones that are new since the
             // page opened, for example)...
-            var common_descr = ["THIS", "ARE", "SHE", "THAT", "HAS", "LOAN", "BE", "OLD", "BEEN", "YEARS", "FROM", "WITH", "INCOME", "WILL", "HAVE"];
-            var common_use = ["PURCHASE", "FOR", "AND", "BUY", "OTHER", "HER", "BUSINESS", "SELL", "MORE", "HIS", "THE", "PAY"];
-
-            //descrWords.where(word => {return word != undefined})
-            var processText = function processText(text, ignore_words) {
-                if (text && text.length > 0) {
-                    //remove common words.
-                    return text.match(/(\w+)/g).distinct().where(function (word) {
-                        return word != undefined && word.length > 2;
-                    }).select(function (word) {
-                        return word.toUpperCase();
-                    }).where(function (word) {
-                        return !ignore_words.contains(word);
-                    });
-                } else {
-                    return []; //no indexable words.
-                }
-            };
-
-            var loanVisitor = function loanVisitor(loan) {
-                var descr_arr;
-                var use_arr;
-
-                descr_arr = processText(loan.description.texts.en, common_descr);
-                if (!loan.description.texts.en) {
-                    loan.description.texts.en = "No English description available.";
-                }
-                use_arr = processText(loan.use, common_use);
-
-                var last_repay = loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0 ? new Date(Date.parse(loan.terms.scheduled_payments.last().due_date)) : null;
-
-                var addIt = {
-                    kl_downloaded: new Date(),
-                    kl_descr_search_arr: descr_arr,
-                    kl_use_search_arr: use_arr,
-                    kl_use_or_descr_arr: use_arr.concat(descr_arr).distinct(),
-                    kl_last_repayment: last_repay //on non-fundraising this won't work.
-                };
-                $.extend(loan, addIt);
-            };
-            //country_code: 'IN'
-            return this.getPaged('loans/search.json', 'loans', $.extend({}, options, { status: 'fundraising', ids_only: 'true' }), loanVisitor);
+            //options.country_code = 'pe,ke'
+            return this.getPaged('loans/search.json', 'loans', $.extend({}, options, { status: 'fundraising', ids_only: 'true' }), { visitorFunc: LoanAPI.processLoan });
         }
     }]);
 
@@ -62550,19 +62578,9 @@ var PartnerAPI = (function (_kiva) {
         value: function getPartner(id) {
             return this.sem_get('partners/' + id + '.json', 'partners', true);
         }
-
-        //static getPartnerBatch(id_arr){///needs to handle more loans passed in than allowed to break it into multiple reqs.
-        //    return this.get(`partners/${id_arr.join(',')}.json`)
-        //}
-
-        //static getPartners(query){
-        //    return this.get('partners/search.json', query)
-        //}
-
     }, {
         key: 'getAllPartners',
         value: function getAllPartners(options) {
-            //return this.get_paged('partners.json', 'partners', options)
             return this.sem_get('partners.json', options, 'partners', false);
         }
     }]);
@@ -63062,7 +63080,7 @@ var CriteriaTabs = _reactAddons2['default'].createClass({
                 { defaultActiveKey: 1 },
                 _reactAddons2['default'].createElement(
                     _reactBootstrap.Tab,
-                    { eventKey: 1, title: 'Borrower' },
+                    { eventKey: 1, title: 'Borrower', className: 'ample-padding-top' },
                     _reactAddons2['default'].createElement(
                         _reactBootstrap.Row,
                         null,
@@ -63091,12 +63109,12 @@ var CriteriaTabs = _reactAddons2['default'].createClass({
                 ),
                 _reactAddons2['default'].createElement(
                     _reactBootstrap.Tab,
-                    { eventKey: 2, title: 'Partner' },
+                    { eventKey: 2, title: 'Partner', className: 'ample-padding-top' },
                     'Always Exclude list of IDs.'
                 ),
                 _reactAddons2['default'].createElement(
                     _reactBootstrap.Tab,
-                    { eventKey: 3, title: 'Your Portfolio' },
+                    { eventKey: 3, title: 'Your Portfolio', className: 'ample-padding-top' },
                     _reactAddons2['default'].createElement(
                         _reactBootstrap.Row,
                         null,
@@ -63213,84 +63231,88 @@ Object.defineProperty(exports, '__esModule', {
     value: true
 });
 
-var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-
-var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
+var _reflux = require('reflux');
+
+var _reflux2 = _interopRequireDefault(_reflux);
+
 var _reactRouter = require('react-router');
 
 var _reactBootstrap = require('react-bootstrap');
 
-var KLNav = (function (_React$Component) {
-    _inherits(KLNav, _React$Component);
+var _stores = require('../stores/');
 
-    function KLNav() {
-        _classCallCheck(this, KLNav);
+var _stores2 = _interopRequireDefault(_stores);
 
-        _get(Object.getPrototypeOf(KLNav.prototype), 'constructor', this).apply(this, arguments);
-    }
+var _actions = require('../actions');
 
-    _createClass(KLNav, [{
-        key: 'render',
-        value: function render() {
-            var Brand = _react2['default'].createElement(
-                _reactRouter.Link,
-                { className: 'navbar-brand', to: '/search' },
-                'KivaLens'
-            );
-            return _react2['default'].createElement(
-                _reactBootstrap.Navbar,
-                { brand: Brand, inverse: true, fluid: true },
+var _actions2 = _interopRequireDefault(_actions);
+
+var KLNav = _react2['default'].createClass({
+    displayName: 'KLNav',
+
+    mixins: [_reflux2['default'].ListenerMixin],
+    getInitialState: function getInitialState() {
+        return { basket_count: 0 };
+    },
+    componentDidMount: function componentDidMount() {
+        var _this = this;
+
+        this.listenTo(_actions2['default'].loans.basket.changed, function () {
+            _this.setState({ basket_count: _stores2['default'].loans.syncBasketCount() });
+        });
+    },
+    render: function render() {
+        var Brand = _react2['default'].createElement(
+            _reactRouter.Link,
+            { className: 'navbar-brand', to: '/search' },
+            'KivaLens'
+        );
+        return _react2['default'].createElement(
+            _reactBootstrap.Navbar,
+            { brand: Brand, inverse: true, fluid: true },
+            _react2['default'].createElement(
+                _reactBootstrap.Nav,
+                null,
                 _react2['default'].createElement(
-                    _reactBootstrap.Nav,
-                    null,
+                    _reactBootstrap.NavItem,
+                    { key: 1, href: '#/search' },
+                    'Search'
+                ),
+                _react2['default'].createElement(
+                    _reactBootstrap.NavItem,
+                    { key: 2, href: '#/basket' },
+                    'Basket',
                     _react2['default'].createElement(
-                        _reactBootstrap.NavItem,
-                        { key: 1, href: '#/search' },
-                        'Search'
-                    ),
-                    _react2['default'].createElement(
-                        _reactBootstrap.NavItem,
-                        { key: 2, disabled: true, href: '#/basket' },
-                        'Basket',
-                        _react2['default'].createElement(
-                            _reactBootstrap.Badge,
-                            null,
-                            '0'
-                        )
-                    ),
-                    _react2['default'].createElement(
-                        _reactBootstrap.NavItem,
-                        { key: 3, disabled: true, href: '#/options' },
-                        'Options'
-                    ),
-                    _react2['default'].createElement(
-                        _reactBootstrap.NavItem,
-                        { key: 4, disabled: true, href: '#/about' },
-                        'About'
+                        _reactBootstrap.Badge,
+                        null,
+                        this.state.basket_count
                     )
+                ),
+                _react2['default'].createElement(
+                    _reactBootstrap.NavItem,
+                    { key: 3, disabled: true, href: '#/options' },
+                    'Options'
+                ),
+                _react2['default'].createElement(
+                    _reactBootstrap.NavItem,
+                    { key: 4, disabled: true, href: '#/about' },
+                    'About'
                 )
-            );
-        }
-    }]);
-
-    return KLNav;
-})(_react2['default'].Component);
+            )
+        );
+    }
+});
 
 exports['default'] = KLNav;
 module.exports = exports['default'];
 
-},{"react":450,"react-bootstrap":75,"react-router":253}],485:[function(require,module,exports){
+},{"../actions":471,"../stores/":495,"react":450,"react-bootstrap":75,"react-router":253,"reflux":467}],485:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -63379,12 +63401,12 @@ var LoadingLoansModal = _react2['default'].createClass({
 
         this.listenTo(_actions2['default'].loans.load.progressed, function (progress) {
             var new_state = { show: true };
-            if (progress.percentage) {
-                new_state.progress = progress.percentage;
-                new_state.progress_label = progress.label;
-            }
-            if (progress.done) new_state.show = false;
+            if (progress.percentage) new_state.progress = progress.percentage;
+            if (progress.label) new_state.progress_label = progress.label;
             _this.setState(new_state);
+        });
+        this.listenTo(_actions2['default'].loans.load.completed, function () {
+            _this.setState({ show: false });
         });
     },
     render: function render() {
@@ -63466,18 +63488,25 @@ var Loan = _react2['default'].createClass({
 
     mixins: [_reflux2['default'].ListenerMixin, _reactRouter.History],
     getInitialState: function getInitialState() {
-        return { loan: _stores2['default'].loans.syncGet(this.props.params.id) };
+        return { loan: _stores2['default'].loans.syncGet(this.props.params.id), inBasket: _stores2['default'].loans.syncInBasket(this.props.params.id) };
     },
     componentWillMount: function componentWillMount() {
+        var _this = this;
+
         if (!_stores2['default'].loans.syncHasLoadedLoans()) {
             //todo: switch this to be in the router onEnter and redirect there!
             this.history.pushState(null, '/search');
             window.location.reload();
         }
+        this.listenTo(_actions2['default'].loans.basket.changed, function () {
+            _this.setState({ inBasket: _stores2['default'].loans.syncInBasket(_this.state.loan.id) });
+        });
     },
     switchToLoan: function switchToLoan(loan) {
-        this.setState({ loan: loan });
-        this.redoChart(loan);
+        var funded_perc = loan.funded_amount * 100 / loan.loan_amount;
+        var basket_perc = loan.basket_amount * 100 / loan.loan_amount;
+        this.calcRepaymentsGraph(loan);
+        this.setState({ loan: loan, basket_perc: basket_perc, funded_perc: funded_perc, inBasket: _stores2['default'].loans.syncInBasket(loan.id) });
     },
     componentDidMount: function componentDidMount() {
         this.listenTo(_actions2['default'].loans.detail.completed, this.switchToLoan);
@@ -63488,15 +63517,13 @@ var Loan = _react2['default'].createClass({
     shouldComponentUpdate: function shouldComponentUpdate(nextProps, nextState) {
         return this.state.loan ? true : false; //DOESN'T WORK?
     },
-    produceChart: function produceChart() {
+    produceChart: function produceChart(loan) {
         var result = {
-            chart: { type: 'bar' },
+            chart: { type: 'bar', animation: false },
             title: { text: 'Repayments' },
             xAxis: {
-                categories: [],
-                title: {
-                    text: null
-                }
+                categories: loan.kl_repay_categories,
+                title: { text: null }
             },
             yAxis: {
                 min: 0,
@@ -63518,22 +63545,21 @@ var Loan = _react2['default'].createClass({
             legend: { enabled: false },
             credits: { enabled: false },
             series: [{
+                animation: false,
                 name: 'Repayment',
-                data: []
+                data: loan.kl_repay_data
             }]
         };
 
         return result;
     },
-    redoChart: function redoChart(loan) {
-        var chart = this.refs.chart.getChart();
+    calcRepaymentsGraph: function calcRepaymentsGraph(loan) {
+        if (loan.kl_repay_categories) return;
         var monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
-
         var payments = loan.terms.scheduled_payments.select(function (payment) {
             var date = new Date(Date.parse(payment.due_date));
             return { due_date: monthNamesShort[date.getMonth()] + '-' + date.getFullYear(), amount: payment.amount };
         });
-        window.payments = payments;
         var grouped_payments = payments.groupBy(function (p) {
             return p.due_date;
         }).map(function (g) {
@@ -63541,21 +63567,37 @@ var Loan = _react2['default'].createClass({
                     return r.amount;
                 }) };
         });
-        window.grouped_payments = grouped_payments;
-        chart.xAxis[0].setCategories(grouped_payments.select(function (payment) {
+        loan.kl_repay_categories = grouped_payments.select(function (payment) {
             return payment.due_date;
-        }));
-        chart.series[0].setData(grouped_payments.select(function (payment) {
+        });
+        loan.kl_repay_data = grouped_payments.select(function (payment) {
             return payment.amount;
-        }));
+        });
     },
+    //redoChartData: function(loan){
+    //let chart = this.refs.chart.getChart();
+    //chart.xAxis[0].setCategories(loan.kl_repay_categories)
+    //chart.series[0].setData(loan.kl_repay_data)
+    //},
     render: function render() {
+        var addRemove = this.state.inBasket ? _react2['default'].createElement(
+            _reactBootstrap.Button,
+            { onClick: _actions2['default'].loans.basket.remove.bind(this, this.state.loan.id) },
+            'Remove from Basket'
+        ) : _react2['default'].createElement(
+            _reactBootstrap.Button,
+            { onClick: _actions2['default'].loans.basket.add.bind(this, this.state.loan.id) },
+            'Add to Basket'
+        );
+
         return _react2['default'].createElement(
             'div',
             null,
             _react2['default'].createElement(
                 'h1',
                 null,
+                addRemove,
+                ' ',
                 this.state.loan.name
             ),
             _react2['default'].createElement(
@@ -63563,15 +63605,21 @@ var Loan = _react2['default'].createClass({
                 { defaultActiveKey: 1 },
                 _react2['default'].createElement(
                     _reactBootstrap.Tab,
-                    { eventKey: 1, title: 'Image', className: 'ample-padding' },
+                    { eventKey: 1, title: 'Image', className: 'ample-padding-top' },
                     _react2['default'].createElement(_.KivaImage, { loan: this.state.loan, type: 'width', image_width: 800, width: '100%' })
                 ),
                 _react2['default'].createElement(
                     _reactBootstrap.Tab,
-                    { eventKey: 2, title: 'Details', className: 'ample-padding' },
+                    { eventKey: 2, title: 'Details', className: 'ample-padding-top' },
                     _react2['default'].createElement(
                         _reactBootstrap.Col,
                         { md: 7 },
+                        _react2['default'].createElement(
+                            _reactBootstrap.ProgressBar,
+                            null,
+                            _react2['default'].createElement(_reactBootstrap.ProgressBar, { striped: true, bsStyle: 'success', now: this.state.funded_perc, key: 1 }),
+                            _react2['default'].createElement(_reactBootstrap.ProgressBar, { bsStyle: 'warning', now: this.state.basket_perc, key: 2 })
+                        ),
                         _react2['default'].createElement(
                             'b',
                             null,
@@ -63583,15 +63631,21 @@ var Loan = _react2['default'].createClass({
                             ' | ',
                             this.state.loan.use
                         ),
-                        _react2['default'].createElement('p', { dangerouslySetInnerHTML: { __html: this.state.loan.description.texts.en } })
+                        _react2['default'].createElement('p', { dangerouslySetInnerHTML: { __html: this.state.loan.description.texts.en } }),
+                        _react2['default'].createElement(
+                            'a',
+                            { href: 'http://www.kiva.org/lend/' + this.state.loan.id, target: '_blank' },
+                            'View on Kiva.org'
+                        )
                     ),
                     _react2['default'].createElement(
                         _reactBootstrap.Col,
                         { md: 3 },
-                        _react2['default'].createElement(_reactHighcharts2['default'], { style: { height: '500px', width: '400px' }, config: this.produceChart(), ref: 'chart' })
+                        _react2['default'].createElement(_reactHighcharts2['default'], { style: { height: '500px', width: '400px' }, config: this.produceChart(this.state.loan), ref: 'chart' })
                     )
                 ),
-                _react2['default'].createElement(_reactBootstrap.Tab, { eventKey: 3, title: 'Partner', className: 'ample-padding' })
+                _react2['default'].createElement(_reactBootstrap.Tab, { eventKey: 3, disabled: true, title: 'Partner', className: 'ample-padding-top' }),
+                _react2['default'].createElement(_reactBootstrap.Tab, { eventKey: 5, disabled: true, title: 'Similar', className: 'ample-padding-top' })
             )
         );
     }
@@ -63607,83 +63661,87 @@ Object.defineProperty(exports, '__esModule', {
     value: true
 });
 
-var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-
-var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
+var _reflux = require('reflux');
+
+var _reflux2 = _interopRequireDefault(_reflux);
+
 var _reactBootstrap = require('react-bootstrap');
 
 var _ = require('.');
+
+var _classnames = require('classnames');
+
+var _classnames2 = _interopRequireDefault(_classnames);
 
 var _actions = require('../actions');
 
 var _actions2 = _interopRequireDefault(_actions);
 
-var LoanListItem = (function (_React$Component) {
-    _inherits(LoanListItem, _React$Component);
+var _stores = require('../stores/');
 
-    function LoanListItem() {
-        _classCallCheck(this, LoanListItem);
+var _stores2 = _interopRequireDefault(_stores);
 
-        _get(Object.getPrototypeOf(LoanListItem.prototype), 'constructor', this).apply(this, arguments);
-    }
+var LoanListItem = _react2['default'].createClass({
+    displayName: 'LoanListItem',
 
-    _createClass(LoanListItem, [{
-        key: 'render',
-        value: function render() {
-            var loan = this.props; //
-            return _react2['default'].createElement(
-                _reactBootstrap.ListGroupItem,
-                {
-                    onClick: _actions2['default'].loans.detail.bind(null, loan.id),
-                    className: 'loan_list_item',
-                    key: loan.id,
-                    href: '#/search/loan/' + loan.id },
-                _react2['default'].createElement(_.KivaImage, { className: 'float_left', type: 'square', loan: loan, image_width: 113, height: 90, width: 90 }),
+    mixins: [_reflux2['default'].ListenerMixin],
+    getInitialState: function getInitialState() {
+        return { inBasket: _stores2['default'].loans.syncInBasket(this.props.id) };
+    },
+    componentDidMount: function componentDidMount() {
+        var _this = this;
+
+        this.listenTo(_actions2['default'].loans.basket.changed, function () {
+            _this.setState({ inBasket: _stores2['default'].loans.syncInBasket(_this.props.id) });
+        });
+    },
+    render: function render() {
+        var loan = this.props;
+        return _react2['default'].createElement(
+            _reactBootstrap.ListGroupItem,
+            {
+                onClick: _actions2['default'].loans.detail.bind(null, loan.id),
+                className: (0, _classnames2['default'])('loan_list_item', { in_basket: this.state.inBasket }),
+                key: loan.id,
+                href: '#/search/loan/' + loan.id },
+            _react2['default'].createElement(_.KivaImage, { className: 'float_left', type: 'square', loan: loan, image_width: 113, height: 90, width: 90 }),
+            _react2['default'].createElement(
+                'div',
+                { className: 'float_left details' },
                 _react2['default'].createElement(
-                    'div',
-                    { className: 'float_left details' },
+                    'p',
+                    null,
                     _react2['default'].createElement(
-                        'p',
+                        'b',
                         null,
-                        _react2['default'].createElement(
-                            'b',
-                            null,
-                            loan.name
-                        )
-                    ),
-                    loan.location.country,
-                    ' | ',
-                    loan.sector,
-                    ' | ',
-                    loan.activity,
-                    _react2['default'].createElement(
-                        'p',
-                        null,
-                        loan.use
+                        loan.name
                     )
+                ),
+                loan.location.country,
+                ' | ',
+                loan.sector,
+                ' | ',
+                loan.activity,
+                _react2['default'].createElement(
+                    'p',
+                    null,
+                    loan.use
                 )
-            );
-        }
-    }]);
-
-    return LoanListItem;
-})(_react2['default'].Component);
+            )
+        );
+    }
+});
 
 exports['default'] = LoanListItem;
 module.exports = exports['default'];
 
-},{".":493,"../actions":471,"react":450,"react-bootstrap":75}],489:[function(require,module,exports){
+},{".":493,"../actions":471,"../stores/":495,"classnames":2,"react":450,"react-bootstrap":75,"reflux":467}],489:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -63908,7 +63966,7 @@ var Search = _reactAddons2['default'].createClass({
                     ),
                     _reactAddons2['default'].createElement(
                         _reactBootstrap.Button,
-                        { href: '/#/search', key: 2, onClick: this.changeCriteria },
+                        { href: '#/search', key: 2, onClick: this.changeCriteria },
                         'Change Criteria'
                     )
                 ),
@@ -64103,6 +64161,7 @@ module.exports = exports['default'];
 
 },{"./criteriaStore":494,"./loanStore":496,"./partnerStore":497}],496:[function(require,module,exports){
 'use strict';
+
 Object.defineProperty(exports, '__esModule', {
     value: true
 });
@@ -64127,11 +64186,50 @@ var _criteriaStore2 = _interopRequireDefault(_criteriaStore);
 
 //array of api loan objects that are sorted in the order they were returned.
 var loans_from_kiva = [];
+var indexed_loans = {};
+var basket_loans = [];
+
 var loanStore = _reflux2['default'].createStore({
     listenables: [_actions2['default'].loans],
     init: function init() {
         console.log("loanStore:init");
-        _actions2['default'].loans.load();
+        _actions2['default'].loans.load(); //start loading loans from Kiva.
+        if (typeof localStorage === 'object') basket_loans = JSON.parse(localStorage.getItem('basket'));
+        if (!Array.isArray(basket_loans)) basket_loans = [];
+        _actions2['default'].loans.basket.changed();
+    },
+    _basketSave: function _basketSave() {
+        if (typeof localStorage === 'object') localStorage.setItem('basket', JSON.stringify(basket_loans));
+        _actions2['default'].loans.basket.changed();
+    },
+    syncInBasket: function syncInBasket(id) {
+        return basket_loans.contains(id);
+    },
+    syncBasketCount: function syncBasketCount() {
+        return basket_loans.length;
+    },
+    syncGetBasket: function syncGetBasket() {
+        return basket_loans.map(function (id) {
+            return indexed_loans[id];
+        });
+    },
+    onBasketClear: function onBasketClear() {
+        basket_loans = [];
+        this._basketSave();
+    },
+    onBasketBatchAdd: function onBasketBatchAdd(loan_ids) {
+        basket_loans = basket_loans.concat(loan_ids).distinct();
+        this._basketSave();
+    },
+    onBasketAdd: function onBasketAdd(loan_id) {
+        if (!basket_loans.contains(loan_id)) {
+            basket_loans.push(loan_id);
+            this._basketSave();
+        }
+    },
+    onBasketRemove: function onBasketRemove(loan_id) {
+        basket_loans.remove(loan_id);
+        this._basketSave();
     },
     onLoad: function onLoad(options) {
         console.log("loanStore:onLoad");
@@ -64142,35 +64240,16 @@ var loanStore = _reflux2['default'].createStore({
             return;
         }
 
-        if (typeof localStorage === 'object') {
-            //var lsLoans = JSON.parse(localStorage.getItem('loans'))
-            //console.log("lsLoans:", lsLoans)
-            if (false) {
-                //lsLoans &&
-                //alert(`found ${lsLoans.loans.length}`)
-                lsLoans.stored = new Date(Date.parse(lsLoans.stored));
-                if (new Date() - lsLoans.stored < 24 * 60 * 60 * 1000) {
-                    loans_from_kiva = lsLoans.map(function (loan) {
-                        loan.kl_last_repayment = new Date(Date.parse(loan.kl_last_repayment));
-                        loan.kl_downloaded = new Date(Date.parse(loan.kl_downloaded));
-                        return loan;
-                    });
-                    return;
-                }
-            }
-        }
-
         options = $.extend({}, options);
         //, {region: 'af'}
 
         _apiLoans2['default'].getAllLoans(options).done(function (loans) {
-            //local_this.loans = loans;
-            _actions2['default'].loans.load.completed(loans);
-            window.kiva_loans = loans;
+            //a.loans.load.progressed({label: 'Indexing loans...'})
+            loans.forEach(function (loan) {
+                return indexed_loans[loan.id] = loan;
+            });
             loans_from_kiva = loans;
-            //if (typeof localStorage === 'object') {
-            //localStorage.setItem('loans', JSON.stringify({stored: new Date(), loans: loans.take(1000)}))
-            //}
+            _actions2['default'].loans.load.completed(loans);
         }).progress(function (progress) {
             console.log("progress:", progress);
             _actions2['default'].loans.load.progressed(progress);
@@ -64180,10 +64259,16 @@ var loanStore = _reflux2['default'].createStore({
     },
 
     onDetail: function onDetail(id) {
-        _actions2['default'].loans.detail.completed(this.syncGet(id));
+        //this is weird. treating a sync function as sync
+        var loan = this.syncGet(id);
+        _actions2['default'].loans.detail.completed(loan); //return immediately with the one we got at start up.
+        _apiLoans2['default'].refreshLoan(loan).done(function (l) {
+            return _actions2['default'].loans.detail.completed(l);
+        }); //kick off a process to get an updated version
     },
 
     onFilter: function onFilter(c) {
+        //why would I ever call this async??
         _actions2['default'].loans.filter.completed(this.syncFilterLoans(c));
     },
 
@@ -64192,6 +64277,7 @@ var loanStore = _reflux2['default'].createStore({
     },
 
     mergeLoan: function mergeLoan(d_loan) {
+        //used?
         var loan = loans_from_kiva.first(function (loan) {
             return loan.id == d_loan.id;
         });
@@ -64209,7 +64295,6 @@ var loanStore = _reflux2['default'].createStore({
             c = _criteriaStore2['default'].syncGetLast();
         }
         //break this into another unit --store? LoansAPI.filter(loans, criteria)
-        var loans = loans_from_kiva;
 
         //for each search term for sector, break it into an array, ignoring spaces and commas
         //for each loan, test the sector against each search term.
@@ -64243,18 +64328,24 @@ var loanStore = _reflux2['default'].createStore({
         var stCountry = makeSearchTester(c.country);
         var stUse = makeSearchTester(c.use);
 
-        loans = loans.where(function (loan) {
+        console.log('criteria', c);
+
+        return loans_from_kiva.where(function (loan) {
             return stSector.startsWith(loan.sector) && stActivity.startsWith(loan.activity) && stName.contains(loan.name) && stCountry.startsWith(loan.location.country) && stUse.terms_arr.all(function (search_term) {
                 return loan.kl_use_or_descr_arr.any(function (w) {
                     return w.startsWith(search_term);
                 });
             });
         });
-
-        console.log('criteria', c);
-        return loans;
     }
 });
+
+window.perf = function (func) {
+    var t0 = performance.now();
+    func();
+    var t1 = performance.now();
+    console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.");
+};
 
 exports['default'] = loanStore;
 module.exports = exports['default'];

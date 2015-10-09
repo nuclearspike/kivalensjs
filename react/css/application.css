@@ -25,3 +25,12 @@
 .infinite-list-content {
   margin: 0;
   position: absolute; }
+
+.ample-padding-top {
+  padding-top: 15px; }
+
+.in_basket {
+  background-color: #93C54B !important; }
+
+.in_portfolio {
+  background-color: #cfcfcf !important; }

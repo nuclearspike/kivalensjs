@@ -1,17 +1,27 @@
 'use strict';
 
 import React from 'react'
+import Reflux from 'reflux'
 import {ListGroupItem} from 'react-bootstrap';
 import {KivaImage} from '.'
+import cx from 'classnames'
 import a from '../actions'
+import s from '../stores/'
 
-class LoanListItem extends React.Component {
-    render() {
-        var loan = this.props; //
+const LoanListItem = React.createClass({
+    mixins: [Reflux.ListenerMixin],
+    getInitialState: function () {
+        return { inBasket: s.loans.syncInBasket(this.props.id) }
+    },
+    componentDidMount: function() {
+        this.listenTo(a.loans.basket.changed, ()=>{ this.setState({inBasket: s.loans.syncInBasket(this.props.id)}) })
+    },
+    render: function() {
+        var loan = this.props;
         return (
             <ListGroupItem
                 onClick={a.loans.detail.bind(null, loan.id)}
-                className="loan_list_item"
+                className={cx('loan_list_item', {in_basket: this.state.inBasket})}
                 key={loan.id}
                 href={`#/search/loan/${loan.id}`}>
                 <KivaImage className="float_left" type="square" loan={loan} image_width={113} height={90} width={90}/>
@@ -25,6 +35,6 @@ class LoanListItem extends React.Component {
             </ListGroupItem>
         )
     }
-}
+})
 
 export default LoanListItem;

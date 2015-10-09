@@ -11,35 +11,31 @@ var LoadingLoansModal = React.createClass({
     componentDidMount: function() {
         this.listenTo(a.loans.load.progressed, progress => {
             var new_state = {show: true}
-            if (progress.percentage) {
-                new_state.progress = progress.percentage
-                new_state.progress_label = progress.label
-            }
-            if (progress.done)
-                new_state.show = false
+            if (progress.percentage) new_state.progress = progress.percentage
+            if (progress.label) new_state.progress_label = progress.label
             this.setState(new_state)
         })
+        this.listenTo(a.loans.load.completed, ()=>{this.setState({show: false})})
     },
     render() {
         return (
-        <div className="static-modal">
-            <Modal show={this.state.show} onHide={()=>{}}>
-                <Modal.Header>
-                    <Modal.Title>Loading Fundraising Loans from Kiva.org</Modal.Title>
-                </Modal.Header>
+            <div className="static-modal">
+                <Modal show={this.state.show} onHide={()=>{}}>
+                    <Modal.Header>
+                        <Modal.Title>Loading Fundraising Loans from Kiva.org</Modal.Title>
+                    </Modal.Header>
 
-                <Modal.Body>
-                    <ProgressBar active now={this.state.progress} />
-                    <p>To greatly reduce load time, check out the "Options"
-                        tab to always exclude certain types of loans from the initial load.</p>
-                </Modal.Body>
+                    <Modal.Body>
+                        <ProgressBar active now={this.state.progress} />
+                        <p>To greatly reduce load time, check out the "Options"
+                            tab to always exclude certain types of loans from the initial load.</p>
+                    </Modal.Body>
 
-                <Modal.Footer>
-                    {this.state.progress_label}
-                </Modal.Footer>
-            </Modal>
-        </div>
-
+                    <Modal.Footer>
+                        {this.state.progress_label}
+                    </Modal.Footer>
+                </Modal>
+            </div>
         );
     }
 })
