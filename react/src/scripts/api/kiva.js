@@ -23,11 +23,11 @@ export default class K {
     }
 
     //when the results are not paged or when you know it's only one page, this is faster.
-    static get(url, options){
+    static get(path, options){
         options = $.extend({}, options, {app_id: api_options.app_id})
-        console.log('get():', url, options)
-        return $.getJSON(`http://api.kivaws.org/v1/${url}?${serialize(options)}`)
-            .done(result =>  console.log(result) )
+        console.log('get():', path, options)
+        return $.getJSON(`http://api.kivaws.org/v1/${path}?${serialize(options)}`)
+            .done(result => console.log(result) )
             .fail((xhr, status, err) => console.error(status, err.toString()) )
     }
 
@@ -35,10 +35,15 @@ export default class K {
     // it returns a promise and you'll get your .done() later on. "collection" param is optional. when specified,
     // instead of returning the full JSON object with paging data, it only returns the "loans" section or "partners"
     // section. "isSingle" indicates whether it should return only the first item or a whole collection
-    static sem_get(url, options, collection, isSingle){
+    static sem_get(url, options, collection, isSingle, shouldAbort){
         var $def = $.Deferred()
+        if (!shouldAbort) shouldAbort = ()=> {return false}
         sem.take(function(){
-            this.get(url, options).done(()=> sem.leave()).done($def.resolve).fail($def.reject).progress($def.notify)
+            if (shouldAbort(options)) {
+                sem.leave()
+            } else {
+                this.get(url, options).done(()=> sem.leave()).done($def.resolve).fail($def.reject).progress($def.notify)
+            }
         }.bind(this))
 
         if (collection){ //'loans' 'partners' etc... then do another step of processing. will resolve as undefined if no result.
@@ -47,73 +52,251 @@ export default class K {
             return $def
         }
     }
+}
 
-    //for requests that have 1 to * pages for results.
-    static getPaged(url, collection, options, kl_options){
-        //options.country_code = 'KE' //TEMP@!!!!
-        //url, collection are required. options is optional
-        console.log("getPaged:", url, collection, options)
+const sREADY = 1, sDOWNLOADING = 2, sDONE = 3, sFAILED = 4, sCANCELLED = 5
+class Request {
+    constructor(url, params, page = null, collection = null, isSingle = false) {
+        this.url = url
+        this.params = params
+        this.page = page || 1
+        this.state = sREADY
+        this.collection = collection
+        this.isSingle = isSingle
+        this.ids = []
+        this.results = []
+        this.continuePaging = true
+        this.raw_result = {}
+    }
 
+    fetch(){
         var $def = $.Deferred()
-        $.extend(options, {per_page: 100, page: 1, app_id: api_options.app_id})
-        kl_options = $.extend({}, kl_options)
-        $def.notify({label: 'Preparing to download...'})
 
-        var result_objects = []
-        var pages = {}
-        var pages_count = 0
-        var total_object_count = 0
-        var result_object_count = 0
-        var id_pages_done = 0
+        sem.take(function(){
+            if (this.state == sCANCELLED) {
+                sem.leave()
+                $def.reject()
+                return $def
+            } else {
+                if (this.page)
+                    $.extend(this.params, {page: this.page})
+                $def.fail(()=> this.state = sFAILED)
+                Request.get(this.url, this.params)
+                    .done(result => {
+                        sem.leave(1)
+                        this.raw_result = result
+                    }) //cannot pass the func itself since it takes params.
+                    .done($def.resolve)
+                    .fail($def.reject)
+                    .progress($def.notify)
+            }
+        }.bind(this))
 
-        //all data is downloaded, combine them all into one single array of loans,
-        // assembled in the same order they came back from kiva
-        var wrapUp = function(){
-            $def.notify({label: 'Processing...'})
-            for (var n = 1; n <= pages_count; n++) { result_objects = result_objects.concat(pages[n]) }
-            if (typeof kl_options.visitorFunc === 'function') { result_objects.forEach(kl_options.visitorFunc) }
-            $def.notify({done: true})
-            $def.resolve(result_objects)
+        if (this.collection){ //'loans' 'partners' etc... then do another step of processing. will resolve as undefined if no result.
+            return $def.then(result => this.isSingle ? result[this.collection][0] : result[this.collection] )
+        } else {
+            return $def
         }
+    }
 
-        //can process from either a paged response or where the details are fetched separately from paged ids.
-        var generalProcessResponse = function (objects, page){
-            pages[page] = objects
-            result_object_count += objects.length;
-            $def.notify({percentage: (result_object_count * 100)/total_object_count,
-                label: `${result_object_count}/${total_object_count} downloaded`})
-            if (result_object_count >= total_object_count) wrapUp();
+    fetchFromIds(ids){
+        this.state = sDOWNLOADING
+        this.ids = ids
+        return Request.sem_get(`${this.collection}/${ids.join(',')}.json`, {}, this.collection, false)
+    }
+
+    static get(path, params){
+        params = $.extend({}, params, {app_id: api_options.app_id})
+        console.log('get():', path, params)
+        return $.getJSON(`http://api.kivaws.org/v1/${path}?${serialize(params)}`)
+            .done(result => console.log(result) )
+            .fail((xhr, status, err) => console.error(status, err.toString()) )
+    }
+
+    static sem_get(url, params, collection, isSingle){
+        var $def = $.Deferred()
+        sem.take(function(){
+            this.get(url, params).done(()=> sem.leave()).done($def.resolve).fail($def.reject).progress($def.notify)
+        }.bind(this))
+
+        if (collection){ //'loans' 'partners' etc... then do another step of processing. will resolve as undefined if no result.
+            return $def.then(result => isSingle ? result[collection][0] : result[collection] )
+        } else {
+            return $def
         }
+    }
+}
 
-        //takes a bunch of ids and makes the request to get those object details and adds it to the queue of pages to fetch.
-        var processSinglePageOfIDResults = function(result_ids){
-            id_pages_done++
-            $def.notify({percentage: (id_pages_done * 100 / result_ids.paging.pages), label: `Getting the basics... Step 1 of 2`})
-            this.sem_get(`${collection}/${result_ids[collection].join(',')}.json`, {}, collection, false)
-                .done(result => generalProcessResponse(result, result_ids.paging.page) )
-        }
+class ResultProcessors {
+    static processLoans(loans){
+        //this alters the loans in the array. no need to return the array ?
+        loans.where(loan => loan.kl_downloaded == undefined).forEach(ResultProcessors.processLoan)
+        return loans
+    }
 
-        //process a single page of results. used when paging normally through data (not getting just the ids first)
-        var processSinglePageOfResults = function(result){
-            generalProcessResponse(result[collection], result.paging.page)
-        }
-
-        var processResponse = (options.ids_only) ? processSinglePageOfIDResults.bind(this) : processSinglePageOfResults.bind(this)
-
-        //process the first page of results and make semaphored calls to get more pages.
-        var processPagingAndQueueRequests = function(result){
-            $def.notify({label: 'Downloading...'})
-            total_object_count = result.paging.total
-            pages_count = result.paging.pages
-            for (var page = 2; page <= pages_count; page++) {
-                //for every page of data from 2 to the max, queue up the requests.
-                this.sem_get(url, $.extend({}, options, {page: page})).done(processResponse)
+    static processLoan(loan){
+        var processText = function(text, ignore_words){
+            if (text && text.length > 0){
+                //remove common words.
+                var matches = text.match(/(\w+)/g) //splits on word boundaries
+                if (!Array.isArray(matches)) return []
+                return matches.distinct() //ignores repeats
+                    .where(word => word != undefined && word.length > 2) //ignores words 2 characters or less
+                    .select(word => word.toUpperCase()) //UPPERCASE
+                    .where(word => !ignore_words.contains(word) ) //ignores common words
+            } else {
+                return [] //no indexable words.
             }
         }
 
-        //get the first page, reads the paging data that starts the rest, then processes the results of the first page.
-        this.sem_get(url, options).done([processPagingAndQueueRequests.bind(this), processResponse])
+        var addIt = {
+            kl_downloaded: new Date()
+        }
 
-        return $def
+        if (loan.description) { //the presence implies this is a detail result
+            var descr_arr
+            var use_arr
+
+            descr_arr = processText(loan.description.texts.en, common_descr)
+            if (!loan.description.texts.en) loan.description.texts.en = "No English description available."
+            use_arr = processText(loan.use, common_use)
+
+            var last_repay = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? Date.from_iso(loan.terms.scheduled_payments.last().due_date) : null
+
+            addIt.kl_use_or_descr_arr = use_arr.concat(descr_arr).distinct(),
+            addIt.kl_last_repayment = last_repay  //on non-fundraising this won't work.
+        }
+        $.extend(loan, addIt)
+        return loan
     }
 }
+
+class PagedKiva {
+    constructor(url, params, collection){
+        this.url = url
+        this.params = $.extend({}, {per_page: 100, app_id: api_options.app_id}, params)
+        this.collection = collection
+        this.promise = $.Deferred()
+        this.requests = []
+        this.twoStage = false
+        this.visitorFunct = null
+        this.result_object_count = 0
+    }
+
+    processFirstResponse(request, response){
+        this.total_object_count = request.raw_result.paging.total
+        for (var page = 2; page <= request.raw_result.paging.pages; page++) { this.setupRequest(page) }
+        this.processPage(request, response)
+        if (request.continuePaging) {
+            this.requests.skip(1).forEach(req => {
+                //for every page of data from 2 to the max, queue up the requests.
+                req.fetch().done(resp => this.processPage(req, resp))
+            })
+        }
+    }
+
+    processPage(request, response){
+        return this.twoStage ? this.processPageOfIds(request, response) : this.processPageOfData(request, response)
+    }
+
+    processPageOfIds(request, response){
+        this.promise.notify({percentage: (this.requests.where(req => req.ids.length > 0).length * 100 / this.requests.length),
+            label: `Getting the basics... Step 1 of 2`})
+        request.fetchFromIds(response)
+            .done(detail_response => this.processPageOfData(request, detail_response) )
+    }
+
+    processPageOfData(request, response){
+        request.state = sDONE
+        request.results = response
+        this.result_object_count += response.length;
+        this.promise.notify({percentage: (this.result_object_count * 100)/this.total_object_count,
+            label: `${this.result_object_count}/${this.total_object_count} downloaded`})
+
+        //only care that we processed all pages. if the number of loans changes while paging, still continue.
+        if (this.requests.all(req => req.state == sDONE)) {
+            this.wrapUp();
+            return
+        }
+
+        //this seems like it can miss stuff.
+        if (!this.continuePaging(response)){
+            request.continuePaging = false
+        }
+
+        var ignoreAfter = this.requests.first(req => !req.continuePaging)
+        if (ignoreAfter) { //if one is calling cancel on the whole process,
+            //cancel all remaining requests.
+            this.requests.skipWhile(req => req.page <= ignoreAfter.page).where(req => req.state != sCANCELLED).forEach(req => req.state = sCANCELLED)
+            //then once all pages up to the one that called it quits are done, wrap it up.
+            if (this.requests.takeWhile(req => req.page <= ignoreAfter.page).all(req => req.state == sDONE)) {
+                this.wrapUp()
+            }
+        }
+    }
+
+    continuePaging(response){
+        return true
+    }
+
+    wrapUp() {
+        this.promise.notify({label: 'Processing...'})
+        var result_objects = []
+        this.requests.forEach(req => result_objects = result_objects.concat(req.results))
+        if (this.visitorFunct)
+            result_objects.forEach(this.visitorFunc)
+        this.promise.notify({done: true})
+        this.promise.resolve(result_objects)
+    }
+
+    setupRequest(page){
+        var req = new Request(this.url, this.params, page, this.collection, false)
+        this.requests.push(req)
+        return req
+    }
+
+    start(){
+        if (this.twoStage) $.extend(this.params, {ids_only: 'true'})
+        this.promise.notify({label: 'Downloading...'})
+        this.setupRequest(1).fetch().done(result => this.processFirstResponse(this.requests.first(), result))
+        return this.promise
+    }
+}
+
+class LoansSearch extends PagedKiva {
+    constructor(params, getDetails = true){
+        params = $.extend({}, {status:'fundraising'}, params)
+        super('loans/search.json', params, 'loans')
+        this.twoStage = getDetails
+        this.visitorFunc = ResultProcessors.processLoan
+    }
+}
+
+class LenderLoans extends PagedKiva {
+    constructor(lender_id, fundraising_only = true){
+        super(`lenders/${lender_id}/loans.json`, {}, 'loans')
+        this.fundraising_only = fundraising_only
+    }
+
+    continuePaging(loans) {
+        //only do this stuff if we are only wanting fundraising which is what we want now. but if open-sourced other projects may want it for different reasons.
+        if (this.fundraising_only && !loans.any(loan => loan.status == 'fundraising')){
+            //if all loans on the page were posted at least 30 days ago, stop looking.
+            if (loans.all(loan => Date.from_iso(loan.posted_date).isBefore((30).days().ago())))
+                return false
+        }
+        return true
+    }
+
+    start(){
+        //return only an array of the ids of the loans
+        return super.start().then(result => result.select(loan => loan.id))
+    }
+}
+
+export {LenderLoans, LoansSearch, PagedKiva, ResultProcessors, Request}
+
+//temp
+window.Request = Request
+window.LoansSearch = LoansSearch
+window.LenderLoans = LenderLoans

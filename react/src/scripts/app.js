@@ -1,6 +1,7 @@
 'use strict'
 
 require('linqjs')
+require('datejs')
 import React from 'react'
 import Router from 'react-router'
 import {Route, Redirect, IndexRoute} from 'react-router';
@@ -15,6 +16,9 @@ Array.prototype.chunk = function(chunkSize) {
         R.push(this.slice(i,i+chunkSize));
     return R;
 }
+
+//not the best name... but i need this for all kiva dates
+Date.from_iso = (s) => { return new Date(Date.parse(s)) }
 
 class App extends React.Component {
     render(){

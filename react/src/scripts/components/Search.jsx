@@ -1,6 +1,6 @@
 'use strict';
 
-import React from 'react/addons'
+import React from 'react'
 import Reflux from 'reflux'
 import {Grid,Row,Col,Input,ButtonGroup,Button} from 'react-bootstrap';
 import {LoanListItem, LoadingLoansModal} from '.';
@@ -9,7 +9,7 @@ import s from '../stores'
 import InfiniteList from 'react-infinite-list'
 
 var Search = React.createClass({
-    mixins: [Reflux.ListenerMixin, React.addons.LinkedStateMixin],
+    mixins: [Reflux.ListenerMixin],
     getInitialState:function(){
         var filtered_loans = s.loans.syncFilterLoans()
         return {filtered_loans: filtered_loans, loan_count: filtered_loans.length}
@@ -50,8 +50,7 @@ var Search = React.createClass({
                         items={this.state.filtered_loans}
                         height={600}
                         itemHeight={100}
-                        listItemClass={LoanListItem}
-                    />
+                        listItemClass={LoanListItem} />
                 </Col>
                 <Col md={8}>
                     {this.props.children}

@@ -16,6 +16,7 @@ var LoadingLoansModal = React.createClass({
             this.setState(new_state)
         })
         this.listenTo(a.loans.load.completed, ()=>{this.setState({show: false})})
+        this.listenTo(a.loans.load.failed, (status)=>{this.setState({label: 'Download Failed! Try reloading the page.'})})
     },
     render() {
         return (

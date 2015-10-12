@@ -29,8 +29,8 @@
     "yargs": "^3.26.0"
   },
   "dependencies": {
-    "semaphore": "^1.0.3",
     "classnames": "^2.1.5",
+    "datejs": "0.0.2",
     "react": "^0.13.3",
     "react-bootstrap": "^0.25.2",
     "react-google-maps": "^3.0.0",
@@ -39,6 +39,7 @@
     "react-infinite-list": "^0.3.1",
     "react-router": "^1.0.0-rc1",
     "reactify": "^1.1.1",
-    "reflux": "^0.2.12"
+    "reflux": "^0.2.12",
+    "semaphore": "^1.0.3"
   }
 }

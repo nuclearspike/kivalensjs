@@ -7,8 +7,8 @@ class PartnerAPI extends kiva {
         return this.sem_get(`partners/${id}.json`, 'partners', true)
     }
 
-    static getAllPartners(options){
-        return this.sem_get('partners.json', options, 'partners', false)
+    static getAllPartners(){
+        return this.sem_get('partners.json', {}, 'partners', false)
     }
 }
 

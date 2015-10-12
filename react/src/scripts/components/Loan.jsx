@@ -71,21 +71,14 @@ var Loan = React.createClass({
         return result
     },
     calcRepaymentsGraph: function(loan){
-        if (loan.kl_repay_categories) return
-        var monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+        if (loan.kl_repay_categories || !loan.terms.scheduled_payments) return
         var payments = loan.terms.scheduled_payments.select(payment => {
-            var date = new Date(Date.parse(payment.due_date))
-            return {due_date: `${monthNamesShort[date.getMonth()]}-${date.getFullYear()}`, amount: payment.amount}
-        });
+            return {due_date: Date.from_iso(payment.due_date).toString("MMM-yyyy"), amount: payment.amount}
+        })
         var grouped_payments  = payments.groupBy(p => p.due_date).map(g => { return {due_date: g[0].due_date, amount: g.sum(r => r.amount)} })
         loan.kl_repay_categories = grouped_payments.select(payment => payment.due_date)
         loan.kl_repay_data = grouped_payments.select(payment => payment.amount)
     },
-    //redoChartData: function(loan){
-        //let chart = this.refs.chart.getChart();
-        //chart.xAxis[0].setCategories(loan.kl_repay_categories)
-        //chart.series[0].setData(loan.kl_repay_data)
-    //},
     render: function() {
         var addRemove = (this.state.inBasket ?
             <Button onClick={a.loans.basket.remove.bind(this, this.state.loan.id)}>Remove from Basket</Button> :

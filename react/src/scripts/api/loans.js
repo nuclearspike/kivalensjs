@@ -25,12 +25,10 @@ class LoanAPI extends kiva {
         var use_arr
 
         descr_arr = processText(loan.description.texts.en, common_descr)
-        if (!loan.description.texts.en){
-            loan.description.texts.en = "No English description available."
-        }
+        if (!loan.description.texts.en) loan.description.texts.en = "No English description available."
         use_arr = processText(loan.use, common_use)
 
-        var last_repay = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? new Date(Date.parse(loan.terms.scheduled_payments.last().due_date)): null
+        var last_repay = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? Date.from_iso(loan.terms.scheduled_payments.last().due_date): null
 
         var addIt = {
             kl_downloaded: new Date(),
@@ -44,7 +42,7 @@ class LoanAPI extends kiva {
     }
 
     static processLoans(loans){
-        //this alters the loans in the array. no real need to return the array
+        //this alters the loans in the array. no need to return the array ?
         loans.where(loan => loan.kl_downloaded == undefined).forEach(LoanAPI.processLoan)
         return loans
     }
@@ -81,22 +79,6 @@ class LoanAPI extends kiva {
                 })
         }
         return $def
-    }
-
-    static getLenderLoans(lender_id){
-        var shouldStop = function(results){
-            //if page of loan results contains a loan that was already cached as being in their loan list.
-            return false
-        }
-        this.getPaged(`/lenders/${lender_id}/loans`, 'loans', {}, {stopPagingFunc: shouldStop})
-    }
-
-    static getAllLoans(options){
-        //using the ids_only option is not entirely clear that the function still returns all details. add options that
-        // don't get passed to kiva if it's ever valuable to only get the ids (to look for ones that are new since the
-        // page opened, for example)...
-        //options.country_code = 'pe,ke'
-        return this.getPaged('loans/search.json', 'loans', $.extend({}, options, {status: 'fundraising', ids_only: 'true'}), {visitorFunc: LoanAPI.processLoan})
     }
 }
 
