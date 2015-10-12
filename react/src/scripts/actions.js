@@ -9,7 +9,8 @@ a.loans = Reflux.createActions({
     "filter": {children: ["completed"]},
     "detail": {children: ["completed"]},
     "basket": {children: ["add", "remove", "changed","batchAdd","clear"]},
-    "lender": {children: ["completed"]}
+    "lender": {children: ["completed"]},
+    "backgroundResync":{ children: ["removed","added","updated"]}
 });
 
 a.partners = Reflux.createActions({
@@ -25,5 +26,5 @@ a.criteria  = Reflux.createActions([
 a.criteria.getLast = Reflux.createAction({
     children: ["completed"]
 });
-
+window.kl_actions = a
 export default a

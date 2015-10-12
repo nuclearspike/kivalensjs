@@ -106,6 +106,7 @@ class Request {
         return Request.sem_get(`${this.collection}/${ids.join(',')}.json`, {}, this.collection, false)
     }
 
+    //fetch data from kiva right now. use sparingly. sem_get makes sure the browser never goes above a certain number of active requests.
     static get(path, params){
         params = $.extend({}, params, {app_id: api_options.app_id})
         console.log('get():', path, params)
@@ -114,12 +115,14 @@ class Request {
             .fail((xhr, status, err) => console.error(status, err.toString()) )
     }
 
+    //semaphored access to kiva api to not overload it. also, it handles collections.
     static sem_get(url, params, collection, isSingle){
         var $def = $.Deferred()
         sem.take(function(){
-            this.get(url, params).done(()=> sem.leave()).done($def.resolve).fail($def.reject).progress($def.notify)
+            this.get(url, params).always(()=> sem.leave()).done($def.resolve).fail($def.reject).progress($def.notify)
         }.bind(this))
 
+        //should this be a wrapping function?
         if (collection){ //'loans' 'partners' etc... then do another step of processing. will resolve as undefined if no result.
             return $def.then(result => isSingle ? result[collection][0] : result[collection] )
         } else {
@@ -157,18 +160,21 @@ class ResultProcessors {
             kl_downloaded: new Date()
         }
 
-        if (loan.description) { //the presence implies this is a detail result
+        if (loan.description.texts) { //the presence implies this is a detail result
             var descr_arr
             var use_arr
 
-            descr_arr = processText(loan.description.texts.en, common_descr)
-            if (!loan.description.texts.en) loan.description.texts.en = "No English description available."
+            if (loan.description.texts.en) {
+                descr_arr = processText(loan.description.texts.en, common_descr)
+            } else {
+                descr_arr = []
+                loan.description.texts.en = "No English description available."
+            }
+
             use_arr = processText(loan.use, common_use)
 
-            var last_repay = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? Date.from_iso(loan.terms.scheduled_payments.last().due_date) : null
-
             addIt.kl_use_or_descr_arr = use_arr.concat(descr_arr).distinct(),
-            addIt.kl_last_repayment = last_repay  //on non-fundraising this won't work.
+            addIt.kl_last_repayment = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? Date.from_iso(loan.terms.scheduled_payments.last().due_date) : null
         }
         $.extend(loan, addIt)
         return loan
@@ -247,8 +253,7 @@ class PagedKiva {
         this.promise.notify({label: 'Processing...'})
         var result_objects = []
         this.requests.forEach(req => result_objects = result_objects.concat(req.results))
-        if (this.visitorFunct)
-            result_objects.forEach(this.visitorFunc)
+        if (this.visitorFunct) result_objects.forEach(this.visitorFunct)
         this.promise.notify({done: true})
         this.promise.resolve(result_objects)
     }
@@ -272,7 +277,7 @@ class LoansSearch extends PagedKiva {
         params = $.extend({}, {status:'fundraising'}, params)
         super('loans/search.json', params, 'loans')
         this.twoStage = getDetails
-        this.visitorFunc = ResultProcessors.processLoan
+        this.visitorFunct = ResultProcessors.processLoan
     }
 }
 
@@ -294,7 +299,7 @@ class LenderLoans extends PagedKiva {
 
     start(){
         //return only an array of the ids of the loans
-        return super.start().then(result => result.select(loan => loan.id))
+        return super.start().then(loans => loans.select(loan => loan.id))
     }
 }
 

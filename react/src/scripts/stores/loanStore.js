@@ -7,9 +7,10 @@ import a from '../actions'
 import criteriaStore from './criteriaStore'
 
 //array of api loan objects that are sorted in the order they were returned.
-var loans_from_kiva = [];
+var loans_from_kiva = []
 var indexed_loans = {}
-var basket_loans = [];
+var basket_loans = []
+var background_resync = 0
 
 var loanStore = Reflux.createStore({
     listenables: [a.loans],
@@ -22,7 +23,8 @@ var loanStore = Reflux.createStore({
         if (!Array.isArray(basket_loans)) basket_loans = []
         if (basket_loans.length > 0 && !basket_loans[0].loan_id) basket_loans = []
         a.loans.basket.changed();
-        window.basket_loans = basket_loans
+        //window.basket_loans = basket_loans
+        setInterval(this.onBackgroundResync, 3*60*1000)
     },
 
     //BASKET
@@ -66,6 +68,46 @@ var loanStore = Reflux.createStore({
     },
 
     //LOANS
+    onBackgroundResync: function(){
+        background_resync++
+        new LoansSearch({},false).start().done(loans => {
+            var loans_added = [], loans_updated = 0
+            loans.forEach(loan => {
+                var existing = indexed_loans[loan.id]
+                if (existing) {
+                    if (existing.status != loan.status
+                        || existing.basket_amount != loan.basket_amount
+                        || existing.funded_amount != loan.funded_amount)
+                        loans_updated++
+
+                    $.extend(true, existing, loan, {kl_background_resync: background_resync})
+                } else {
+                    //gather all ids for new loans.
+                    loans_added.push(loan.id)
+                }
+            })
+            console.log("############### LOANS UPDATED:", loans_updated)
+            if (loans_updated > 0) a.loans.backgroundResync.updated(loans_updated)
+
+            //find the loans that weren't just updated fetch them. Removed? They don't seem to be funded loans... ?
+            var mia_loans = loans_from_kiva.where(loan => loan.kl_background_resync != background_resync).select(loan => loan.id)
+            LoanAPI.getLoanBatch(mia_loans).done(loans => { //this is ok when there aren't any??
+                console.log("############### MIA LOANS:", mia_loans.length, loans)
+                a.loans.backgroundResync.removed(mia_loans.length)
+                loans.forEach(loan => $.extend( true, indexed_loans[loan.id], loan) )
+            })
+
+            //get all loans that were added since the last update.
+            LoanAPI.getLoanBatch(loans_added).done(loans => { //this is ok when there aren't any??
+                console.log("############### NEW LOANS FOUND:", loans_added.length, loans)
+                loans.forEach(loan => indexed_loans[loan.id] = loan)
+                loans_from_kiva = loans_from_kiva.concat(loans)
+                a.loans.backgroundResync.added(loans_added.length)
+
+            })
+        })
+    },
+
     onLoad: function(options) {
         console.log("loanStore:onLoad")
 
@@ -114,7 +156,7 @@ var loanStore = Reflux.createStore({
 
     mergeLoan: function(d_loan){ //used?
         var loan = loans_from_kiva.first(loan => loan.id == d_loan.id )
-        if (loan) $.extend(loan, d_loan)
+        if (loan) $.extend(true, loan, d_loan)
     },
 
     syncGet: function(id){
