@@ -6,6 +6,7 @@ var common_descr =  ["THIS", "ARE", "SHE", "THAT", "HAS", "LOAN", "BE", "OLD", "
 var common_use = ["PURCHASE", "FOR", "AND", "BUY", "OTHER", "HER", "BUSINESS", "SELL", "MORE", "HIS", "THE", "PAY"]
 
 class LoanAPI extends kiva {
+    //this has been moved to the ResultProcessors class.
     static processLoan(loan){
         var processText = function(text, ignore_words){
             if (text && text.length > 0){
@@ -41,6 +42,7 @@ class LoanAPI extends kiva {
         return loan
     }
 
+    //this has been moved to the ResultProcessors class.
     static processLoans(loans){
         //this alters the loans in the array. no need to return the array ?
         loans.where(loan => loan.kl_downloaded == undefined).forEach(LoanAPI.processLoan)

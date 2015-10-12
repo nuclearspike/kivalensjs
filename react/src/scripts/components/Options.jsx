@@ -10,4 +10,4 @@ class Options extends React.Component {
     }
 }
 
-module.exports = Options;
+export default Options;

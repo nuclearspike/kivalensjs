@@ -15,6 +15,7 @@ function serialize(obj, prefix) {
 
 var api_options = {}
 
+//looking to get rid of this in favor of individual call classes.
 export default class K {
     static setAPIOptions(options){
         api_options = options

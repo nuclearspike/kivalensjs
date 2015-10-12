@@ -14,4 +14,4 @@ class CatchNoCurlies extends React.Component {
     }
 }
 
-module.exports = CatchNoCurlies;
+export default CatchNoCurlies;

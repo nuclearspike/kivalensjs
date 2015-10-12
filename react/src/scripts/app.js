@@ -10,6 +10,8 @@ import KivaAPI from './api/kiva'
 
 KivaAPI.setAPIOptions({app_id: 'org.kiva.kivalens', max_concurrent: 8})
 
+//turns var a = [1,2,3,4,5,6,7,8,9,10,11]; a.chunk(5); into => [[1,2,3,4,5],[6,7,8,9,10],[11]]
+//added for taking arrays of loan ids and breaking them into the max kiva allows for a request
 Array.prototype.chunk = function(chunkSize) {
     var R = [];
     for (var i=0; i<this.length; i+=chunkSize)

@@ -1,6 +1,12 @@
-//this unit being required/imported anywhere will instantiate all stores listed below.
-//import s from '../stores
-//s.loans
+/**
+ * this unit being required/imported anywhere will instantiate all stores listed below (only once)
+ * it's important to note that some stores have 'init' functions that make requests on app start up.
+ * EX: the partnerStore will fetch all partners at start up.
+ *
+ * import s from '../stores
+ * s.loans (ex: s.loans.syncGetBasket())
+ *
+**/
 
 import criteria from './criteriaStore'
 import partners from './partnerStore'

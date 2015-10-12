@@ -8,4 +8,4 @@ class KLFooter extends React.Component {
     }
 }
 
-module.exports = KLFooter;
+export default KLFooter;
