@@ -1,14 +1,14 @@
 'use strict';
 
-import kiva from './kiva'
+import {Request} from './kiva'
 
-class PartnerAPI extends kiva {
+class PartnerAPI {
     static getPartner(id){
-        return this.sem_get(`partners/${id}.json`, 'partners', true)
+        return Request.sem_get(`partners/${id}.json`, 'partners', true)
     }
 
     static getAllPartners(){
-        return this.sem_get('partners.json', {}, 'partners', false)
+        return Request.sem_get('partners.json', {}, 'partners', false)
     }
 }
 

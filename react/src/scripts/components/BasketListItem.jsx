@@ -17,7 +17,7 @@ const BasketListItem = React.createClass({
         //this.listenTo(a.loans.basket.changed, ()=>{ this.setState({inBasket: s.loans.syncInBasket(this.props.id)}) })
     },
     render: function() {
-        console.log(this.props)
+        //console.log(this.props)
         var loan = this.props.loan;
         //onClick={a.loans.detail.bind(null, loan.id)}
 

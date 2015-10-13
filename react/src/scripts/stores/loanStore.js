@@ -2,15 +2,21 @@
 
 import Reflux from 'reflux'
 import LoanAPI from '../api/loans'
-import {LenderLoans, LoansSearch} from '../api/kiva'
+import {LenderLoans, LoansSearch, LoanBatch, Loans} from '../api/kiva'
 import a from '../actions'
 import criteriaStore from './criteriaStore'
 
 //array of api loan objects that are sorted in the order they were returned.
-var loans_from_kiva = []
-var indexed_loans = {}
 var basket_loans = []
-var background_resync = 0
+var kivaloans = new Loans(3*60*1000)
+window.kivaloans = kivaloans
+
+kivaloans.notify_promise.progress(progress => {
+    if (progress.background_added)
+        a.loans.backgroundResync.added(progress.background_added)
+    if (progress.background_updated)
+        a.loans.backgroundResync.updated(progress.background_updated)
+})
 
 var loanStore = Reflux.createStore({
     listenables: [a.loans],
@@ -23,8 +29,6 @@ var loanStore = Reflux.createStore({
         if (!Array.isArray(basket_loans)) basket_loans = []
         if (basket_loans.length > 0 && !basket_loans[0].loan_id) basket_loans = []
         a.loans.basket.changed();
-        //window.basket_loans = basket_loans
-        setInterval(this.onBackgroundResync, 3*60*1000)
     },
 
     //BASKET
@@ -36,7 +40,7 @@ var loanStore = Reflux.createStore({
     syncInBasket: function(loan_id){ return basket_loans.first(bi => bi.loan_id == loan_id) != undefined },
     syncBasketCount: function(){ return basket_loans.length },
     syncGetBasket: function(){
-        return basket_loans.map(bi => {return {amount: bi.amount, loan: indexed_loans[bi.loan_id]}}).where(bi => bi.loan != undefined)
+        return basket_loans.map(bi => {return {amount: bi.amount, loan: kivaloans.getById(bi.loan_id)}}).where(bi => bi.loan != undefined)
     },
     onBasketClear: function(){
         basket_loans = []
@@ -60,90 +64,52 @@ var loanStore = Reflux.createStore({
     //LENDER LOANS
     onLender: function(lender_id){
         console.log("onLENDER:", lender_id)
-        //LoanAPI.getLenderLoans(lender_id)
-        var ll = new LenderLoans(lender_id).start().done(ids => {
-                ids.removeAll(id => indexed_loans[id] == undefined)
-                console.log('LENDER LOAN IDS:', ids)
-            })
+        kivaloans.setLender(lender_id)
     },
 
     //LOANS
     onBackgroundResync: function(){
-        background_resync++
-        new LoansSearch({},false).start().done(loans => {
-            var loans_added = [], loans_updated = 0
-            loans.forEach(loan => {
-                var existing = indexed_loans[loan.id]
-                if (existing) {
-                    if (existing.status != loan.status
-                        || existing.basket_amount != loan.basket_amount
-                        || existing.funded_amount != loan.funded_amount)
-                        loans_updated++
 
-                    $.extend(true, existing, loan, {kl_background_resync: background_resync})
-                } else {
-                    //gather all ids for new loans.
-                    loans_added.push(loan.id)
-                }
-            })
-            console.log("############### LOANS UPDATED:", loans_updated)
-            if (loans_updated > 0) a.loans.backgroundResync.updated(loans_updated)
-
-            //find the loans that weren't just updated fetch them. Removed? They don't seem to be funded loans... ?
-            var mia_loans = loans_from_kiva.where(loan => loan.kl_background_resync != background_resync).select(loan => loan.id)
-            LoanAPI.getLoanBatch(mia_loans).done(loans => { //this is ok when there aren't any??
-                console.log("############### MIA LOANS:", mia_loans.length, loans)
-                a.loans.backgroundResync.removed(mia_loans.length)
-                loans.forEach(loan => $.extend( true, indexed_loans[loan.id], loan) )
-            })
-
-            //get all loans that were added since the last update.
-            LoanAPI.getLoanBatch(loans_added).done(loans => { //this is ok when there aren't any??
-                console.log("############### NEW LOANS FOUND:", loans_added.length, loans)
-                loans.forEach(loan => indexed_loans[loan.id] = loan)
-                loans_from_kiva = loans_from_kiva.concat(loans)
-                a.loans.backgroundResync.added(loans_added.length)
-
-            })
-        })
     },
 
     onLoad: function(options) {
         console.log("loanStore:onLoad")
 
         //we already have the loans, just spit them back.
-        if (loans_from_kiva.length > 0){
-            a.loans.load.completed(loans_from_kiva);
+        if (kivaloans.loans_from_kiva.length > 0){
+            a.loans.load.completed(kivaloans.loans_from_kiva);
             return
         }
 
         options = $.extend({}, options)
         //options.country_code = 'pe,ke'
-        //, {region: 'af'}
+        options.region = 'af'
 
-        new LoansSearch(options).start()
+        kivaloans.setBaseKivaParams(options)
+
+        kivaloans.searchKiva(options)
             .done(loans => {
-                loans.forEach(loan => indexed_loans[loan.id] = loan)
-                loans_from_kiva = loans;
                 a.loans.load.completed(loans)
                 //clean up loans
-                basket_loans.removeAll(bi => indexed_loans[bi.loan_id] == undefined)
+                basket_loans.removeAll(bi => !kivaloans.hasLoan(bi.loan_id))
+                a.loans.basket.changed();
                 this.onLender('nuclearspike') //zx81
             })
             .progress(progress => {
                 console.log("progress:", progress)
                 a.loans.load.progressed(progress)
             })
-            .fail((xhr, status, err) => {
-                a.loans.load.failed(status)
+            .fail((xhr, status, err) => { //not bubbling out
+                console.log("$$$$$ failed:", err, xhr)
+                a.loans.load.failed(xhr.responseJSON.message)
             })
     },
 
     onDetail: function(id){
         //this is weird. treating an async function as sync
-        var loan = this.syncGet(id)
+        var loan = kivaloans.getById(id)
         a.loans.detail.completed(loan) //return immediately with the last one we got (typically at start up)
-        LoanAPI.refreshLoan(loan).done(l => a.loans.detail.completed(l)) //kick off a process to get an updated version
+        LoanAPI.refreshLoan(loan).done(loan => a.loans.detail.completed(loan)) //kick off a process to get an updated version
     },
 
     onFilter: function(c){ //why would I ever call this async??
@@ -151,16 +117,16 @@ var loanStore = Reflux.createStore({
     },
 
     syncHasLoadedLoans: function(){
-        return loans_from_kiva.length > 0
+        return kivaloans.loans_from_kiva.length > 0
     },
 
     mergeLoan: function(d_loan){ //used?
-        var loan = loans_from_kiva.first(loan => loan.id == d_loan.id )
+        var loan = kivaloans.getById(d_loan.id)
         if (loan) $.extend(true, loan, d_loan)
     },
 
     syncGet: function(id){
-        return indexed_loans[id]
+        return kivaloans.getById(id)
     },
 
     syncFilterLoans: function(c){
@@ -193,8 +159,9 @@ var loanStore = Reflux.createStore({
 
         console.log('criteria', c)
 
-        return loans_from_kiva.where(loan => {
-            return stSector.startsWith(loan.sector) &&
+        return kivaloans.loans_from_kiva.where(loan => {
+            return loan.status == 'fundraising' &&
+                stSector.startsWith(loan.sector) &&
                 stActivity.startsWith(loan.activity) &&
                 stName.contains(loan.name) &&
                 stCountry.startsWith(loan.location.country) &&

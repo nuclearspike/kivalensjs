@@ -1,4 +1,4 @@
-var sem = require('semaphore')(7);
+var sem = require('semaphore')(1);
 
 //turns {json: 'object', app_id: 'com.me'} into ?json=object&app_id=com.me
 function serialize(obj, prefix) {
@@ -15,43 +15,12 @@ function serialize(obj, prefix) {
 
 var api_options = {}
 
-//looking to get rid of this in favor of individual call classes.
+//looking to get rid of this completely
 export default class K {
     static setAPIOptions(options){
         api_options = options
         if (options.max_concurrent)
             sem.capacity = options.max_concurrent
-    }
-
-    //when the results are not paged or when you know it's only one page, this is faster.
-    static get(path, options){
-        options = $.extend({}, options, {app_id: api_options.app_id})
-        console.log('get():', path, options)
-        return $.getJSON(`http://api.kivaws.org/v1/${path}?${serialize(options)}`)
-            .done(result => console.log(result) )
-            .fail((xhr, status, err) => console.error(status, err.toString()) )
-    }
-
-    //call this as much as you want, the requests queue up and will cap at the max concurrent connections and do them later,
-    // it returns a promise and you'll get your .done() later on. "collection" param is optional. when specified,
-    // instead of returning the full JSON object with paging data, it only returns the "loans" section or "partners"
-    // section. "isSingle" indicates whether it should return only the first item or a whole collection
-    static sem_get(url, options, collection, isSingle, shouldAbort){
-        var $def = $.Deferred()
-        if (!shouldAbort) shouldAbort = ()=> {return false}
-        sem.take(function(){
-            if (shouldAbort(options)) {
-                sem.leave()
-            } else {
-                this.get(url, options).done(()=> sem.leave()).done($def.resolve).fail($def.reject).progress($def.notify)
-            }
-        }.bind(this))
-
-        if (collection){ //'loans' 'partners' etc... then do another step of processing. will resolve as undefined if no result.
-            return $def.then(result => isSingle ? result[collection][0] : result[collection] )
-        } else {
-            return $def
-        }
     }
 }
 
@@ -112,7 +81,7 @@ class Request {
         console.log('get():', path, params)
         return $.getJSON(`http://api.kivaws.org/v1/${path}?${serialize(params)}`)
             .done(result => console.log(result) )
-            .fail((xhr, status, err) => console.error(status, err.toString()) )
+            .fail((xhr, status, err) => console.log(status, err, err.toString()) )
     }
 
     //semaphored access to kiva api to not overload it. also, it handles collections.
@@ -200,7 +169,7 @@ class PagedKiva {
         if (request.continuePaging) {
             this.requests.skip(1).forEach(req => {
                 //for every page of data from 2 to the max, queue up the requests.
-                req.fetch().done(resp => this.processPage(req, resp))
+                req.fetch().fail(this.promise.reject).done(resp => this.processPage(req, resp))
             })
         }
     }
@@ -267,7 +236,9 @@ class PagedKiva {
     start(){
         if (this.twoStage) $.extend(this.params, {ids_only: 'true'})
         this.promise.notify({label: 'Downloading...'})
-        this.setupRequest(1).fetch().done(result => this.processFirstResponse(this.requests.first(), result))
+        this.setupRequest(1).fetch()
+            .fail(this.promise.reject)
+            .done(result => this.processFirstResponse(this.requests.first(), result))
         return this.promise
     }
 }
@@ -299,11 +270,126 @@ class LenderLoans extends PagedKiva {
 
     start(){
         //return only an array of the ids of the loans
-        return super.start().then(loans => loans.select(loan => loan.id))
+        return super.start().fail(this.promise.reject).then(loans => loans.select(loan => loan.id))
     }
 }
 
-export {LenderLoans, LoansSearch, PagedKiva, ResultProcessors, Request}
+class LoanBatch {
+    constructor(id_arr){
+        this.ids = id_arr
+    }
+    start(){
+        //kiva does not allow more than 100 loans in a batch. break the list into chunks of up to 100 and process them.
+        // this will send progress messages with individual loan objects or just wait for the .done()
+        var chunks = this.ids.chunk(100) //breaks into an array of arrays of 100.
+        var $def = $.Deferred()
+        var r_loans = []
+
+        for (var i = 0; i < chunks.length; i++){
+            $def.notify({percentage: 0, label: 'Preparing to download...'})
+            Request.sem_get(`loans/${chunks[i].join(',')}.json`, {}, 'loans', false)
+                .done(loans => {
+                    $def.notify({percentage: r_loans.length * 100 / this.ids.length, label: `${r_loans.length}/${this.ids.length} downloaded`})
+                    ResultProcessors.processLoans(loans)
+                    r_loans = r_loans.concat(loans)
+                    if (r_loans.length >= this.ids.length) {
+                        $def.notify({done: true})
+                        $def.resolve(r_loans)
+                    }
+                })
+        }
+        return $def
+    }
+}
+
+class Loans {
+    constructor(update_interval = 0){
+        this.loans_from_kiva = []
+        this.lender_loans = []
+        this.indexed_loans = {}
+        this.base_kiva_params = {}
+        this.background_resync = 0
+        this.notify_promise = $.Deferred()
+        this.update_interval = update_interval
+        if (this.update_interval > 0)
+            setInterval(this.backgroundResync.bind(this), this.update_interval)
+    }
+    setBaseKivaParams(base_kiva_params){
+        this.base_kiva_params = base_kiva_params
+    }
+    setKivaLoans(loans, reset=true){
+        if (reset) {
+            this.loans_from_kiva = []
+            this.indexed_loans = {}
+        }
+        this.loans_from_kiva = this.loans_from_kiva.concat(loans)
+        loans.forEach(loan => this.indexed_loans[loan.id] = loan)
+    }
+    searchKiva(kiva_params){
+        return new LoansSearch(kiva_params).start().done(loans => this.setKivaLoans(loans))
+    }
+    searchLocal(kl_criteria){
+
+    }
+    getById(id){
+        return this.indexed_loans[id]
+    }
+    hasLoan(id){
+        return this.indexed_loans[id] != undefined
+    }
+    setLender(lender_id){
+        this.lender_id = lender_id
+        var kl = this
+        return new LenderLoans(lender_id).start().done(ids => {
+            kl.lender_loans = ids
+            console.log('LENDER LOAN IDS:', ids)
+        })
+    }
+    backgroundResync(){
+        this.background_resync++
+        var kl = this
+
+        new LoansSearch(this.base_kiva_params, false).start().done(loans => {
+            var loans_added = [], loans_updated = 0
+            //for every loan found in a search from Kiva..
+            loans.forEach(loan => {
+                var existing = kl.indexed_loans[loan.id]
+                if (existing) {
+                    if (existing.status != loan.status
+                        || existing.basket_amount != loan.basket_amount
+                        || existing.funded_amount != loan.funded_amount)
+                        loans_updated++
+
+                    $.extend(true, existing, loan, {kl_background_resync: kl.background_resync})
+                } else {
+                    //gather all ids for new loans.
+                    loans_added.push(loan.id)
+                }
+            })
+            console.log("############### LOANS UPDATED:", loans_updated)
+            if (loans_updated > 0) this.notify_promise.notify({background_updated:loans_updated})
+
+            //find the loans that weren't found during the last update and fetch them. Removed? They don't seem to be funded loans... ?
+            var mia_loans = this.loans_from_kiva.where(loan => loan.status == 'fundraising' && loan.kl_background_resync != this.background_resync).select(loan => loan.id)
+            new LoanBatch(mia_loans).start().done(loans => { //this is ok when there aren't any??
+                console.log("############### MIA LOANS:", mia_loans.length, loans)
+                loans.forEach(loan => {
+                    var existing = kl.indexed_loans[loan.id]
+                    if (existing)  //it should always exist since it was already in our loans_from_kiva array
+                        $.extend(true, existing, loan)
+                })
+            })
+
+            //get all loans that were added since the last update.
+            new LoanBatch(loans_added).start().done(loans => { //this is ok when there aren't any??
+                console.log("############### NEW LOANS FOUND:", loans_added.length, loans)
+                this.setKivaLoans(loans, false)
+            })
+        })
+    }
+}
+
+export {LenderLoans, LoansSearch, PagedKiva, ResultProcessors, Request, LoanBatch, Loans}
 
 //temp
 window.Request = Request

@@ -6,7 +6,7 @@ import a from '../actions'
 var LoadingLoansModal = React.createClass({
     mixins: [Reflux.ListenerMixin],
     getInitialState:function(){
-        return {progress_label: 'Please Wait', progress: 0, show: this.props.show}
+        return {progress_label: 'Please Wait', progress: 0, show: this.props.show, error_message: ''}
     },
     componentDidMount: function() {
         this.listenTo(a.loans.load.progressed, progress => {
@@ -16,7 +16,10 @@ var LoadingLoansModal = React.createClass({
             this.setState(new_state)
         })
         this.listenTo(a.loans.load.completed, ()=>{this.setState({show: false})})
-        this.listenTo(a.loans.load.failed, (status)=>{this.setState({label: 'Download Failed! Try reloading the page.'})})
+        this.listenTo(a.loans.load.failed, (status)=>{
+            console.log("FAILED", status)
+            this.setState({progress_label: 'Download Failed! Error Message from Kiva:', error_message: status })
+        })
     },
     render() {
         return (
@@ -33,7 +36,8 @@ var LoadingLoansModal = React.createClass({
                     </Modal.Body>
 
                     <Modal.Footer>
-                        {this.state.progress_label}
+                        {this.state.progress_label}<br/>
+                        {this.state.error_message}
                     </Modal.Footer>
                 </Modal>
             </div>

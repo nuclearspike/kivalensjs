@@ -62390,7 +62390,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _get = function get(_x6, _x7, _x8) { var _again = true; _function: while (_again) { var object = _x6, property = _x7, receiver = _x8; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x6 = parent; _x7 = property; _x8 = receiver; _again = true; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+var _get = function get(_x8, _x9, _x10) { var _again = true; _function: while (_again) { var object = _x8, property = _x9, receiver = _x10; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x8 = parent; _x9 = property; _x10 = receiver; _again = true; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
@@ -62398,7 +62398,7 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var sem = require('semaphore')(7);
+var sem = require('semaphore')(1);
 
 //turns {json: 'object', app_id: 'com.me'} into ?json=object&app_id=com.me
 function serialize(obj, prefix) {
@@ -62415,7 +62415,7 @@ function serialize(obj, prefix) {
 
 var api_options = {};
 
-//looking to get rid of this in favor of individual call classes.
+//looking to get rid of this completely
 
 var K = (function () {
     function K() {
@@ -62427,50 +62427,6 @@ var K = (function () {
         value: function setAPIOptions(options) {
             api_options = options;
             if (options.max_concurrent) sem.capacity = options.max_concurrent;
-        }
-
-        //when the results are not paged or when you know it's only one page, this is faster.
-    }, {
-        key: "get",
-        value: function get(path, options) {
-            options = $.extend({}, options, { app_id: api_options.app_id });
-            console.log('get():', path, options);
-            return $.getJSON("http://api.kivaws.org/v1/" + path + "?" + serialize(options)).done(function (result) {
-                return console.log(result);
-            }).fail(function (xhr, status, err) {
-                return console.error(status, err.toString());
-            });
-        }
-
-        //call this as much as you want, the requests queue up and will cap at the max concurrent connections and do them later,
-        // it returns a promise and you'll get your .done() later on. "collection" param is optional. when specified,
-        // instead of returning the full JSON object with paging data, it only returns the "loans" section or "partners"
-        // section. "isSingle" indicates whether it should return only the first item or a whole collection
-    }, {
-        key: "sem_get",
-        value: function sem_get(url, options, collection, isSingle, shouldAbort) {
-            var $def = $.Deferred();
-            if (!shouldAbort) shouldAbort = function () {
-                return false;
-            };
-            sem.take((function () {
-                if (shouldAbort(options)) {
-                    sem.leave();
-                } else {
-                    this.get(url, options).done(function () {
-                        return sem.leave();
-                    }).done($def.resolve).fail($def.reject).progress($def.notify);
-                }
-            }).bind(this));
-
-            if (collection) {
-                //'loans' 'partners' etc... then do another step of processing. will resolve as undefined if no result.
-                return $def.then(function (result) {
-                    return isSingle ? result[collection][0] : result[collection];
-                });
-            } else {
-                return $def;
-            }
         }
     }]);
 
@@ -62558,7 +62514,7 @@ var Request = (function () {
             return $.getJSON("http://api.kivaws.org/v1/" + path + "?" + serialize(params)).done(function (result) {
                 return console.log(result);
             }).fail(function (xhr, status, err) {
-                return console.error(status, err.toString());
+                return console.log(status, err, err.toString());
             });
         }
 
@@ -62683,7 +62639,7 @@ var PagedKiva = (function () {
             if (request.continuePaging) {
                 this.requests.skip(1).forEach(function (req) {
                     //for every page of data from 2 to the max, queue up the requests.
-                    req.fetch().done(function (resp) {
+                    req.fetch().fail(_this3.promise.reject).done(function (resp) {
                         return _this3.processPage(req, resp);
                     });
                 });
@@ -62783,7 +62739,7 @@ var PagedKiva = (function () {
 
             if (this.twoStage) $.extend(this.params, { ids_only: 'true' });
             this.promise.notify({ label: 'Downloading...' });
-            this.setupRequest(1).fetch().done(function (result) {
+            this.setupRequest(1).fetch().fail(this.promise.reject).done(function (result) {
                 return _this5.processFirstResponse(_this5.requests.first(), result);
             });
             return this.promise;
@@ -62840,7 +62796,7 @@ var LenderLoans = (function (_PagedKiva2) {
         key: "start",
         value: function start() {
             //return only an array of the ids of the loans
-            return _get(Object.getPrototypeOf(LenderLoans.prototype), "start", this).call(this).then(function (loans) {
+            return _get(Object.getPrototypeOf(LenderLoans.prototype), "start", this).call(this).fail(this.promise.reject).then(function (loans) {
                 return loans.select(function (loan) {
                     return loan.id;
                 });
@@ -62851,11 +62807,174 @@ var LenderLoans = (function (_PagedKiva2) {
     return LenderLoans;
 })(PagedKiva);
 
+var LoanBatch = (function () {
+    function LoanBatch(id_arr) {
+        _classCallCheck(this, LoanBatch);
+
+        this.ids = id_arr;
+    }
+
+    _createClass(LoanBatch, [{
+        key: "start",
+        value: function start() {
+            var _this6 = this;
+
+            //kiva does not allow more than 100 loans in a batch. break the list into chunks of up to 100 and process them.
+            // this will send progress messages with individual loan objects or just wait for the .done()
+            var chunks = this.ids.chunk(100); //breaks into an array of arrays of 100.
+            var $def = $.Deferred();
+            var r_loans = [];
+
+            for (var i = 0; i < chunks.length; i++) {
+                $def.notify({ percentage: 0, label: 'Preparing to download...' });
+                Request.sem_get("loans/" + chunks[i].join(',') + ".json", {}, 'loans', false).done(function (loans) {
+                    $def.notify({ percentage: r_loans.length * 100 / _this6.ids.length, label: r_loans.length + "/" + _this6.ids.length + " downloaded" });
+                    ResultProcessors.processLoans(loans);
+                    r_loans = r_loans.concat(loans);
+                    if (r_loans.length >= _this6.ids.length) {
+                        $def.notify({ done: true });
+                        $def.resolve(r_loans);
+                    }
+                });
+            }
+            return $def;
+        }
+    }]);
+
+    return LoanBatch;
+})();
+
+var Loans = (function () {
+    function Loans() {
+        var update_interval = arguments.length <= 0 || arguments[0] === undefined ? 0 : arguments[0];
+
+        _classCallCheck(this, Loans);
+
+        this.loans_from_kiva = [];
+        this.lender_loans = [];
+        this.indexed_loans = {};
+        this.base_kiva_params = {};
+        this.background_resync = 0;
+        this.notify_promise = $.Deferred();
+        this.update_interval = update_interval;
+        if (this.update_interval > 0) setInterval(this.backgroundResync.bind(this), this.update_interval);
+    }
+
+    _createClass(Loans, [{
+        key: "setBaseKivaParams",
+        value: function setBaseKivaParams(base_kiva_params) {
+            this.base_kiva_params = base_kiva_params;
+        }
+    }, {
+        key: "setKivaLoans",
+        value: function setKivaLoans(loans) {
+            var _this7 = this;
+
+            var reset = arguments.length <= 1 || arguments[1] === undefined ? true : arguments[1];
+
+            if (reset) {
+                this.loans_from_kiva = [];
+                this.indexed_loans = {};
+            }
+            this.loans_from_kiva = this.loans_from_kiva.concat(loans);
+            loans.forEach(function (loan) {
+                return _this7.indexed_loans[loan.id] = loan;
+            });
+        }
+    }, {
+        key: "searchKiva",
+        value: function searchKiva(kiva_params) {
+            var _this8 = this;
+
+            return new LoansSearch(kiva_params).start().done(function (loans) {
+                return _this8.setKivaLoans(loans);
+            });
+        }
+    }, {
+        key: "searchLocal",
+        value: function searchLocal(kl_criteria) {}
+    }, {
+        key: "getById",
+        value: function getById(id) {
+            return this.indexed_loans[id];
+        }
+    }, {
+        key: "hasLoan",
+        value: function hasLoan(id) {
+            return this.indexed_loans[id] != undefined;
+        }
+    }, {
+        key: "setLender",
+        value: function setLender(lender_id) {
+            this.lender_id = lender_id;
+            var kl = this;
+            return new LenderLoans(lender_id).start().done(function (ids) {
+                kl.lender_loans = ids;
+                console.log('LENDER LOAN IDS:', ids);
+            });
+        }
+    }, {
+        key: "backgroundResync",
+        value: function backgroundResync() {
+            var _this9 = this;
+
+            this.background_resync++;
+            var kl = this;
+
+            new LoansSearch(this.base_kiva_params, false).start().done(function (loans) {
+                var loans_added = [],
+                    loans_updated = 0;
+                //for every loan found in a search from Kiva..
+                loans.forEach(function (loan) {
+                    var existing = kl.indexed_loans[loan.id];
+                    if (existing) {
+                        if (existing.status != loan.status || existing.basket_amount != loan.basket_amount || existing.funded_amount != loan.funded_amount) loans_updated++;
+
+                        $.extend(true, existing, loan, { kl_background_resync: kl.background_resync });
+                    } else {
+                        //gather all ids for new loans.
+                        loans_added.push(loan.id);
+                    }
+                });
+                console.log("############### LOANS UPDATED:", loans_updated);
+                if (loans_updated > 0) _this9.notify_promise.notify({ background_updated: loans_updated });
+
+                //find the loans that weren't found during the last update and fetch them. Removed? They don't seem to be funded loans... ?
+                var mia_loans = _this9.loans_from_kiva.where(function (loan) {
+                    return loan.status == 'fundraising' && loan.kl_background_resync != _this9.background_resync;
+                }).select(function (loan) {
+                    return loan.id;
+                });
+                new LoanBatch(mia_loans).start().done(function (loans) {
+                    //this is ok when there aren't any??
+                    console.log("############### MIA LOANS:", mia_loans.length, loans);
+                    loans.forEach(function (loan) {
+                        var existing = kl.indexed_loans[loan.id];
+                        if (existing) //it should always exist since it was already in our loans_from_kiva array
+                            $.extend(true, existing, loan);
+                    });
+                });
+
+                //get all loans that were added since the last update.
+                new LoanBatch(loans_added).start().done(function (loans) {
+                    //this is ok when there aren't any??
+                    console.log("############### NEW LOANS FOUND:", loans_added.length, loans);
+                    _this9.setKivaLoans(loans, false);
+                });
+            });
+        }
+    }]);
+
+    return Loans;
+})();
+
 exports.LenderLoans = LenderLoans;
 exports.LoansSearch = LoansSearch;
 exports.PagedKiva = PagedKiva;
 exports.ResultProcessors = ResultProcessors;
 exports.Request = Request;
+exports.LoanBatch = LoanBatch;
+exports.Loans = Loans;
 
 //temp
 window.Request = Request;
@@ -62871,29 +62990,13 @@ Object.defineProperty(exports, '__esModule', {
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+var _kiva = require('./kiva');
 
-var _kiva2 = require('./kiva');
-
-var _kiva3 = _interopRequireDefault(_kiva2);
-
-//on it's way out... killing this class slowly
-var common_descr = ["THIS", "ARE", "SHE", "THAT", "HAS", "LOAN", "BE", "OLD", "BEEN", "YEARS", "FROM", "WITH", "INCOME", "WILL", "HAVE"];
-var common_use = ["PURCHASE", "FOR", "AND", "BUY", "OTHER", "HER", "BUSINESS", "SELL", "MORE", "HIS", "THE", "PAY"];
-
-var LoanAPI = (function (_kiva) {
-    _inherits(LoanAPI, _kiva);
-
+var LoanAPI = (function () {
     function LoanAPI() {
         _classCallCheck(this, LoanAPI);
-
-        _get(Object.getPrototypeOf(LoanAPI.prototype), 'constructor', this).apply(this, arguments);
     }
 
     _createClass(LoanAPI, null, [{
@@ -62908,36 +63011,12 @@ var LoanAPI = (function (_kiva) {
     }, {
         key: 'getLoan',
         value: function getLoan(id) {
-            return this.sem_get('loans/' + id + '.json', {}, 'loans', true).then(LoanAPI.processLoan);
-        }
-    }, {
-        key: 'getLoanBatch',
-        value: function getLoanBatch(id_arr, with_progress) {
-            //kiva does not allow more than 100 loans in a batch. break the list into chunks of up to 100 and process them.
-            // this will send progress messages with individual loan objects or just wait for the .done()
-            var chunks = id_arr.chunk(100); //breaks into an array of arrays of 100.
-            var $def = $.Deferred();
-            var r_loans = [];
-
-            for (var i = 0; i < chunks.length; i++) {
-                $def.notify({ percentage: 0, label: 'Preparing to download...' });
-                this.sem_get('loans/' + chunks[i].join(',') + '.json', {}, 'loans', false).done(function (loans) {
-                    $def.notify({ percentage: r_loans.length * 100 / id_arr.length, label: r_loans.length + '/' + id_arr.length + ' downloaded' });
-                    _kiva2.ResultProcessors.processLoans(loans);
-                    //if (with_progress) loans.forEach(loan => $def.notify({index: id_arr.indexOf(loan.id), total: id_arr.length, loan: loan}) )
-                    r_loans = r_loans.concat(loans);
-                    if (r_loans.length >= id_arr.length) {
-                        $def.notify({ done: true });
-                        $def.resolve(r_loans);
-                    }
-                });
-            }
-            return $def;
+            return _kiva.Request.sem_get('loans/' + id + '.json', {}, 'loans', true).then(_kiva.ResultProcessors.processLoan);
         }
     }]);
 
     return LoanAPI;
-})(_kiva3['default']);
+})();
 
 exports['default'] = LoanAPI;
 module.exports = exports['default'];
@@ -62951,41 +63030,29 @@ Object.defineProperty(exports, '__esModule', {
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+var _kiva = require('./kiva');
 
-var _kiva2 = require('./kiva');
-
-var _kiva3 = _interopRequireDefault(_kiva2);
-
-var PartnerAPI = (function (_kiva) {
-    _inherits(PartnerAPI, _kiva);
-
+var PartnerAPI = (function () {
     function PartnerAPI() {
         _classCallCheck(this, PartnerAPI);
-
-        _get(Object.getPrototypeOf(PartnerAPI.prototype), 'constructor', this).apply(this, arguments);
     }
 
     _createClass(PartnerAPI, null, [{
         key: 'getPartner',
         value: function getPartner(id) {
-            return this.sem_get('partners/' + id + '.json', 'partners', true);
+            return _kiva.Request.sem_get('partners/' + id + '.json', 'partners', true);
         }
     }, {
         key: 'getAllPartners',
         value: function getAllPartners() {
-            return this.sem_get('partners.json', {}, 'partners', false);
+            return _kiva.Request.sem_get('partners.json', {}, 'partners', false);
         }
     }]);
 
     return PartnerAPI;
-})(_kiva3['default']);
+})();
 
 exports['default'] = PartnerAPI;
 module.exports = exports['default'];
@@ -63065,6 +63132,10 @@ var App = (function (_React$Component) {
 })(_react2['default'].Component);
 
 document.addEventListener("DOMContentLoaded", function (event) {
+    $(document).ready(function () {
+        $.ajaxSetup({ cache: false });
+    });
+
     if (document.getElementById("body")) {
         _react2['default'].render(_react2['default'].createElement(
             _reactRouter2['default'],
@@ -63302,7 +63373,7 @@ var BasketListItem = _react2['default'].createClass({
         //this.listenTo(a.loans.basket.changed, ()=>{ this.setState({inBasket: s.loans.syncInBasket(this.props.id)}) })
     },
     render: function render() {
-        console.log(this.props);
+        //console.log(this.props)
         var loan = this.props.loan;
         //onClick={a.loans.detail.bind(null, loan.id)}
 
@@ -63974,7 +64045,7 @@ var LoadingLoansModal = _react2['default'].createClass({
 
     mixins: [_reflux2['default'].ListenerMixin],
     getInitialState: function getInitialState() {
-        return { progress_label: 'Please Wait', progress: 0, show: this.props.show };
+        return { progress_label: 'Please Wait', progress: 0, show: this.props.show, error_message: '' };
     },
     componentDidMount: function componentDidMount() {
         var _this = this;
@@ -63989,7 +64060,8 @@ var LoadingLoansModal = _react2['default'].createClass({
             _this.setState({ show: false });
         });
         this.listenTo(_actions2['default'].loans.load.failed, function (status) {
-            _this.setState({ label: 'Download Failed! Try reloading the page.' });
+            console.log("FAILED", status);
+            _this.setState({ progress_label: 'Download Failed! Error Message from Kiva:', error_message: status });
         });
     },
     render: function render() {
@@ -64021,7 +64093,9 @@ var LoadingLoansModal = _react2['default'].createClass({
                 _react2['default'].createElement(
                     _reactBootstrap.Modal.Footer,
                     null,
-                    this.state.progress_label
+                    this.state.progress_label,
+                    _react2['default'].createElement('br', null),
+                    this.state.error_message
                 )
             )
         );
@@ -64782,10 +64856,14 @@ var _criteriaStore = require('./criteriaStore');
 var _criteriaStore2 = _interopRequireDefault(_criteriaStore);
 
 //array of api loan objects that are sorted in the order they were returned.
-var loans_from_kiva = [];
-var indexed_loans = {};
 var basket_loans = [];
-var background_resync = 0;
+var kivaloans = new _apiKiva.Loans(3 * 60 * 1000);
+window.kivaloans = kivaloans;
+
+kivaloans.notify_promise.progress(function (progress) {
+    if (progress.background_added) _actions2['default'].loans.backgroundResync.added(progress.background_added);
+    if (progress.background_updated) _actions2['default'].loans.backgroundResync.updated(progress.background_updated);
+});
 
 var loanStore = _reflux2['default'].createStore({
     listenables: [_actions2['default'].loans],
@@ -64798,8 +64876,6 @@ var loanStore = _reflux2['default'].createStore({
         if (!Array.isArray(basket_loans)) basket_loans = [];
         if (basket_loans.length > 0 && !basket_loans[0].loan_id) basket_loans = [];
         _actions2['default'].loans.basket.changed();
-        //window.basket_loans = basket_loans
-        setInterval(this.onBackgroundResync, 3 * 60 * 1000);
     },
 
     //BASKET
@@ -64817,7 +64893,7 @@ var loanStore = _reflux2['default'].createStore({
     },
     syncGetBasket: function syncGetBasket() {
         return basket_loans.map(function (bi) {
-            return { amount: bi.amount, loan: indexed_loans[bi.loan_id] };
+            return { amount: bi.amount, loan: kivaloans.getById(bi.loan_id) };
         }).where(function (bi) {
             return bi.loan != undefined;
         });
@@ -64847,62 +64923,11 @@ var loanStore = _reflux2['default'].createStore({
     //LENDER LOANS
     onLender: function onLender(lender_id) {
         console.log("onLENDER:", lender_id);
-        //LoanAPI.getLenderLoans(lender_id)
-        var ll = new _apiKiva.LenderLoans(lender_id).start().done(function (ids) {
-            ids.removeAll(function (id) {
-                return indexed_loans[id] == undefined;
-            });
-            console.log('LENDER LOAN IDS:', ids);
-        });
+        kivaloans.setLender(lender_id);
     },
 
     //LOANS
-    onBackgroundResync: function onBackgroundResync() {
-        background_resync++;
-        new _apiKiva.LoansSearch({}, false).start().done(function (loans) {
-            var loans_added = [],
-                loans_updated = 0;
-            loans.forEach(function (loan) {
-                var existing = indexed_loans[loan.id];
-                if (existing) {
-                    if (existing.status != loan.status || existing.basket_amount != loan.basket_amount || existing.funded_amount != loan.funded_amount) loans_updated++;
-
-                    $.extend(true, existing, loan, { kl_background_resync: background_resync });
-                } else {
-                    //gather all ids for new loans.
-                    loans_added.push(loan.id);
-                }
-            });
-            console.log("############### LOANS UPDATED:", loans_updated);
-            if (loans_updated > 0) _actions2['default'].loans.backgroundResync.updated(loans_updated);
-
-            //find the loans that weren't just updated fetch them. Removed? They don't seem to be funded loans... ?
-            var mia_loans = loans_from_kiva.where(function (loan) {
-                return loan.kl_background_resync != background_resync;
-            }).select(function (loan) {
-                return loan.id;
-            });
-            _apiLoans2['default'].getLoanBatch(mia_loans).done(function (loans) {
-                //this is ok when there aren't any??
-                console.log("############### MIA LOANS:", mia_loans.length, loans);
-                _actions2['default'].loans.backgroundResync.removed(mia_loans.length);
-                loans.forEach(function (loan) {
-                    return $.extend(true, indexed_loans[loan.id], loan);
-                });
-            });
-
-            //get all loans that were added since the last update.
-            _apiLoans2['default'].getLoanBatch(loans_added).done(function (loans) {
-                //this is ok when there aren't any??
-                console.log("############### NEW LOANS FOUND:", loans_added.length, loans);
-                loans.forEach(function (loan) {
-                    return indexed_loans[loan.id] = loan;
-                });
-                loans_from_kiva = loans_from_kiva.concat(loans);
-                _actions2['default'].loans.backgroundResync.added(loans_added.length);
-            });
-        });
-    },
+    onBackgroundResync: function onBackgroundResync() {},
 
     onLoad: function onLoad(options) {
         var _this = this;
@@ -64910,40 +64935,41 @@ var loanStore = _reflux2['default'].createStore({
         console.log("loanStore:onLoad");
 
         //we already have the loans, just spit them back.
-        if (loans_from_kiva.length > 0) {
-            _actions2['default'].loans.load.completed(loans_from_kiva);
+        if (kivaloans.loans_from_kiva.length > 0) {
+            _actions2['default'].loans.load.completed(kivaloans.loans_from_kiva);
             return;
         }
 
         options = $.extend({}, options);
         //options.country_code = 'pe,ke'
-        //, {region: 'af'}
+        options.region = 'af';
 
-        new _apiKiva.LoansSearch(options).start().done(function (loans) {
-            loans.forEach(function (loan) {
-                return indexed_loans[loan.id] = loan;
-            });
-            loans_from_kiva = loans;
+        kivaloans.setBaseKivaParams(options);
+
+        kivaloans.searchKiva(options).done(function (loans) {
             _actions2['default'].loans.load.completed(loans);
             //clean up loans
             basket_loans.removeAll(function (bi) {
-                return indexed_loans[bi.loan_id] == undefined;
+                return !kivaloans.hasLoan(bi.loan_id);
             });
+            _actions2['default'].loans.basket.changed();
             _this.onLender('nuclearspike'); //zx81
         }).progress(function (progress) {
             console.log("progress:", progress);
             _actions2['default'].loans.load.progressed(progress);
         }).fail(function (xhr, status, err) {
-            _actions2['default'].loans.load.failed(status);
+            //not bubbling out
+            console.log("$$$$$ failed:", err, xhr);
+            _actions2['default'].loans.load.failed(xhr.responseJSON.message);
         });
     },
 
     onDetail: function onDetail(id) {
         //this is weird. treating an async function as sync
-        var loan = this.syncGet(id);
+        var loan = kivaloans.getById(id);
         _actions2['default'].loans.detail.completed(loan); //return immediately with the last one we got (typically at start up)
-        _apiLoans2['default'].refreshLoan(loan).done(function (l) {
-            return _actions2['default'].loans.detail.completed(l);
+        _apiLoans2['default'].refreshLoan(loan).done(function (loan) {
+            return _actions2['default'].loans.detail.completed(loan);
         }); //kick off a process to get an updated version
     },
 
@@ -64953,19 +64979,17 @@ var loanStore = _reflux2['default'].createStore({
     },
 
     syncHasLoadedLoans: function syncHasLoadedLoans() {
-        return loans_from_kiva.length > 0;
+        return kivaloans.loans_from_kiva.length > 0;
     },
 
     mergeLoan: function mergeLoan(d_loan) {
         //used?
-        var loan = loans_from_kiva.first(function (loan) {
-            return loan.id == d_loan.id;
-        });
+        var loan = kivaloans.getById(d_loan.id);
         if (loan) $.extend(true, loan, d_loan);
     },
 
     syncGet: function syncGet(id) {
-        return indexed_loans[id];
+        return kivaloans.getById(id);
     },
 
     syncFilterLoans: function syncFilterLoans(c) {
@@ -65008,8 +65032,8 @@ var loanStore = _reflux2['default'].createStore({
 
         console.log('criteria', c);
 
-        return loans_from_kiva.where(function (loan) {
-            return stSector.startsWith(loan.sector) && stActivity.startsWith(loan.activity) && stName.contains(loan.name) && stCountry.startsWith(loan.location.country) && stUse.terms_arr.all(function (search_term) {
+        return kivaloans.loans_from_kiva.where(function (loan) {
+            return loan.status == 'fundraising' && stSector.startsWith(loan.sector) && stActivity.startsWith(loan.activity) && stName.contains(loan.name) && stCountry.startsWith(loan.location.country) && stUse.terms_arr.all(function (search_term) {
                 return loan.kl_use_or_descr_arr.any(function (w) {
                     return w.startsWith(search_term);
                 });

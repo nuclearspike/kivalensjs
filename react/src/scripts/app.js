@@ -34,6 +34,10 @@ class App extends React.Component {
 
 //When Page read, mount it.
 document.addEventListener("DOMContentLoaded", function(event) {
+    $(document).ready(function() {
+        $.ajaxSetup({ cache: false });
+    });
+
     if (document.getElementById("body")){
         React.render((<Router>
             <Route component={App} path="/">
