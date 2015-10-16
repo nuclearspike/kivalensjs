@@ -28,7 +28,7 @@ const ChartDistribution = React.createClass({
                 margins: [0,0,0,0]
             },
             title: {
-                text: name,
+                text: null,
                 align: 'center',
                 verticalAlign: 'middle',
                 y: 40
@@ -81,12 +81,11 @@ const ChartDistribution = React.createClass({
         return result;
     },
     redoCharts: function(loans){
-        //console.log("Criteria.redoCharts()",loans)
         console.log("Criteria.redoCharts():timeout()")
         let chart = this.refs.chart.getChart();
-        var countryData  = loans.groupBy(l=>{return l.location.country}).map(g=>{return {name: g[0].location.country, y: g.length}})
-        var sectorData   = loans.groupBy(l=>{return l.sector}).map(g=>{ return {name: g[0].sector, y: g.length}})
-        var activityData = loans.groupBy(l=>{return l.activity}).map(g=>{return {name: g[0].activity, y: g.length}})
+        var countryData  = loans.groupBy(l=>l.location.country).map(g=>{return {name: g[0].location.country, y: g.length}})
+        var sectorData   = loans.groupBy(l=>l.sector).map(g=>{ return {name: g[0].sector, y: g.length}})
+        var activityData = loans.groupBy(l=>l.activity).map(g=>{return {name: g[0].activity, y: g.length}})
         chart.series[0].setData(countryData)
         chart.series[1].setData(sectorData)
         chart.series[2].setData(activityData)

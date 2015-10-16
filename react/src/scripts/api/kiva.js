@@ -1,4 +1,4 @@
-var sem = require('semaphore')(1);
+var sem = require('semaphore')(8);
 
 //turns {json: 'object', app_id: 'com.me'} into ?json=object&app_id=com.me
 function serialize(obj, prefix) {
@@ -141,7 +141,7 @@ class ResultProcessors {
             }
 
             use_arr = processText(loan.use, common_use)
-
+            addIt.kl_tags = loan.tags.select(tag => tag.name) //??
             addIt.kl_use_or_descr_arr = use_arr.concat(descr_arr).distinct(),
             addIt.kl_last_repayment = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? Date.from_iso(loan.terms.scheduled_payments.last().due_date) : null
         }
@@ -186,8 +186,9 @@ class PagedKiva {
     }
 
     processPageOfData(request, response){
-        request.state = sDONE
+        if (this.visitorFunct) response.forEach(this.visitorFunct)
         request.results = response
+        request.state = sDONE
         this.result_object_count += response.length;
         this.promise.notify({percentage: (this.result_object_count * 100)/this.total_object_count,
             label: `${this.result_object_count}/${this.total_object_count} downloaded`})
@@ -222,7 +223,6 @@ class PagedKiva {
         this.promise.notify({label: 'Processing...'})
         var result_objects = []
         this.requests.forEach(req => result_objects = result_objects.concat(req.results))
-        if (this.visitorFunct) result_objects.forEach(this.visitorFunct)
         this.promise.notify({done: true})
         this.promise.resolve(result_objects)
     }
@@ -246,6 +246,7 @@ class PagedKiva {
 class LoansSearch extends PagedKiva {
     constructor(params, getDetails = true){
         params = $.extend({}, {status:'fundraising'}, params)
+        //params.country_code = 'pe'
         super('loans/search.json', params, 'loans')
         this.twoStage = getDetails
         this.visitorFunct = ResultProcessors.processLoan
@@ -338,9 +339,11 @@ class Loans {
         return this.indexed_loans[id] != undefined
     }
     setLender(lender_id){
-        this.lender_id = lender_id
+        if (lender_id)
+            this.lender_id = lender_id
         var kl = this
-        return new LenderLoans(lender_id).start().done(ids => {
+        return new LenderLoans(this.lender_id).start().done(ids => {
+            ids.removeAll(id => !kl.hasLoan(id.loan_id))
             kl.lender_loans = ids
             console.log('LENDER LOAN IDS:', ids)
         })

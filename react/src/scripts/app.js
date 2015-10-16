@@ -3,6 +3,7 @@
 require('linqjs')
 require('datejs')
 import React from 'react'
+import ReactDOM from 'react-dom'
 import Router from 'react-router'
 import {Route, Redirect, IndexRoute} from 'react-router';
 import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, Criteria, NotFound} from "./components";
@@ -38,8 +39,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
         $.ajaxSetup({ cache: false });
     });
 
-    if (document.getElementById("body")){
-        React.render((<Router>
+    if (document.getElementById("react-app")){
+        ReactDOM.render((<Router>
             <Route component={App} path="/">
                 <Route path="search" component={Search}>
                     <Route path="loan/:id" component={Loan}>
@@ -54,6 +55,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
                 <Redirect from="" to="/search"/>
                 <Route path="*" component={NotFound}/>
             </Route>
-        </Router>), document.getElementById("body"))
+        </Router>), document.getElementById("react-app"))
     }
 });

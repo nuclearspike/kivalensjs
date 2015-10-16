@@ -3,7 +3,7 @@
 import React from 'react'
 import Reflux from 'reflux'
 import {Link} from 'react-router';
-import {Navbar, Nav, NavItem, Badge} from 'react-bootstrap';
+import {Navbar, Nav, NavItem, NavBrand, Badge} from 'react-bootstrap';
 import s from '../stores/'
 import a from '../actions'
 
@@ -18,7 +18,8 @@ var KLNav = React.createClass({
     render: function() {
         var Brand = <Link className="navbar-brand" to="/search">KivaLens</Link>
         return (
-            <Navbar brand={Brand} inverse fluid>
+            <Navbar inverse fluid>
+                <NavBrand>{Brand}</NavBrand>
                 <Nav>
                     <NavItem key={1} href="#/search">Search</NavItem>
                     <NavItem key={2} href="#/basket">Basket<Badge>{this.state.basket_count}</Badge></NavItem>

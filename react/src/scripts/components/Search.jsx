@@ -35,10 +35,9 @@ var Search = React.createClass({
     render: function()  {
         console.log("Search:render()")
         var style = {height:'100%', width: '100%'};
-        var modal = (<LoadingLoansModal show={!s.loans.syncHasLoadedLoans()}/>)
         return (
             <Grid style={style} fluid >
-                {modal}
+                <LoadingLoansModal show={!s.loans.syncHasLoadedLoans()}/>
                 <Col md={4}>
                     <span>Results: {this.state.loan_count}</span>
                     <ButtonGroup justified>

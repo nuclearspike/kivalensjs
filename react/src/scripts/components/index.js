@@ -2,14 +2,12 @@
 
 //PAGES
 import Search from './Search.jsx';
-import Details from './Details.jsx';
+import Criteria from './Criteria.jsx'
 import Loan from './Loan.jsx';
-import NotFound from './NotFound.jsx';
-import Schedule from './Schedule.jsx';
-import About from './About.jsx';
 import Basket from './Basket.jsx';
 import Options from './Options.jsx';
-import Criteria from './Criteria.jsx'
+import About from './About.jsx';
+import NotFound from './NotFound.jsx';
 
 //COMPONENTS
 import KLNav from './KLNav.jsx';
@@ -26,6 +24,6 @@ import CatchNoCurlies from './CatchNoCurlies.jsx';
 
 export default CatchNoCurlies;
 
-export {Search, Details, Loan, NotFound, Schedule, About, Basket, Options,
-    KLNav, KLFooter, LoadingLoansModal, LoanListItem, BasketListItem, Criteria, KivaImage,
+export {Search, Loan, NotFound, About, Basket, Options, Criteria, KivaImage,
+    KLNav, KLFooter, LoadingLoansModal, LoanListItem, BasketListItem,
     ChartDistribution, CriteriaTabs}

@@ -101,6 +101,7 @@ function compile(watch) {
 gulp.task("production", function(){
     console.log("SWITCHING TO PRODUCTION MODE")
     production = true
+    return process.env.NODE_ENV = 'production';
 })
 
 //SERVER
@@ -123,7 +124,7 @@ gulp.task('d', ['production','styles','scripts'], function() {
             host: 'ftp.nuclearspike.com',
             user: argv.u,
             password: argv.pw,
-            parallel: 10,
+            parallel: 1,
             log: gutil.log
         });
 

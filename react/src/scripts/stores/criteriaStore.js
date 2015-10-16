@@ -10,7 +10,7 @@ var criteriaStore = Reflux.createStore({
         //load from local storage.
     },
     onChange: function(criteria){
-        //console.log("criteriaStore:onChange", criteria)
+        console.log("criteriaStore:onChange", criteria)
         this.last_known = criteria
         a.loans.filter(criteria)
     },

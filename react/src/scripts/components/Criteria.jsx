@@ -1,4 +1,4 @@
-import React from 'react/addons';
+import React from 'react';
 import Reflux from 'reflux'
 import {Grid,Row,Col,Input,Button,Tabs,Tab} from 'react-bootstrap';
 import {ChartDistribution,CriteriaTabs} from '.'

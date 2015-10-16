@@ -5,10 +5,11 @@ import LoanAPI from '../api/loans'
 import {LenderLoans, LoansSearch, LoanBatch, Loans} from '../api/kiva'
 import a from '../actions'
 import criteriaStore from './criteriaStore'
+import partnerStore from './partnerStore'
 
 //array of api loan objects that are sorted in the order they were returned.
 var basket_loans = []
-var kivaloans = new Loans(3*60*1000)
+var kivaloans = new Loans(30*60*1000)
 window.kivaloans = kivaloans
 
 kivaloans.notify_promise.progress(progress => {
@@ -83,7 +84,7 @@ var loanStore = Reflux.createStore({
 
         options = $.extend({}, options)
         //options.country_code = 'pe,ke'
-        options.region = 'af'
+        //options.region = 'af'
 
         kivaloans.setBaseKivaParams(options)
 
@@ -131,6 +132,8 @@ var loanStore = Reflux.createStore({
 
     syncFilterLoans: function(c){
         if (!c){ c = criteriaStore.syncGetLast() }
+
+        $.extend(true, c, {loan: {}, partner: {}, portfolio: {}})
         //break this into another unit --store? LoansAPI.filter(loans, criteria)
 
         //for each search term for sector, break it into an array, ignoring spaces and commas
@@ -149,29 +152,60 @@ var loanStore = Reflux.createStore({
                 terms_arr: result}
         }
 
+        var makeExactTester = function(value){
+            var terms_arr = []
+            if (value && value.length > 0)
+                terms_arr = (Array.isArray(value)) ? value : value.split(',')
+            console.log('makeExactTester',terms_arr)
+            return {
+                exact: function(loan_attr){
+                    return terms_arr.length == 0 ? true: terms_arr.contains(loan_attr)
+                },
+                arr_all: function(loan_attr){
+                    return terms_arr.length == 0 ? true: loan_attr && terms_arr.all(term => loan_attr.contains(term))
+                },
+                arr_any: function(loan_attr){
+                    return terms_arr.length == 0 ? true: loan_attr && terms_arr.any(term => loan_attr.contains(term))
+                }
+            }
+        }
+
+        var stSocialPerf = makeExactTester(c.partner.social_performance)
+        var stRegion = makeExactTester(c.partner.region)
+        var all_partners = partnerStore.syncGetPartners()
+        var partner_ids = all_partners.where(p => {
+            return stSocialPerf.arr_all(p.kl_sp) && stRegion.arr_any(p.kl_regions)
+        }).select(p => p.id)
+
         var sStartsWith = function(loan_attr, test){ return (test) ? loan_attr.toUpperCase().startsWith(test) : true }
 
-        var stSector = makeSearchTester(c.sector)
-        var stActivity = makeSearchTester(c.activity)
-        var stName = makeSearchTester(c.name)
-        var stCountry = makeSearchTester(c.country)
-        var stUse = makeSearchTester(c.use)
+        var stSector = makeExactTester(c.loan.sector)
+        var stActivity = makeExactTester(c.loan.activity)
+        var stName = makeSearchTester(c.loan.name)
+        var stCountry = makeExactTester(c.loan.country_code)
+        var stUse = makeSearchTester(c.loan.use)
+        var stTags = makeExactTester(c.loan.tags)
+        var stThemes = makeExactTester(c.loan.themes)
+        var stPartner = makeExactTester(partner_ids)
 
         console.log('criteria', c)
 
         return kivaloans.loans_from_kiva.where(loan => {
             return loan.status == 'fundraising' &&
-                stSector.startsWith(loan.sector) &&
-                stActivity.startsWith(loan.activity) &&
+                stPartner.exact(loan.partner_id) &&
+                stSector.exact(loan.sector) &&
+                stActivity.exact(loan.activity) &&
+                stCountry.exact(loan.location.country_code) &&
+                stTags.arr_all(loan.kl_tags) &&
+                stThemes.arr_all(loan.themes) &&
                 stName.contains(loan.name) &&
-                stCountry.startsWith(loan.location.country) &&
                 stUse.terms_arr.all(search_term => loan.kl_use_or_descr_arr.any(w => w.startsWith(search_term) ) )
         })
 
     }
 });
 
-window.perf = function(func){
+window.perf = function(func){ //need separate for async
     var t0 = performance.now();
     func();
     var t1 = performance.now();
