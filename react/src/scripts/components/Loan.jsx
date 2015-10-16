@@ -102,7 +102,7 @@ var Loan = React.createClass({
                         <b>{this.state.loan.location.country} | {this.state.loan.sector} | {this.state.loan.activity} | {this.state.loan.use}</b>
                         <p dangerouslySetInnerHTML={{__html: this.state.loan.description.texts.en}} ></p>
 
-                        <a href={`http://www.kiva.org/lend/${this.state.loan.id}`} target="_blank">View on Kiva.org</a>
+                        <a href={`http://www.kiva.org/lend/${this.state.loan.id}?default_team=kivalens`} target="_blank">View on Kiva.org</a>
                         </Col>
                         <Col md={3}>
                             <Highcharts style={{height: '500px', width: '400px'}} config={this.produceChart(this.state.loan)} ref='chart' />

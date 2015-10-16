@@ -30,6 +30,9 @@ const Basket = React.createClass({
             })
         })
     },
+    makeBasket: function(){
+        return JSON.stringify(this.state.basket_items.select(bi => {return {"id": bi.loan.id, "amount": bi.amount}}))
+    },
     remove() {
 
     },
@@ -41,7 +44,7 @@ const Basket = React.createClass({
                     <span>Basket: {this.state.basket_count} Amount: {this.state.amount_sum}</span>
                     <ButtonGroup justified>
                         <Button href="#" key={1} onClick={a.loans.basket.clear}>Empty Basket</Button>
-                        <Button href="#" key={2} onClick={this.remove}>Remove Selected</Button>
+                        <Button href="#" key={2} disabled onClick={this.remove}>Remove Selected</Button>
                     </ButtonGroup>
                     <InfiniteList
                         className="loan_list_container"
@@ -51,7 +54,14 @@ const Basket = React.createClass({
                         listItemClass={BasketListItem} />
                 </Col>
                 <Col md={8}>
-                Temp
+                    <form method="POST" action="http://www.kiva.org/basket/set?default_team=kivalens">
+                        <p>Checking out at Kiva will replace your current basket on Kiva.</p>
+                        <input name="callback_url" value={`${location.protocol}//${location.host}${location.port ? ':' + location.port: ''}${location.pathname}#clear-basket`} type="hidden" />
+                        <input name="loans" value={this.makeBasket()} type="hidden" ref="basket_array" />
+                        <input name="donation" value="0.00" type="hidden" />
+                        <input name="app_id" value="org.kiva.kivalens" type="hidden" />
+                        <input type="submit" className="btn btn-default" value="Checkout at Kiva"/>
+                    </form>
                 </Col>
             </Grid>
         );

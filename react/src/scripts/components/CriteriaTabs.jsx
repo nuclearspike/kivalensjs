@@ -114,7 +114,7 @@ const CriteriaTabs = React.createClass({
 
                 <Tab eventKey={3} title="Your Portfolio" className="ample-padding-top">
                     <Row>
-                        <Input type='text' label='Kiva Lender ID' labelClassName='col-md-2' wrapperClassName='col-md-6'  valueLink={this.linkState('lender_id')} onKeyUp={this.criteriaChanged} />
+                        <Input type='text' disabled label='Kiva Lender ID' labelClassName='col-md-2' wrapperClassName='col-md-6'  valueLink={this.linkState('lender_id')} onKeyUp={this.criteriaChanged} />
                     </Row>
                 </Tab>
             </Tabs>

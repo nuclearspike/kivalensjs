@@ -2,12 +2,11 @@
 
 import {ResultProcessors, Request} from './kiva'
 
+//switch to different pattern.
 
 class LoanAPI {
     static refreshLoan(loan){
-        var $def = $.Deferred()
-        this.getLoan(loan.id).done(k_loan => $def.resolve($.extend(loan, k_loan)) )
-        return $def
+        return this.getLoan(loan.id).then(k_loan => $.extend(loan, k_loan) )
     }
 
     static getLoan(id){

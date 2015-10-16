@@ -41,7 +41,7 @@ var Search = React.createClass({
                 <Col md={4}>
                     <span>Results: {this.state.loan_count}</span>
                     <ButtonGroup justified>
-                        <Button href="#" key={1} onClick={this.bulkAdd}>Bulk Add</Button>
+                        <Button href="#" key={1} disabled onClick={this.bulkAdd}>Bulk Add</Button>
                         <Button href="#/search" key={2} onClick={this.changeCriteria}>Change Criteria</Button>
                     </ButtonGroup>
                     <InfiniteList
