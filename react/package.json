@@ -31,6 +31,7 @@
   "dependencies": {
     "classnames": "^2.1.5",
     "datejs": "0.0.2",
+    "multi-slider": "^2.0.0",
     "react": "^0.14.0",
     "react-bootstrap": "^0.27.1",
     "react-cursor": "^1.2.1",

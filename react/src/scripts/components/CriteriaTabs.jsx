@@ -73,26 +73,26 @@ const CriteriaTabs = React.createClass({
     render: function () {
         console.log('render: state:', this.state)
         var selectRow = function (props, group, _this){
-            var {ref, value, label} = props
+            var {ref, match, label} = props
             var c_group = $.extend(true, {}, _this.state.criteria[group], {loan: {}, partner: {}, portfolio: {}})
             return <Row key={ref}>
                 <Col md={2}>
                     <label className="control-label">{label}</label>
                 </Col>
                 <Col md={6}>
-                    <Select multi value={c_group[ref]} ref={ref} options={_this.options[ref]} placeholder={`Select your ${label}`} onChange={_this.criteriaChanged} />
+                    <Select multi value={c_group[ref]} ref={ref} options={_this.options[ref]} placeholder={`Match ${match} selected ${label}`} onChange={_this.criteriaChanged} />
                 </Col>
             </Row>
         }
-        var loanCrit =  [{ref: 'country_code', label: 'Countries (any)' },
-            {ref: 'sector', label: 'Sectors (any)' },
-            {ref: 'activity', label: 'Activities (any)' },
-            {ref: 'themes', label: 'Themes (all)' },
-            {ref: 'tags', label: 'Tags (all)' }]
+        var loanCrit =  [{ref: 'country_code', label: 'Countries', match: 'any' },
+            {ref: 'sector', label: 'Sectors', match: 'any' },
+            {ref: 'activity', label: 'Activities', match: 'any' },
+            {ref: 'themes', label: 'Themes', match: 'all' },
+            {ref: 'tags', label: 'Tags', match: 'all' }]
         var loanCritSelects = loanCrit.map(opt => selectRow(opt, 'loan', this))
 
-        var partCrit = [{ref: 'region', label: "Region (any)"},
-            {ref: 'social_performance', label: "Social Performance (all)"}]
+        var partCrit = [{ref: 'region', label: 'Region', match: 'any'},
+            {ref: 'social_performance', label: 'Social Performance', match: 'all'}]
         var partnerCritSelects = partCrit.map(opt => selectRow(opt, 'partner', this))
 
         return (<div>

@@ -9,6 +9,7 @@ import partnerStore from './partnerStore'
 
 //array of api loan objects that are sorted in the order they were returned.
 var basket_loans = []
+var last_filtered = []
 var kivaloans = new Loans(30*60*1000)
 window.kivaloans = kivaloans
 
@@ -47,13 +48,13 @@ var loanStore = Reflux.createStore({
         basket_loans = []
         this._basketSave()
     },
-    onBasketBatchAdd: function(loan_ids){ //todo: this has not been switched to arrays of basket item objects.
-        basket_loans = basket_loans.concat(loan_ids).distinct()
+    onBasketBatchAdd: function(loans_to_add){
+        basket_loans = basket_loans.concat(loans_to_add) //.distinct((a,b)=> a.loan_id == b.loan_id)
         this._basketSave()
     },
-    onBasketAdd: function(loan_id){
+    onBasketAdd: function(loan_id, amount = 25){
         if (!this.syncInBasket(loan_id)) {
-            basket_loans.push({amount: 25, loan_id: loan_id})
+            basket_loans.push({amount: amount, loan_id: loan_id})
             this._basketSave()
         }
     },
@@ -65,7 +66,9 @@ var loanStore = Reflux.createStore({
     //LENDER LOANS
     onLender: function(lender_id){
         console.log("onLENDER:", lender_id)
-        kivaloans.setLender(lender_id)
+        kivaloans.setLender(lender_id).done((loan_ids)=>{
+            //remove from basket
+        })
     },
 
     //LOANS
@@ -130,6 +133,10 @@ var loanStore = Reflux.createStore({
         return kivaloans.getById(id)
     },
 
+    syncFilterLoansLast(){
+        return last_filtered
+    },
+
     syncFilterLoans: function(c){
         if (!c){ c = criteriaStore.syncGetLast() }
 
@@ -173,11 +180,13 @@ var loanStore = Reflux.createStore({
         var stSocialPerf = makeExactTester(c.partner.social_performance)
         var stRegion = makeExactTester(c.partner.region)
         var all_partners = partnerStore.syncGetPartners()
+
+        //filter the partners then loans against the partner list
         var partner_ids = all_partners.where(p => {
             return stSocialPerf.arr_all(p.kl_sp) && stRegion.arr_any(p.kl_regions)
         }).select(p => p.id)
 
-        var sStartsWith = function(loan_attr, test){ return (test) ? loan_attr.toUpperCase().startsWith(test) : true }
+        //var sStartsWith = function(loan_attr, test){ return (test) ? loan_attr.toUpperCase().startsWith(test) : true }
 
         var stSector = makeExactTester(c.loan.sector)
         var stActivity = makeExactTester(c.loan.activity)
@@ -190,7 +199,7 @@ var loanStore = Reflux.createStore({
 
         console.log('criteria', c)
 
-        return kivaloans.loans_from_kiva.where(loan => {
+        last_filtered = kivaloans.loans_from_kiva.where(loan => {
             return loan.status == 'fundraising' &&
                 stPartner.exact(loan.partner_id) &&
                 stSector.exact(loan.sector) &&
@@ -201,7 +210,7 @@ var loanStore = Reflux.createStore({
                 stName.contains(loan.name) &&
                 stUse.terms_arr.all(search_term => loan.kl_use_or_descr_arr.any(w => w.startsWith(search_term) ) )
         })
-
+        return last_filtered
     }
 });
 

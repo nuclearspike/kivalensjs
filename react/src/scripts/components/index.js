@@ -15,6 +15,7 @@ import KLFooter from './KLFooter.jsx';
 import LoanListItem from './LoanListItem.jsx';
 import BasketListItem from './BasketListItem.jsx'
 import LoadingLoansModal from './LoadingLoansModal.jsx'
+import BulkAddModal from './BulkAddModal.jsx'
 import KivaImage from './KivaImage.jsx'
 import ChartDistribution from './ChartDistribution.jsx'
 import CriteriaTabs from './CriteriaTabs.jsx'
@@ -25,5 +26,5 @@ import CatchNoCurlies from './CatchNoCurlies.jsx';
 export default CatchNoCurlies;
 
 export {Search, Loan, NotFound, About, Basket, Options, Criteria, KivaImage,
-    KLNav, KLFooter, LoadingLoansModal, LoanListItem, BasketListItem,
+    KLNav, KLFooter, LoadingLoansModal, BulkAddModal, LoanListItem, BasketListItem,
     ChartDistribution, CriteriaTabs}

@@ -103,6 +103,7 @@ class Request {
 var common_descr =  ["THIS", "ARE", "SHE", "THAT", "HAS", "LOAN", "BE", "OLD", "BEEN", "YEARS", "FROM", "WITH", "INCOME", "WILL", "HAVE"]
 var common_use = ["PURCHASE", "FOR", "AND", "BUY", "OTHER", "HER", "BUSINESS", "SELL", "MORE", "HIS", "THE", "PAY"]
 
+//static class to hold standard functions that prepare kiva api objects for use with kiva lens.
 class ResultProcessors {
     static processLoans(loans){
         //this alters the loans in the array. no need to return the array ?
@@ -275,6 +276,8 @@ class LenderLoans extends PagedKiva {
     }
 }
 
+//pass in an array of ids, it will break the array into 100 max chunks (kiva restriction) fetch them all, then returns
+//them together (very possible that they'll get out of order if more than one page)
 class LoanBatch {
     constructor(id_arr){
         this.ids = id_arr
@@ -299,10 +302,17 @@ class LoanBatch {
                     }
                 })
         }
+        if (chunks.length == 0){
+            $def.notify({done: true})
+            $def.resolve([])
+        }
+
         return $def
     }
 }
 
+//rename this. This is the interface to Kiva functions where it keeps the background resync going, indexes the results,
+//re
 class Loans {
     constructor(update_interval = 0){
         this.loans_from_kiva = []
@@ -323,14 +333,14 @@ class Loans {
             this.loans_from_kiva = []
             this.indexed_loans = {}
         }
-        this.loans_from_kiva = this.loans_from_kiva.concat(loans)
+        this.loans_from_kiva = this.loans_from_kiva.concat(loans).distinct((a,b)=> a.id == b.id)
         loans.forEach(loan => this.indexed_loans[loan.id] = loan)
     }
     searchKiva(kiva_params){
         return new LoansSearch(kiva_params).start().done(loans => this.setKivaLoans(loans))
     }
     searchLocal(kl_criteria){
-
+        ///
     }
     getById(id){
         return this.indexed_loans[id]
@@ -370,10 +380,11 @@ class Loans {
                 }
             })
             console.log("############### LOANS UPDATED:", loans_updated)
-            if (loans_updated > 0) this.notify_promise.notify({background_updated:loans_updated})
+            if (loans_updated > 0) this.notify_promise.notify({background_updated: loans_updated})
 
-            //find the loans that weren't found during the last update and fetch them. Removed? They don't seem to be funded loans... ?
-            var mia_loans = this.loans_from_kiva.where(loan => loan.status == 'fundraising' && loan.kl_background_resync != this.background_resync).select(loan => loan.id)
+            //find the loans that weren't found during the last update and return them. Possibly due to being funded. But not always. They don't seem to be funded loans... ?
+            var mia_loans = this.loans_from_kiva.where(loan => loan.status == 'fundraising' &&
+                        loan.kl_background_resync != this.background_resync).select(loan => loan.id)
             new LoanBatch(mia_loans).start().done(loans => { //this is ok when there aren't any??
                 console.log("############### MIA LOANS:", mia_loans.length, loans)
                 loans.forEach(loan => {

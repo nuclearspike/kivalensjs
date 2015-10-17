@@ -82,7 +82,7 @@ var Loan = React.createClass({
     render: function() {
         var addRemove = (this.state.inBasket ?
             <Button onClick={a.loans.basket.remove.bind(this, this.state.loan.id)}>Remove from Basket</Button> :
-            <Button onClick={a.loans.basket.add.bind(this, this.state.loan.id)}>Add to Basket</Button>
+            <Button onClick={a.loans.basket.add.bind(this, this.state.loan.id, 25)}>Add to Basket</Button>
         )
 
         return (

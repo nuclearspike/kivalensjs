@@ -3,7 +3,7 @@
 import React from 'react'
 import Reflux from 'reflux'
 import {Grid,Row,Col,Input,ButtonGroup,Button} from 'react-bootstrap';
-import {LoanListItem, LoadingLoansModal} from '.';
+import {LoanListItem, LoadingLoansModal, BulkAddModal} from '.';
 import a from '../actions'
 import s from '../stores'
 import InfiniteList from 'react-infinite-list'
@@ -31,17 +31,24 @@ var Search = React.createClass({
     },
     bulkAdd: function(e){
         e.preventDefault()
+        this.setState({showBulkAdd: true})
+    },
+    modalHidden: function(){
+        //I hate this. this cannot be the right way to do this. it works. but there has to be a better way.
+        this.setState({showBulkAdd: false})
     },
     render: function()  {
         console.log("Search:render()")
         var style = {height:'100%', width: '100%'};
+        var bulkAddModal = (this.state.showBulkAdd)? (<BulkAddModal onHide={this.modalHidden} />) : null
         return (
             <Grid style={style} fluid >
                 <LoadingLoansModal show={!s.loans.syncHasLoadedLoans()}/>
+                {bulkAddModal}
                 <Col md={4}>
                     <span>Results: {this.state.loan_count}</span>
                     <ButtonGroup justified>
-                        <Button href="#" key={1} disabled onClick={this.bulkAdd}>Bulk Add</Button>
+                        <Button href="#" key={1} onClick={this.bulkAdd}>Bulk Add</Button>
                         <Button href="#/search" key={2} onClick={this.changeCriteria}>Change Criteria</Button>
                     </ButtonGroup>
                     <InfiniteList
