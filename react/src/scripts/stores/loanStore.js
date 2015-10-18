@@ -10,7 +10,10 @@ import partnerStore from './partnerStore'
 //array of api loan objects that are sorted in the order they were returned.
 var basket_loans = []
 var last_filtered = []
+var last_partner_search = {}
+var last_partner_search_count = 0
 var kivaloans = new Loans(30*60*1000)
+
 window.kivaloans = kivaloans
 
 kivaloans.notify_promise.progress(progress => {
@@ -90,8 +93,6 @@ var loanStore = Reflux.createStore({
         }
 
         options = $.extend({}, options)
-        //options.country_code = 'pe,ke'
-        //options.region = 'af'
 
         kivaloans.setBaseKivaParams(options)
 
@@ -144,9 +145,11 @@ var loanStore = Reflux.createStore({
     },
 
     syncFilterLoans: function(c){
-        if (!c){ c = criteriaStore.syncGetLast() }
 
-        $.extend(true, c, {loan: {}, partner: {}, portfolio: {}})
+        if (!c){ c = criteriaStore.syncGetLast() }
+        $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
+        //if (!kivaloans.hasLoans()) return [] //during startup.
+
         //break this into another unit --store? LoansAPI.filter(loans, criteria)
 
         //for each search term for sector, break it into an array, ignoring spaces and commas
@@ -183,16 +186,27 @@ var loanStore = Reflux.createStore({
             }
         }
 
-        var stSocialPerf = makeExactTester(c.partner.social_performance)
-        var stRegion = makeExactTester(c.partner.region)
-        var all_partners = partnerStore.syncGetPartners()
+        if (last_partner_search_count > 10) last_partner_search = {}
 
-        //filter the partners then loans against the partner list
-        var partner_ids = all_partners.where(p => {
-            return stSocialPerf.arr_all(p.kl_sp) && stRegion.arr_any(p.kl_regions)
-        }).select(p => p.id)
+        var partner_criteria_json = JSON.stringify(c.partner)
+        var partner_ids
+        if (last_partner_search[partner_criteria_json]){
+            partner_ids = last_partner_search[partner_criteria_json]
+        } else {
+            last_partner_search_count++
+            var stSocialPerf = makeExactTester(c.partner.social_performance)
+            var stRegion = makeExactTester(c.partner.region)
 
-        //var sStartsWith = function(loan_attr, test){ return (test) ? loan_attr.toUpperCase().startsWith(test) : true }
+            //filter the partners
+            partner_ids = partnerStore.syncGetPartners().where(p => {
+                return kivaloans.partners_from_loans.contains(p.id) &&
+                    stSocialPerf.arr_all(p.kl_sp) && stRegion.arr_any(p.kl_regions)
+            }).select(p => p.id)
+
+            if (kivaloans.hasLoans())
+                last_partner_search[partner_criteria_json] = partner_ids
+            console.log("partner_ids, length: ", partner_ids, partner_ids.length)
+        }
 
         var stSector = makeExactTester(c.loan.sector)
         var stActivity = makeExactTester(c.loan.activity)
@@ -201,13 +215,12 @@ var loanStore = Reflux.createStore({
         var stUse = makeSearchTester(c.loan.use)
         var stTags = makeExactTester(c.loan.tags)
         var stThemes = makeExactTester(c.loan.themes)
-        var stPartner = makeExactTester(partner_ids)
 
         console.log('criteria', c)
 
         last_filtered = kivaloans.loans_from_kiva.where(loan => {
             return loan.status == 'fundraising' &&
-                partner_ids.contains(loan.partner_id) &&
+                partner_ids.contains(loan.partner_id) && //ids must always be populated. there isn't the normal "if empty, skip"
                 stSector.exact(loan.sector) &&
                 stActivity.exact(loan.activity) &&
                 stCountry.exact(loan.location.country_code) &&

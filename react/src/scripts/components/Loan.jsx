@@ -106,7 +106,8 @@ var Loan = React.createClass({
                         </Col>
                         <Col md={3}>
                             <Highcharts style={{height: '500px', width: '400px'}} config={this.produceChart(this.state.loan)} ref='chart' />
-                            <p>Half back by: {this.state.loan.kl_half_back.toString("MMM d, yyyy")}</p>
+                            <p>50% back by: {this.state.loan.kl_half_back.toString("MMM d, yyyy")}</p>
+                            <p>75% back by: {this.state.loan.kl_75_back.toString("MMM d, yyyy")}</p>
                             <p>Final repayment: {this.state.loan.kl_final_repayment.toString("MMM d, yyyy")}</p>
                         </Col>
                     </Tab>

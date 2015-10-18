@@ -283,8 +283,8 @@ class LenderLoans extends PagedKiva {
     }
 
     start(){
-        //return only an array of the ids of the loans (in a done())
-        return super.start().fail(this.promise.reject).then(loans => loans.select(loan => loan.id))
+        //return only an array of the ids of the loans (in a done()) //if the "then()" promise fails, reject the original
+        return super.start().then(loans => loans.select(loan => loan.id)).fail(this.promise.reject)
     }
 }
 
@@ -327,6 +327,7 @@ class LoanBatch {
 class Loans {
     constructor(update_interval = 0){
         this.loans_from_kiva = []
+        this.partners_from_loans = []
         this.lender_loans = []
         this.indexed_loans = {}
         this.base_kiva_params = {}
@@ -344,8 +345,13 @@ class Loans {
             this.loans_from_kiva = []
             this.indexed_loans = {}
         }
+        //loans added through this method will always be distinct and properly sorted.
         this.loans_from_kiva = this.loans_from_kiva.concat(loans).distinct((a,b)=> a.id == b.id).orderBy(loan => loan.kl_half_back).thenBy(loan => loan.kl_75_back).thenBy(loan => loan.kl_final_repayment)
+        this.partners_from_loans = this.loans_from_kiva.select(loan => loan.partner_id).distinct()
         loans.forEach(loan => this.indexed_loans[loan.id] = loan)
+    }
+    hasLoans(){
+        return this.loans_from_kiva.length > 0
     }
     searchKiva(kiva_params){
         return new LoansSearch(kiva_params).start().done(loans => this.setKivaLoans(loans))
@@ -405,7 +411,7 @@ class Loans {
                 })
             })
 
-            //get all loans that were added since the last update.
+            //get all loans that were added since the last update and add their details to the loans.
             new LoanBatch(loans_added).start().done(loans => { //this is ok when there aren't any??
                 console.log("############### NEW LOANS FOUND:", loans_added.length, loans)
                 this.setKivaLoans(loans, false)

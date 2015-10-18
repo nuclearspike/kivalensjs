@@ -6,7 +6,7 @@ import {ResultProcessors, Request} from './kiva'
 
 class LoanAPI {
     static refreshLoan(loan){
-        return this.getLoan(loan.id).then(k_loan => $.extend(loan, k_loan) )
+        return this.getLoan(loan.id).then(k_loan => $.extend(true, loan, k_loan) )
     }
 
     static getLoan(id){
