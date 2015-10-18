@@ -78,7 +78,7 @@ const ChartDistribution = React.createClass({
                 }]
         }
         a.loans.filter()
-        return result;
+        return result
     },
     redoCharts: function(loans){
         console.log("Criteria.redoCharts():timeout()")
@@ -93,13 +93,13 @@ const ChartDistribution = React.createClass({
     render: function () {
         return (
             <Collapse in={this.props.open}>
-                <div>
+                <div className="hidden-xs hidden-sm">
                     <Well>
                         <Highcharts style={{height: '200px'}} config={this.produceChart()} ref='chart' />
                     </Well>
                 </div>
             </Collapse>
-                   );
+                   )
     }
 })
 

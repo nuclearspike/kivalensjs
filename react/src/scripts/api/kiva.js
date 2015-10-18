@@ -386,8 +386,7 @@ class Loans {
                 var existing = kl.indexed_loans[loan.id]
                 if (existing) {
                     if (existing.status != loan.status
-                        || existing.basket_amount != loan.basket_amount
-                        || existing.funded_amount != loan.funded_amount)
+                        || existing.basket_amount != loan.basket_amount || existing.funded_amount != loan.funded_amount)
                         loans_updated++
 
                     $.extend(true, existing, loan, {kl_background_resync: kl.background_resync})

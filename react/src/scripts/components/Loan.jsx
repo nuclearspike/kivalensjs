@@ -112,7 +112,6 @@ var Loan = React.createClass({
                         </Col>
                     </Tab>
                     <Tab eventKey={3} disabled title="Partner" className="ample-padding-top">
-
                     </Tab>
                 </Tabs>
             </div>
