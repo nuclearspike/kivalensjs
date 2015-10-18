@@ -9,6 +9,7 @@ var LoadingLoansModal = React.createClass({
         return {progress_label: 'Please Wait', progress: 0, show: this.props.show, error_message: ''}
     },
     componentDidMount: function() {
+        window.rga.modalview('/loading');
         this.listenTo(a.loans.load.progressed, progress => {
             var new_state = {show: true}
             if (progress.percentage) new_state.progress = progress.percentage

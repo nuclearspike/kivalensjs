@@ -11,7 +11,9 @@ import InfiniteList from 'react-infinite-list'
 var Search = React.createClass({
     mixins: [Reflux.ListenerMixin],
     getInitialState:function(){
-        var filtered_loans = s.loans.syncFilterLoans()
+        var filtered_loans = s.loans.syncFilterLoansLast()
+        if (filtered_loans.length == 0)
+            filtered_loans = s.loans.syncFilterLoans()
         return {filtered_loans: filtered_loans, loan_count: filtered_loans.length}
     },
     componentDidMount: function() {

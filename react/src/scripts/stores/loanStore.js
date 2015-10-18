@@ -46,20 +46,24 @@ var loanStore = Reflux.createStore({
     },
     onBasketClear: function(){
         basket_loans = []
+        window.rga.event({category: 'basket', action: 'clear'})
         this._basketSave()
     },
     onBasketBatchAdd: function(loans_to_add){
         basket_loans = basket_loans.concat(loans_to_add) //.distinct((a,b)=> a.loan_id == b.loan_id)
+        window.rga.event({category: 'basket', action: 'batchAdd', value: loans_to_add.length})
         this._basketSave()
     },
     onBasketAdd: function(loan_id, amount = 25){
         if (!this.syncInBasket(loan_id)) {
+            window.rga.event({category: 'basket', action: 'add'})
             basket_loans.push({amount: amount, loan_id: loan_id})
             this._basketSave()
         }
     },
     onBasketRemove: function(loan_id){
         basket_loans.removeAll(bi => bi.loan_id == loan_id)
+        window.rga.event({category: 'basket', action: 'remove'})
         this._basketSave()
     },
 
@@ -134,6 +138,8 @@ var loanStore = Reflux.createStore({
     },
 
     syncFilterLoansLast(){
+        if (last_filtered.length == 0)
+            a.loans.filter()
         return last_filtered
     },
 
@@ -201,7 +207,7 @@ var loanStore = Reflux.createStore({
 
         last_filtered = kivaloans.loans_from_kiva.where(loan => {
             return loan.status == 'fundraising' &&
-                stPartner.exact(loan.partner_id) &&
+                partner_ids.contains(loan.partner_id) &&
                 stSector.exact(loan.sector) &&
                 stActivity.exact(loan.activity) &&
                 stCountry.exact(loan.location.country_code) &&
@@ -210,6 +216,9 @@ var loanStore = Reflux.createStore({
                 stName.contains(loan.name) &&
                 stUse.terms_arr.all(search_term => loan.kl_use_or_descr_arr.any(w => w.startsWith(search_term) ) )
         })
+        //loans are default ordered by half_back.
+        if (c.loan.sort == 'final_repayment')
+            last_filtered = last_filtered.orderBy(loan => loan.kl_final_repayment)
         return last_filtered
     }
 });

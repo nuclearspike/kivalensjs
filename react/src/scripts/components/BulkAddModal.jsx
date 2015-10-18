@@ -10,6 +10,7 @@ const BulkAddModal = React.createClass({
         return {show: true, maxBasket: 25, maxPerLoan: 25}
     },
     componentDidMount: function () {
+        window.rga.modalview('/bulkadd');
         this.loans = s.loans.syncFilterLoansLast()
         var basket_space = 10000 - s.loans.syncGetBasket().sum(bi => bi.amount)
         this.setState({basket_space: basket_space})
@@ -17,6 +18,7 @@ const BulkAddModal = React.createClass({
     close: function(){
         this.setState({ show: false });
         a.loans.basket.changed()
+        window.rga.event({category: 'bulk_add', action: 'close'})
         if (this.props.onHide) this.props.onHide()
     },
     doIt: function(){
@@ -32,8 +34,9 @@ const BulkAddModal = React.createClass({
                 amount_remaining -= to_lend
                 to_add.push({loan_id: loan.id, amount: to_lend})
             }
-            return amount_remaining < 25
+            return amount_remaining < 25 //return true == quit
         })
+        window.rga.event({category: 'bulk_add', action: 'add', value: to_add.length})
         a.loans.basket.batchAdd(to_add)
         this.close()
     },

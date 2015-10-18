@@ -126,9 +126,7 @@ class ResultProcessors {
             }
         }
 
-        var addIt = {
-            kl_downloaded: new Date()
-        }
+        var addIt = { kl_downloaded: new Date() }
 
         if (loan.description.texts) { //the presence implies this is a detail result
             var descr_arr
@@ -144,7 +142,21 @@ class ResultProcessors {
             use_arr = processText(loan.use, common_use)
             addIt.kl_tags = loan.tags.select(tag => tag.name) //??
             addIt.kl_use_or_descr_arr = use_arr.concat(descr_arr).distinct(),
-            addIt.kl_last_repayment = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? Date.from_iso(loan.terms.scheduled_payments.last().due_date) : null
+            addIt.kl_final_repayment = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? Date.from_iso(loan.terms.scheduled_payments.last().due_date) : null
+            var amount_50 = loan.loan_amount / 2
+            var amount_75 = loan.loan_amount * 3 / 4
+            var running_total = 0
+            loan.terms.scheduled_payments.some(payment => {
+                running_total += payment.amount
+                if (!addIt.kl_half_back && running_total >= amount_50) {
+                    addIt.kl_half_back = Date.from_iso(payment.due_date)
+
+                }
+                if (running_total >= amount_75){
+                    addIt.kl_75_back = Date.from_iso(payment.due_date)
+                    return true //quit
+                }
+            })
         }
         $.extend(loan, addIt)
         return loan
@@ -247,7 +259,7 @@ class PagedKiva {
 class LoansSearch extends PagedKiva {
     constructor(params, getDetails = true){
         params = $.extend({}, {status:'fundraising'}, params)
-        //params.country_code = 'pe'
+        if (location.hostname == 'localhost') params.country_code = 'pe'
         super('loans/search.json', params, 'loans')
         this.twoStage = getDetails
         this.visitorFunct = ResultProcessors.processLoan
@@ -271,7 +283,7 @@ class LenderLoans extends PagedKiva {
     }
 
     start(){
-        //return only an array of the ids of the loans
+        //return only an array of the ids of the loans (in a done())
         return super.start().fail(this.promise.reject).then(loans => loans.select(loan => loan.id))
     }
 }
@@ -312,7 +324,6 @@ class LoanBatch {
 }
 
 //rename this. This is the interface to Kiva functions where it keeps the background resync going, indexes the results,
-//re
 class Loans {
     constructor(update_interval = 0){
         this.loans_from_kiva = []
@@ -333,7 +344,7 @@ class Loans {
             this.loans_from_kiva = []
             this.indexed_loans = {}
         }
-        this.loans_from_kiva = this.loans_from_kiva.concat(loans).distinct((a,b)=> a.id == b.id)
+        this.loans_from_kiva = this.loans_from_kiva.concat(loans).distinct((a,b)=> a.id == b.id).orderBy(loan => loan.kl_half_back).thenBy(loan => loan.kl_75_back).thenBy(loan => loan.kl_final_repayment)
         loans.forEach(loan => this.indexed_loans[loan.id] = loan)
     }
     searchKiva(kiva_params){

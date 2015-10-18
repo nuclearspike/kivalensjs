@@ -97,7 +97,6 @@ function compile(watch) {
     rebundle();
 }
 
-
 gulp.task("production", function(){
     console.log("SWITCHING TO PRODUCTION MODE")
     production = true
@@ -139,7 +138,7 @@ gulp.task('d', ['production','styles','scripts'], function() {
         return gulp.src(globs, {base: '.', buffer: false})
             .pipe(conn.newer('/kivalens_org/react')) // only upload newer files
             .pipe(conn.dest('/kivalens_org/react'))
-            .pipe(open({uri: 'http://www.kivalens.org/react/#/search'}));
+           // .pipe(open({uri: 'http://www.kivalens.org/react/#/search'}));
 
     }
 );
