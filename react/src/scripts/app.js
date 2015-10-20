@@ -25,21 +25,37 @@ Array.prototype.chunk = function(chunkSize) {
 //not the best name... but i need this for all kiva dates
 Date.from_iso = (s) => { return new Date(Date.parse(s)) }
 
-class App extends React.Component {
-    render(){
+const App = React.createClass({
+    getInitialState(){
+        return {
+            basket: {count: 0, items: []},
+            search: {graphs_showing: true,
+                criteria: {loan: {country:""}, partner: {region: ""}}
+            }
+        }
+    },
+    componentDidMount(){
         ga.initialize('UA-10202885-1');
+    },
+    logPageChange(){
         var r_page = window.location.hash.replace('#','')
         if (r_page.indexOf("?") > -1)
             r_page = r_page.substr(0, r_page.indexOf('?'));
-        console.log("ga:pageview", r_page)
-        ga.pageview(r_page)
+        if (r_page != this.last_ga_page) {
+            console.log("ga:pageview", r_page)
+            ga.pageview(r_page)
+            this.last_ga_page = r_page
+        }
+    },
+    render(){
+        this.logPageChange()
         return <div>
                 <KLNav/>
                     {this.props.children}
                 <KLFooter/>
             </div>
     }
-}
+})
 
 //When Page read, mount it.
 document.addEventListener("DOMContentLoaded", function(event) {

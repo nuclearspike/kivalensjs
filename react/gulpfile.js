@@ -118,7 +118,9 @@ gulp.task('s', function() {
 gulp.task('scripts', function() { return compile(false); });
 
 //deploy~: gulp d --u 'gjgjgjg' --pw djfjffj
-gulp.task('d', ['production','styles','scripts'], function() {
+gulp.task('prod', ['production','styles','scripts'])
+
+gulp.task('d', [], function() {
         var conn = ftp.create({
             host: 'ftp.nuclearspike.com',
             user: argv.u,

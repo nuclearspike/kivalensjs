@@ -143,6 +143,10 @@ class ResultProcessors {
             addIt.kl_tags = loan.tags.select(tag => tag.name) //??
             addIt.kl_use_or_descr_arr = use_arr.concat(descr_arr).distinct(),
             addIt.kl_final_repayment = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? Date.from_iso(loan.terms.scheduled_payments.last().due_date) : null
+
+            addIt.kl_repaid_in = (addIt.kl_final_repayment - new Date()) / (30 * 24 * 60 * 60 * 1000)
+            addIt.kl_expiring_in_days = (Date.from_iso(loan.planned_expiration_date) - new Date()) / (24 * 60 * 60 * 1000)
+
             var amount_50 = loan.loan_amount / 2
             var amount_75 = loan.loan_amount * 3 / 4
             var running_total = 0
@@ -260,7 +264,7 @@ class LoansSearch extends PagedKiva {
     constructor(params, getDetails = true){
         params = $.extend({}, {status:'fundraising'}, params)
         if (location.hostname == 'localhost') params.country_code = 'pe'
-        super('loans/search.json', params, 'loans')
+        super('loans/search.json', params, 'loans')  //shows as red in ide. :( it's all good.
         this.twoStage = getDetails
         this.visitorFunct = ResultProcessors.processLoan
     }
@@ -268,7 +272,7 @@ class LoansSearch extends PagedKiva {
 
 class LenderLoans extends PagedKiva {
     constructor(lender_id, fundraising_only = true){
-        super(`lenders/${lender_id}/loans.json`, {}, 'loans')
+        super(`lenders/${lender_id}/loans.json`, {}, 'loans') //shows as red in ide. :( it's all good.
         this.fundraising_only = fundraising_only
     }
 

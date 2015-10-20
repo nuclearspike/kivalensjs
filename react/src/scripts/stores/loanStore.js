@@ -145,9 +145,9 @@ var loanStore = Reflux.createStore({
     },
 
     syncFilterLoans: function(c){
-
         if (!c){ c = criteriaStore.syncGetLast() }
         $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
+        console.log("$$$$$$$ syncFilterLoans",c)
         //if (!kivaloans.hasLoans()) return [] //during startup.
 
         //break this into another unit --store? LoansAPI.filter(loans, criteria)
@@ -166,6 +166,14 @@ var loanStore = Reflux.createStore({
                     return result.length == 0 ? true : result.any( search_text => loan_attr.toUpperCase().indexOf(search_text) > -1  )
                 },
                 terms_arr: result}
+        }
+
+        var makeRangeTester = function(crit_group, value_name){
+            var min = crit_group[`${value_name}_min`]
+            var max = crit_group[`${value_name}_max`]
+            return {
+                range: function(attr){ return min <= attr && attr <= max }
+            }
         }
 
         var makeExactTester = function(value){
@@ -196,11 +204,25 @@ var loanStore = Reflux.createStore({
             last_partner_search_count++
             var stSocialPerf = makeExactTester(c.partner.social_performance)
             var stRegion = makeExactTester(c.partner.region)
+            var rgRisk = makeRangeTester(c.partner, 'partner_risk_rating')
+            var rgDefault = makeRangeTester(c.partner, 'partner_default')
+            var rgDelinq = makeRangeTester(c.partner, 'partner_arrears')
+            var rgPY = makeRangeTester(c.partner, 'portfolio_yield')
+            var rgProfit = makeRangeTester(c.partner, 'profit')
+            var rgAtRisk = makeRangeTester(c.partner, 'loans_at_risk_rate')
+            var rgCEX = makeRangeTester(c.partner, 'currency_exchange_loss_rate')
+
 
             //filter the partners
             partner_ids = partnerStore.syncGetPartners().where(p => {
                 return kivaloans.partners_from_loans.contains(p.id) &&
                     stSocialPerf.arr_all(p.kl_sp) && stRegion.arr_any(p.kl_regions)
+                    && rgDefault.range(p.default_rate) && rgDelinq.range(p.delinquency_rate)
+                    && rgProfit.range(p.profitability) && rgPY.range(p.portfolio_yield)
+                    && rgAtRisk.range(p.loans_at_risk_rate) && rgCEX.range(p.currency_exchange_loss_rate)
+                    && (isNaN(parseFloat(p.rating)) ? c.partner.rating == 0 : rgRisk.range(parseFloat(p.rating)))
+
+
             }).select(p => p.id)
 
             if (kivaloans.hasLoans())
@@ -215,6 +237,10 @@ var loanStore = Reflux.createStore({
         var stUse = makeSearchTester(c.loan.use)
         var stTags = makeExactTester(c.loan.tags)
         var stThemes = makeExactTester(c.loan.themes)
+        var rgRepaid = makeRangeTester(c.loan, 'repaid_in')
+        var rgBorrowerCount = makeRangeTester(c.loan, 'borrower_count')
+        var rgStillNeeded = makeRangeTester(c.loan, 'still_needed')
+        var rgExpiringInDays = makeRangeTester(c.loan, 'expiring_in_days')
 
         console.log('criteria', c)
 
@@ -226,6 +252,10 @@ var loanStore = Reflux.createStore({
                 stCountry.exact(loan.location.country_code) &&
                 stTags.arr_all(loan.kl_tags) &&
                 stThemes.arr_all(loan.themes) &&
+                rgRepaid.range(loan.kl_repaid_in) &&
+                rgBorrowerCount.range(loan.borrowers.length) &&
+                rgStillNeeded.range(loan.loan_amount - loan.basket_amount - loan.funded_amount) &&
+                rgExpiringInDays.range(loan.kl_expiring_in_days) &&
                 stName.contains(loan.name) &&
                 stUse.terms_arr.all(search_term => loan.kl_use_or_descr_arr.any(w => w.startsWith(search_term) ) )
         })

@@ -39,7 +39,8 @@
   background-color: #cfcfcf !important; }
 
 .blur-me {
-  filter: blur(20px); }
+  -webkit-filter: blur(20px);
+          filter: blur(20px); }
 
 /**
  * React Select
@@ -139,7 +140,6 @@
 
 .Select-loading {
   -webkit-animation: Select-animation-spin 400ms infinite linear;
-  -o-animation: Select-animation-spin 400ms infinite linear;
   animation: Select-animation-spin 400ms infinite linear;
   width: 16px;
   height: 16px;
@@ -303,8 +303,58 @@
 
 @keyframes Select-animation-spin {
   to {
-    transform: rotate(1turn); } }
+    -webkit-transform: rotate(1turn);
+            transform: rotate(1turn); } }
 
 @-webkit-keyframes Select-animation-spin {
   to {
     -webkit-transform: rotate(1turn); } }
+
+.horizontal-slider {
+  width: 100%;
+  max-width: 500px;
+  height: 20px;
+  border: 0px none;
+  margin: 5px; }
+
+.handle.active {
+  background-color: grey; }
+
+.handle {
+  color: #555555;
+  height: 13.1875px;
+  position: absolute;
+  text-align: center;
+  width: 13.1875px;
+  cursor: pointer;
+  background: #e6e6e6;
+  border: 1px solid lightgray;
+  border-radius: 4px 4px 4px 4px;
+  font: normal normal normal normal 11px/normal Verdana, Arial, sans-serif;
+  outline: #555555 none 0px; }
+
+.bar {
+  position: relative;
+  background: #cfcfcf; }
+
+.bar.bar-1 {
+  background: #cfcfcf; }
+
+.bar.bar-2 {
+  background: #cfcfcf; }
+
+.horizontal-slider .bar {
+  top: 6px;
+  height: 5px; }
+
+.horizontal-slider .handle {
+  top: 1px;
+  width: 15px;
+  height: 15px;
+  line-height: 15px; }
+
+#horizontal-0, #horizontal-1, #horizontal-2, #horizontal-3, #vertical {
+  margin: 20px 10px; }
+
+#horizontal-2 .bar.bar-2 {
+  background: #ddd; }

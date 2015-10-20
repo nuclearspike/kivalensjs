@@ -17,7 +17,7 @@ var criteriaStore = Reflux.createStore({
     onGetLast: function(){
         //console.log("criteriaStore:onGetLast")
         a.criteria.getLast.completed(this.last_known)
-        a.criteria.change(this.last_known)
+        a.criteria.change(this.last_known) //?
     },
     syncGetLast: function(){
         return this.last_known

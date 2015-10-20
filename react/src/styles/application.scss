@@ -333,3 +333,66 @@
     -webkit-transform: rotate(1turn);
   }
 }
+
+
+//react-slider
+.horizontal-slider {
+  width: 100%;
+  max-width: 500px;
+  height: 20px;
+  border: 0px none;
+  margin: 5px;
+}
+
+.handle.active {
+  background-color: grey;
+}
+
+.handle {
+  color: rgb(85, 85, 85);
+  height: 13.1875px;
+  position: absolute;
+  text-align: center;
+  width: 13.1875px;
+  cursor: pointer;
+  background: rgb(230, 230, 230);
+  border: 1px solid rgb(211, 211, 211);
+  border-radius: 4px 4px 4px 4px;
+  font: normal normal normal normal 11px / normal Verdana, Arial, sans-serif;
+  outline: rgb(85, 85, 85) none 0px;
+}
+
+.bar {
+  position: relative;
+  background: #cfcfcf;
+}
+
+.bar.bar-1 {
+  background: #cfcfcf;
+}
+
+.bar.bar-2 {
+  background: #cfcfcf;
+}
+
+.horizontal-slider .bar {
+  top: 6px;
+  height: 5px;
+}
+
+.horizontal-slider .handle {
+  top: 1px;
+  width: 15px;
+  height: 15px;
+  line-height: 15px;
+}
+
+#horizontal-0,
+#horizontal-1, #horizontal-2, #horizontal-3,
+#vertical {
+  margin: 20px 10px;
+}
+
+#horizontal-2 .bar.bar-2 {
+  background: #ddd;
+}
