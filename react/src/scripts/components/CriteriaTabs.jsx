@@ -62,7 +62,7 @@ const CriteriaTabs = React.createClass({
         this.options.partner_arrears = {defaultValue: [], min: 0, max: 100}
         this.options.partner_default = {defaultValue: [], min: 0, max: 100}
         this.options.portfolio_yield = {defaultValue: [], min: 0, max: 100}
-        this.options.profit = {defaultValue: [], min: -14, max: 50}
+        this.options.profit = {defaultValue: [], min: -100, max: 100}
         this.options.loans_at_risk_rate = {defaultValue: [], min: 0, max: 100}
         this.options.currency_exchange_loss_rate = {defaultValue: [], min: 0, max: 100}
     },
