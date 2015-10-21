@@ -54,17 +54,17 @@ const CriteriaTabs = React.createClass({
         //loan sliders
         this.options.repaid_in = {defaultValue: [], min: 2, max: 120}
         this.options.borrower_count = {defaultValue: [], min: 1, max: 50}
-        this.options.still_needed = {defaultValue: [], min: 2, max: 10000}
-        this.options.expiring_in_days = {defaultValue: [], min: 2, max: 35}
+        this.options.still_needed = {defaultValue: [], min: 0, max: 10000}
+        this.options.expiring_in_days = {defaultValue: [], min: 0, max: 35}
 
         //partner sliders
         this.options.partner_risk_rating = {defaultValue: [], min: 0, max: 5}
-        this.options.partner_arrears = {defaultValue: [], min: 0, max: 100}
-        this.options.partner_default = {defaultValue: [], min: 0, max: 100}
+        this.options.partner_arrears = {defaultValue: [], min: 0, max: 50}
+        this.options.partner_default = {defaultValue: [], min: 0, max: 30}
         this.options.portfolio_yield = {defaultValue: [], min: 0, max: 100}
         this.options.profit = {defaultValue: [], min: -100, max: 100}
         this.options.loans_at_risk_rate = {defaultValue: [], min: 0, max: 100}
-        this.options.currency_exchange_loss_rate = {defaultValue: [], min: 0, max: 100}
+        this.options.currency_exchange_loss_rate = {defaultValue: [], min: 0, max: 20}
     },
     buildCriteria: function(){
         console.log('^^^^^^^^ buildCriteria:start')
@@ -94,11 +94,10 @@ const CriteriaTabs = React.createClass({
 
         var loan_sliders = ['repaid_in','borrower_count','still_needed','expiring_in_days']
         loan_sliders.forEach(ref => getSliderVal(criteria.loan, ref))
-        var newState = {}
-        loan_sliders.map(ref => {
-
+        //var newState = {}
+        //loan_sliders.map(ref => {
             //newState
-        })
+        //})
         var partner_sliders = ['partner_risk_rating','partner_arrears','partner_default','portfolio_yield','profit','loans_at_risk_rate','currency_exchange_loss_rate']
         partner_sliders.forEach(ref => getSliderVal(criteria.partner, ref))
         this.last_criteria = criteria

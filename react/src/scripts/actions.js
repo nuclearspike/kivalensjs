@@ -2,7 +2,7 @@
 
 import Reflux from 'reflux'
 
-var a = {loans: null, criteria: null, partners: null};
+var a = {loans: null, criteria: null, partners: null, notifications: null};
 
 a.loans = Reflux.createActions({
     "load": {children: ["progressed", "completed", "failed"]},
@@ -26,5 +26,10 @@ a.criteria  = Reflux.createActions([
 a.criteria.getLast = Reflux.createAction({
     children: ["completed"]
 });
+
+a.notifications = Reflux.createAction({
+    children: ["show"]
+})
+
 window.kl_actions = a
 export default a

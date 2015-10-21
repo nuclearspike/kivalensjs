@@ -16,7 +16,7 @@
     margin-left: -20px;
   }
   .details {
-    width: 305px;
+    //width: 305px;
   }
 }
 
@@ -29,13 +29,22 @@
   position: relative;
 }
 
+@media (max-width: 768px) {
+  .loan_list_container {height: 300px !important;}
+}
+
 .loan_list_container {
-  width: 440px;
+  width: 100%;
+}
+
+.notification-bar { //react-notification
+  z-index: 30000;
 }
 
 .infinite-list-content {
   margin: 0;
   position: absolute;
+  width: 100%;
 }
 
 .ample-padding-top {
@@ -333,7 +342,6 @@
     -webkit-transform: rotate(1turn);
   }
 }
-
 
 //react-slider
 .horizontal-slider {

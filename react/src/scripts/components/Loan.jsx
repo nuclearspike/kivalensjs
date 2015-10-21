@@ -11,7 +11,7 @@ import s from '../stores/'
 var Loan = React.createClass({
     mixins:[Reflux.ListenerMixin, History],
     getInitialState: function(){
-        return {loan: s.loans.syncGet(this.props.params.id), inBasket: s.loans.syncInBasket(this.props.params.id)}
+        return {loan: s.loans.syncGet(this.props.params.id), activeTab: 1, inBasket: s.loans.syncInBasket(this.props.params.id)}
     },
     componentWillMount: function(){
         if (!s.loans.syncHasLoadedLoans()){
@@ -34,9 +34,16 @@ var Loan = React.createClass({
     shouldComponentUpdate: function(nextProps, nextState){
         return (this.state.loan) ? true : false //DOESN'T WORK?
     },
+    tabSelect: function(selectedKey){
+        this.setState({activeTab: selectedKey});
+        setTimeout(()=> this.forceUpdate(), 500)
+    },
     produceChart: function(loan){
         var result = {
-            chart: {type: 'bar', animation: false},
+            chart: {type: 'bar',
+                animation: false,
+                renderTo: 'graph_container'
+            },
             title: {text: 'Repayments'},
             xAxis: {
                 categories: loan.kl_repay_categories,
@@ -85,16 +92,19 @@ var Loan = React.createClass({
             <Button onClick={a.loans.basket.add.bind(this, this.state.loan.id, 25)}>Add to Basket</Button>
         )
 
+        var highcharts;
+        if (this.state.activeTab == 2){
+            highcharts = (<Highcharts config={this.produceChart(this.state.loan)} ref='chart' />)
+        }
         return (
             <div>
                 <h1>{addRemove} {this.state.loan.name}</h1>
-                <Tabs defaultActiveKey={1}>
+                <Tabs activeKey={this.state.activeTab} onSelect={this.tabSelect}>
                     <Tab eventKey={1} title="Image" className="ample-padding-top">
                         <KivaImage loan={this.state.loan} type="width" image_width={800} width="100%"/>
-
                     </Tab>
                     <Tab eventKey={2} title="Details" className="ample-padding-top">
-                        <Col md={7}>
+                        <Col lg={8}>
                             <ProgressBar>
                                 <ProgressBar striped bsStyle="success" now={this.state.funded_perc} key={1}/>
                                 <ProgressBar bsStyle="warning" now={this.state.basket_perc} key={2}/>
@@ -104,11 +114,14 @@ var Loan = React.createClass({
 
                         <a href={`http://www.kiva.org/lend/${this.state.loan.id}?default_team=kivalens`} target="_blank">View on Kiva.org</a>
                         </Col>
-                        <Col md={3}>
-                            <Highcharts style={{height: '500px', width: '400px'}} config={this.produceChart(this.state.loan)} ref='chart' />
-                            <p>50% back by: {this.state.loan.kl_half_back.toString("MMM d, yyyy")}</p>
-                            <p>75% back by: {this.state.loan.kl_75_back.toString("MMM d, yyyy")}</p>
-                            <p>Final repayment: {this.state.loan.kl_final_repayment.toString("MMM d, yyyy")}</p>
+
+                        <Col style={{height: '500px'}} lg={4} id='graph_container'>
+                        {highcharts}
+                            <dl className="dl-horizontal">
+                                <dt>50% back by</dt><dd>{this.state.loan.kl_half_back.toString("MMM d, yyyy")}</dd>
+                                <dt>75% back by</dt><dd>{this.state.loan.kl_75_back.toString("MMM d, yyyy")}</dd>
+                                <dt>Final repayment</dt><dd>{this.state.loan.kl_final_repayment.toString("MMM d, yyyy")}</dd>
+                            </dl>
                         </Col>
                     </Tab>
                     <Tab eventKey={3} disabled title="Partner" className="ample-padding-top">

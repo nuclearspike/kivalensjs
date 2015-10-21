@@ -12,7 +12,7 @@ var partnerStore = Reflux.createStore({
     listenables: [a.partners],
     init:function(){
         console.log("partnerStore:init")
-        a.partners.load();
+        this.onLoad();
     },
     onLoad: function() {
         console.log("partnerStore:onLoad")
@@ -32,7 +32,7 @@ var partnerStore = Reflux.createStore({
                     p.kl_sp = p.social_performance_strengths ? p.social_performance_strengths.select(sp => sp.id) : []
                     p.kl_regions = p.countries.select(c => regions_lu[c.region]).distinct()
                 })
-                partners_from_kiva.removeAll(p => p.status != 'active');
+                //partners_from_kiva.removeAll(p => p.status != 'active');
                 window.partners = partners_from_kiva
 
                 //gather all country objects where partners operate, flatten and remove dupes.

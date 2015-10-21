@@ -51,7 +51,7 @@ const Basket = React.createClass({
     render() {
         var style = {height:'100%', width: '100%'};
         return (
-            <Grid style={style} fluid>
+            <div style={style}>
                 <Col md={4}>
                     <span>Basket: {this.state.basket_count} Amount: {this.state.amount_sum}</span>
                     <ButtonGroup justified>
@@ -92,7 +92,7 @@ const Basket = React.createClass({
                         </Modal.Footer>
                     </Modal>
                 </div>
-            </Grid>
+            </div>
         );
     }
 })

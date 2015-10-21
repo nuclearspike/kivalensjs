@@ -12,8 +12,6 @@
   .loan_list_item img {
     margin-right: 5px;
     margin-left: -20px; }
-  .loan_list_item .details {
-    width: 305px; }
 
 .float_left {
   float: left; }
@@ -22,12 +20,20 @@
   overflow: auto;
   position: relative; }
 
+@media (max-width: 768px) {
+  .loan_list_container {
+    height: 300px !important; } }
+
 .loan_list_container {
-  width: 440px; }
+  width: 100%; }
+
+.notification-bar {
+  z-index: 30000; }
 
 .infinite-list-content {
   margin: 0;
-  position: absolute; }
+  position: absolute;
+  width: 100%; }
 
 .ample-padding-top {
   padding-top: 15px; }

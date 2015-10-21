@@ -9,15 +9,15 @@ import a from '../actions'
 
 const KLNav = React.createClass({
     mixins: [Reflux.ListenerMixin],
-    getInitialState() {
-        return { basket_count: 0 }
-    },
+    getInitialState() { return { basket_count: 0 } },
     componentDidMount(){
         this.listenTo(a.loans.basket.changed, ()=>{ this.setState({basket_count: s.loans.syncBasketCount()}) })
     },
     render() {
+        //<NavItem className="visible-xs-block" key={2} href="#/basket">Basket<Badge>{this.state.basket_count}</Badge></NavItem>
+
         return (
-            <Navbar inverse fluid staticTop bsSize='sm' toggleNavKey={0}>
+            <Navbar inverse fluid staticTop toggleNavKey={0}>
                 <NavBrand><Link to="/search">KivaLens</Link></NavBrand>
                 <CollapsibleNav eventKey={0}>
                     <Nav navbar>

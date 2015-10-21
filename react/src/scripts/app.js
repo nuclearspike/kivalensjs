@@ -5,10 +5,11 @@ require('datejs')
 import React from 'react'
 import ReactDOM from 'react-dom'
 import Router from 'react-router'
-import {Route, Redirect, IndexRoute} from 'react-router';
+import {Route, Redirect, IndexRoute} from 'react-router'
 import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, Criteria, NotFound} from "./components";
 import KivaAPI from './api/kiva'
 import ga from 'react-ga';
+import a from './actions'
 
 window.rga = ga //react google analytics, ga is already defined
 KivaAPI.setAPIOptions({app_id: 'org.kiva.kivalens', max_concurrent: 8})
@@ -27,15 +28,12 @@ Date.from_iso = (s) => { return new Date(Date.parse(s)) }
 
 const App = React.createClass({
     getInitialState(){
-        return {
-            basket: {count: 0, items: []},
-            search: {graphs_showing: true,
-                criteria: {loan: {country:""}, partner: {region: ""}}
-            }
-        }
+        return { }
     },
     componentDidMount(){
         ga.initialize('UA-10202885-1');
+        //this only happens during startup of the app.
+        if (location.href.indexOf('#/?') > -1) location.replace(`http://${location.host}${location.pathname}#/search`)
     },
     logPageChange(){
         var r_page = window.location.hash.replace('#','')
@@ -74,6 +72,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
                 <Route path="options" component={Options}/>
                 <Route path="about" component={About}/>
                 <Redirect from="*" to="search"/>
+                <Redirect from="/" to="search"/>
             </Route>
         </Router>), document.getElementById("react-app"))
     }

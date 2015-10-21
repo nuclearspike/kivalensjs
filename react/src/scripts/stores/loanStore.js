@@ -145,6 +145,7 @@ var loanStore = Reflux.createStore({
     },
 
     syncFilterLoans: function(c){
+        if (!kivaloans.hasLoans()) return []
         if (!c){ c = criteriaStore.syncGetLast() }
         $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
         console.log("$$$$$$$ syncFilterLoans",c)
@@ -212,7 +213,6 @@ var loanStore = Reflux.createStore({
             var rgAtRisk = makeRangeTester(c.partner, 'loans_at_risk_rate')
             var rgCEX = makeRangeTester(c.partner, 'currency_exchange_loss_rate')
 
-
             //filter the partners
             partner_ids = partnerStore.syncGetPartners().where(p => {
                 return kivaloans.partners_from_loans.contains(p.id) &&
@@ -221,11 +221,9 @@ var loanStore = Reflux.createStore({
                     && rgProfit.range(p.profitability) && rgPY.range(p.portfolio_yield)
                     && rgAtRisk.range(p.loans_at_risk_rate) && rgCEX.range(p.currency_exchange_loss_rate)
                     && (isNaN(parseFloat(p.rating)) ? c.partner.rating == 0 : rgRisk.range(parseFloat(p.rating)))
-
-
             }).select(p => p.id)
 
-            if (kivaloans.hasLoans())
+            if (kivaloans.hasLoans()) //if this function fires with no loans...? why not stop at the start?
                 last_partner_search[partner_criteria_json] = partner_ids
             console.log("partner_ids, length: ", partner_ids, partner_ids.length)
         }

@@ -147,14 +147,13 @@ class ResultProcessors {
             addIt.kl_repaid_in = (addIt.kl_final_repayment - new Date()) / (30 * 24 * 60 * 60 * 1000)
             addIt.kl_expiring_in_days = (Date.from_iso(loan.planned_expiration_date) - new Date()) / (24 * 60 * 60 * 1000)
 
-            var amount_50 = loan.loan_amount / 2
-            var amount_75 = loan.loan_amount * 3 / 4
+            var amount_50 = loan.loan_amount  * 0.5
+            var amount_75 = loan.loan_amount * 0.75
             var running_total = 0
             loan.terms.scheduled_payments.some(payment => {
                 running_total += payment.amount
                 if (!addIt.kl_half_back && running_total >= amount_50) {
                     addIt.kl_half_back = Date.from_iso(payment.due_date)
-
                 }
                 if (running_total >= amount_75){
                     addIt.kl_75_back = Date.from_iso(payment.due_date)
@@ -167,6 +166,7 @@ class ResultProcessors {
     }
 }
 
+//generic class for handling any of kiva's paged responses in a data-type agnostic way. create subclasses to specialize see LoanSearch below
 class PagedKiva {
     constructor(url, params, collection){
         this.url = url
@@ -288,12 +288,17 @@ class LenderLoans extends PagedKiva {
 
     start(){
         //return only an array of the ids of the loans (in a done()) //if the "then()" promise fails, reject the original
-        return super.start().then(loans => loans.select(loan => loan.id)).fail(this.promise.reject)
+        return super.start().then(loans => {
+            if (this.fundraising_only)
+                loans = loans.where(loan => loan.status == 'fundraising')
+            return loans.select(loan => loan.id)
+        }).fail(this.promise.reject)
     }
 }
 
 //pass in an array of ids, it will break the array into 100 max chunks (kiva restriction) fetch them all, then returns
-//them together (very possible that they'll get out of order if more than one page)
+//them together (very possible that they'll get out of order if more than one page, if order is important then order
+// the results yourself. this could be made more generic where it doesn't know they are loans if needed in the future)
 class LoanBatch {
     constructor(id_arr){
         this.ids = id_arr
@@ -374,7 +379,7 @@ class Loans {
             this.lender_id = lender_id
         var kl = this
         return new LenderLoans(this.lender_id).start().done(ids => {
-            ids.removeAll(id => !kl.hasLoan(id.loan_id))
+            //ids.removeAll(id => !kl.hasLoan(id.loan_id)) //if this finishes before the loans, it would remove all.
             kl.lender_loans = ids
             console.log('LENDER LOAN IDS:', ids)
         })

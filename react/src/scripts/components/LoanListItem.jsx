@@ -25,10 +25,10 @@ const LoanListItem = React.createClass({
                 key={loan.id}
                 href={`#/search/loan/${loan.id}`}>
                 <KivaImage className="float_left" type="square" loan={loan} image_width={113} height={90} width={90}/>
-                <div className="float_left details">
+                <div className="details">
                     <p><b>{loan.name}</b></p>
-                    {loan.location.country} | {loan.sector} | {loan.activity}
-                    <p>
+                    {loan.location.country} | {loan.sector} <span className="hidden-md">| {loan.activity}</span>
+                    <p className="hidden-md">
                     {loan.use}
                     </p>
                 </div>
