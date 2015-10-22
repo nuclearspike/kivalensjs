@@ -44,7 +44,7 @@ const Basket = React.createClass({
     showGoodbye(){
         if (this.state.basket_count > 0) {
             window.rga.modalview('/baskettransfer');
-            window.rga.event({category: 'basket', action: 'transfer', value: this.state.basket_count})
+            window.rga.event({category: 'basket', action: 'basket:transfer', value: this.state.basket_count})
             this.setState({showGoodbye: true})
         }
     },

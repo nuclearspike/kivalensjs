@@ -20,22 +20,16 @@ const CriteriaTabs = React.createClass({
         this.setKnownOptions()
         this.last_criteria = $.extend(true, s.criteria.syncGetLast(), this.blankCriteria())
         this.setState({criteria_loan_use: this.last_criteria.loan.use, criteria_loan_name: this.last_criteria.loan.name})
-        this.setCountries()
-        this.setActivities()
+        if (kivaloans.loans_from_kiva.length) this.loansReady()
     },
     componentDidMount: function () {
-        this.listenTo(a.partners.load.completed, this.setCountries)
-        this.listenTo(a.loans.load.completed, this.setActivities)
+        this.listenTo(a.loans.load.completed, this.loansReady)
         this.criteriaChanged()
     },
-    setActivities: function(){
+    loansReady: function(){
         this.options.activity = kivaloans.loans_from_kiva.select(loan => loan.activity).distinct().orderBy(name => name).select(a => {return {value: a, label: a}})
-        this.setState({hasActivities : true})
-        this.criteriaChanged()
-    },
-    setCountries: function(){
-        this.options.country_code = s.partners.syncGetCountries().select(c => {return {label: c.name, value: c.iso_code}}).orderBy(c => c.label)
-        this.setState({hasCountryCodes : true})
+        this.options.country_code = kivaloans.partners_from_kiva.select(c => {return {label: c.name, value: c.iso_code}}).orderBy(c => c.label)
+        this.setState({loansReady : true})
         this.criteriaChanged()
     },
     setKnownOptions: function(){
@@ -67,7 +61,7 @@ const CriteriaTabs = React.createClass({
         this.options.currency_exchange_loss_rate = {defaultValue: [], min: 0, max: 20}
     },
     buildCriteria: function(){
-        console.log('^^^^^^^^ buildCriteria:start')
+        console.log('buildCriteria:start')
         var getSelVal = (name) => this.refs[name].refs.value.value //todo: this is dumb. "refs.value" is a hidden input.
 
         var getSliderVal = function(criteria_group, ref){
@@ -127,7 +121,7 @@ const CriteriaTabs = React.createClass({
     render: function() {
         var selectRow = function (props, group){
             var {ref, match, label, multi} = props
-            var c_group = $.extend(true, {}, this.last_criteria[group], this.blankCriteria())
+            var c_group = $.extend(true, {}, this.last_criteria[group])
             return <Row key={ref}>
                 <Col md={2}>
                     <label className="control-label">{label}</label>
@@ -141,8 +135,11 @@ const CriteriaTabs = React.createClass({
         var sliderRow = function(props, group){
             var {ref, label} = props
             var options = this.options[ref]
-            var c_group = $.extend(true, {}, this.last_criteria[group], this.blankCriteria())
-            var defaults = (c_group[ref] && c_group[ref].defaultValue && c_group[ref].defaultValue.length == 2) ? c_group[ref] : [options.min, options.max]
+            var c_group = $.extend(true, {}, this.last_criteria[group])
+            var defaults = (c_group[ref] && c_group[ref].defaultValue && c_group[ref].defaultValue.length == 2) ? c_group[ref].defaultValue : [options.min, options.max]
+            if (c_group[`${ref}_min`] && c_group[`${ref}_max`]) { //keep old value
+                defaults = [c_group[`${ref}_min`], c_group[`${ref}_max`]]
+            }
             return (<Row key={ref}>
                     <Col md={2}>
                         <label className="control-label">{label}</label>

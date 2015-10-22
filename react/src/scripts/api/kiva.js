@@ -1,5 +1,7 @@
 var sem = require('semaphore')(8);
 
+//this unit was designed to be able to be pulled from here without any requirements on any stores/actions/etc.
+
 //turns {json: 'object', app_id: 'com.me'} into ?json=object&app_id=com.me
 function serialize(obj, prefix) {
     var str = [];
@@ -70,6 +72,7 @@ class Request {
     }
 
     fetchFromIds(ids){
+        //if possibly more than 100, use LoanBatch()
         this.state = sDOWNLOADING
         this.ids = ids
         return Request.sem_get(`${this.collection}/${ids.join(',')}.json`, {}, this.collection, false)
@@ -336,7 +339,8 @@ class LoanBatch {
 class Loans {
     constructor(update_interval = 0){
         this.loans_from_kiva = []
-        this.partners_from_loans = []
+        this.partner_ids_from_loans = []
+        this.partners_from_kiva = []
         this.lender_loans = []
         this.indexed_loans = {}
         this.base_kiva_params = {}
@@ -345,6 +349,16 @@ class Loans {
         this.update_interval = update_interval
         if (this.update_interval > 0)
             setInterval(this.backgroundResync.bind(this), this.update_interval)
+    }
+    init(){
+        //fetch partners.
+        this.notify_promise.notify({loan_load_progress: {percentage: 0, label: 'Fetching Partners...'}})
+        this.getAllPartners().done(partners => {
+            //
+            this.searchKiva().progress(progress => this.notify_promise.notify({loan_load_progress: progress})).done(()=> this.notify_promise.notify({loans_loaded: true}))
+        })
+        //used saved partner filter
+        return this.notify_promise
     }
     setBaseKivaParams(base_kiva_params){
         this.base_kiva_params = base_kiva_params
@@ -356,13 +370,14 @@ class Loans {
         }
         //loans added through this method will always be distinct and properly sorted.
         this.loans_from_kiva = this.loans_from_kiva.concat(loans).distinct((a,b)=> a.id == b.id).orderBy(loan => loan.kl_half_back).thenBy(loan => loan.kl_75_back).thenBy(loan => loan.kl_final_repayment)
-        this.partners_from_loans = this.loans_from_kiva.select(loan => loan.partner_id).distinct()
+        this.partner_ids_from_loans = this.loans_from_kiva.select(loan => loan.partner_id).distinct()
         loans.forEach(loan => this.indexed_loans[loan.id] = loan)
     }
     hasLoans(){
         return this.loans_from_kiva.length > 0
     }
     searchKiva(kiva_params){
+        if (!kiva_params) kiva_params = this.base_kiva_params
         return new LoansSearch(kiva_params).start().done(loans => this.setKivaLoans(loans))
     }
     searchLocal(kl_criteria){
@@ -374,15 +389,40 @@ class Loans {
     hasLoan(id){
         return this.indexed_loans[id] != undefined
     }
+    getAllPartners(){
+        //needs a way to inform user something is happening.
+        return Request.sem_get('partners.json', {}, 'partners', false).then(partners => {
+            var regions_lu = {"North America":"na","Central America":"ca","South America":"sa","Africa":"af","Asia":"as","Middle East":"me","Eastern Europe":"ee","Western Europe":"we","Antarctica":"an","Oceania":"oc"}
+            this.partners_from_kiva = partners
+            this.partners_from_kiva.forEach(p => {
+                p.kl_sp = p.social_performance_strengths ? p.social_performance_strengths.select(sp => sp.id) : []
+                p.kl_regions = p.countries.select(c => regions_lu[c.region]).distinct()
+            })
+            //todo: temp. for debugging
+            window.partners = this.partners_from_kiva
+
+            //gather all country objects where partners operate, flatten and remove dupes.
+            this.countries = [].concat.apply([], this.partners_from_kiva.select(p => p.countries)).distinct((a,b) => a.iso_code == b.iso_code);
+            return this.partners_from_kiva
+        })
+    }
+    getPartner(id){
+        return this.partners_from_kiva.first(p => p.id == id)
+    }
     setLender(lender_id){
-        if (lender_id)
-            this.lender_id = lender_id
+        if (lender_id) this.lender_id = lender_id
         var kl = this
         return new LenderLoans(this.lender_id).start().done(ids => {
-            //ids.removeAll(id => !kl.hasLoan(id.loan_id)) //if this finishes before the loans, it would remove all.
             kl.lender_loans = ids
             console.log('LENDER LOAN IDS:', ids)
         })
+    }
+    refreshLoan(loan){
+        //if this object was what was already in our arrays and index, then it will just update
+        return this.getLoan(loan.id).then(k_loan => $.extend(true, loan, k_loan))
+    }
+    getLoan(id){
+        return Request.sem_get(`loans/${id}.json`, {}, 'loans', true).then(ResultProcessors.processLoan)
     }
     backgroundResync(){
         this.background_resync++

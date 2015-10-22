@@ -8,6 +8,7 @@ import Basket from './Basket.jsx';
 import Options from './Options.jsx';
 import About from './About.jsx';
 import NotFound from './NotFound.jsx';
+import ClearBasket from './ClearBasket.jsx'
 
 //COMPONENTS
 import KLNav from './KLNav.jsx';
@@ -27,4 +28,4 @@ export default CatchNoCurlies;
 
 export {Search, Loan, NotFound, About, Basket, Options, Criteria, KivaImage,
     KLNav, KLFooter, LoadingLoansModal, BulkAddModal, LoanListItem, BasketListItem,
-    ChartDistribution, CriteriaTabs}
+    ChartDistribution, CriteriaTabs, ClearBasket}

@@ -6,6 +6,7 @@ var autoprefixer = require('gulp-autoprefixer');
 var concat = require('gulp-concat');
 //var jshint = require('gulp-jshint');
 var uglify = require('gulp-uglify');
+//var minifyify = require('minifyify')
 var minifycss = require('gulp-minify-css');
 var sass = require('gulp-sass');
 var browserSync = require('browser-sync');
@@ -59,8 +60,10 @@ gulp.task('styles', function(){
 });
 
 function compile(watch) {
-    var bundler = browserify('./src/scripts/app.js',
-        { debug: true }).transform(babelify);
+    var bundler = browserify('./src/scripts/app.js', { debug: true })
+            .transform(babelify)
+            //.plugin('minifyify', { map: 'javascript/bundle.js.map', output: 'javascript/bundle.js.map' });
+
     if (watch) {
         bundler = watchify(bundler);
     }
@@ -100,7 +103,7 @@ function compile(watch) {
 gulp.task("production", function(){
     console.log("SWITCHING TO PRODUCTION MODE")
     production = true
-    return process.env.NODE_ENV = 'production';
+    return process.env.NODE_ENV = 'production'; //?
 })
 
 //SERVER

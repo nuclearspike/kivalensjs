@@ -6,7 +6,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import Router from 'react-router'
 import {Route, Redirect, IndexRoute} from 'react-router'
-import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, Criteria, NotFound} from "./components";
+import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, Criteria, ClearBasket, NotFound} from "./components";
 import KivaAPI from './api/kiva'
 import ga from 'react-ga';
 import a from './actions'
@@ -71,6 +71,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
                 <Route path="basket" component={Basket}/>
                 <Route path="options" component={Options}/>
                 <Route path="about" component={About}/>
+                <Route path="clear-basket" component={ClearBasket}/>
                 <Redirect from="*" to="search"/>
                 <Redirect from="/" to="search"/>
             </Route>

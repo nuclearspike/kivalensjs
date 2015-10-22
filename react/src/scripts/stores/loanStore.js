@@ -1,11 +1,9 @@
 'use strict';
 
 import Reflux from 'reflux'
-import LoanAPI from '../api/loans'
 import {LenderLoans, LoansSearch, LoanBatch, Loans} from '../api/kiva'
 import a from '../actions'
 import criteriaStore from './criteriaStore'
-import partnerStore from './partnerStore'
 
 //array of api loan objects that are sorted in the order they were returned.
 var basket_loans = []
@@ -14,23 +12,25 @@ var last_partner_search = {}
 var last_partner_search_count = 0
 var kivaloans = new Loans(30*60*1000)
 
-window.kivaloans = kivaloans
-
-kivaloans.notify_promise.progress(progress => {
+//bridge the downloading/processing with the React app.
+kivaloans.init().progress(progress => {
     if (progress.background_added)
         a.loans.backgroundResync.added(progress.background_added)
     if (progress.background_updated)
         a.loans.backgroundResync.updated(progress.background_updated)
+    if (progress.loans_loaded)
+        a.loans.load.completed(kivaloans.loans_from_kiva)
+    if (progress.loan_load_progress)
+        a.loans.load.progressed(progress.loan_load_progress)
 })
+
+window.kivaloans = kivaloans //todo: not just for debugging. ?
 
 var loanStore = Reflux.createStore({
     listenables: [a.loans],
     init:function(){
         console.log("loanStore:init")
-        a.loans.load(); //start loading loans from Kiva.
-        if (typeof localStorage === 'object') {
-            basket_loans = JSON.parse(localStorage.getItem('basket'))
-        }
+        if (typeof localStorage === 'object') basket_loans = JSON.parse(localStorage.getItem('basket'))
         if (!Array.isArray(basket_loans)) basket_loans = []
         if (basket_loans.length > 0 && !basket_loans[0].loan_id) basket_loans = []
         a.loans.basket.changed();
@@ -49,24 +49,24 @@ var loanStore = Reflux.createStore({
     },
     onBasketClear: function(){
         basket_loans = []
-        window.rga.event({category: 'basket', action: 'clear'})
+        window.rga.event({category: 'basket', action: 'basket:clear'})
         this._basketSave()
     },
     onBasketBatchAdd: function(loans_to_add){
         basket_loans = basket_loans.concat(loans_to_add) //.distinct((a,b)=> a.loan_id == b.loan_id)
-        window.rga.event({category: 'basket', action: 'batchAdd', value: loans_to_add.length})
+        window.rga.event({category: 'basket', action: 'basket:batchAdd', value: loans_to_add.length})
         this._basketSave()
     },
     onBasketAdd: function(loan_id, amount = 25){
         if (!this.syncInBasket(loan_id)) {
-            window.rga.event({category: 'basket', action: 'add'})
+            window.rga.event({category: 'basket', action: 'basket:add'})
             basket_loans.push({amount: amount, loan_id: loan_id})
             this._basketSave()
         }
     },
     onBasketRemove: function(loan_id){
         basket_loans.removeAll(bi => bi.loan_id == loan_id)
-        window.rga.event({category: 'basket', action: 'remove'})
+        window.rga.event({category: 'basket', action: 'basket:remove'})
         this._basketSave()
     },
 
@@ -79,77 +79,34 @@ var loanStore = Reflux.createStore({
     },
 
     //LOANS
-    onBackgroundResync: function(){
-
-    },
-
-    onLoad: function(options) {
-        console.log("loanStore:onLoad")
-
-        //we already have the loans, just spit them back.
-        if (kivaloans.loans_from_kiva.length > 0){
-            a.loans.load.completed(kivaloans.loans_from_kiva);
-            return
-        }
-
-        options = $.extend({}, options)
-
-        kivaloans.setBaseKivaParams(options)
-
-        kivaloans.searchKiva(options)
-            .done(loans => {
-                a.loans.load.completed(loans)
-                //clean up loans
-                basket_loans.removeAll(bi => !kivaloans.hasLoan(bi.loan_id))
-                a.loans.basket.changed();
-                this.onLender('nuclearspike') //zx81
-            })
-            .progress(progress => {
-                console.log("progress:", progress)
-                a.loans.load.progressed(progress)
-            })
-            .fail((xhr, status, err) => { //not bubbling out
-                console.log("$$$$$ failed:", err, xhr)
-                a.loans.load.failed(xhr.responseJSON.message)
-            })
-    },
-
     onDetail: function(id){
-        //this is weird. treating an async function as sync
         var loan = kivaloans.getById(id)
         a.loans.detail.completed(loan) //return immediately with the last one we got (typically at start up)
-        LoanAPI.refreshLoan(loan).done(loan => a.loans.detail.completed(loan)) //kick off a process to get an updated version
+        kivaloans.refreshLoan(loan).done(loan => a.loans.detail.completed(loan)) //kick off a process to get an updated version
     },
-
     onFilter: function(c){ //why would I ever call this async??
         a.loans.filter.completed(this.syncFilterLoans(c))
     },
-
     syncHasLoadedLoans: function(){
         return kivaloans.loans_from_kiva.length > 0
     },
-
     mergeLoan: function(d_loan){ //used?
         var loan = kivaloans.getById(d_loan.id)
         if (loan) $.extend(true, loan, d_loan)
     },
-
     syncGet: function(id){
         return kivaloans.getById(id)
     },
-
     syncFilterLoansLast(){
         if (last_filtered.length == 0)
             a.loans.filter()
         return last_filtered
     },
-
     syncFilterLoans: function(c){
         if (!kivaloans.hasLoans()) return []
         if (!c){ c = criteriaStore.syncGetLast() }
         $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
         console.log("$$$$$$$ syncFilterLoans",c)
-        //if (!kivaloans.hasLoans()) return [] //during startup.
 
         //break this into another unit --store? LoansAPI.filter(loans, criteria)
 
@@ -195,7 +152,10 @@ var loanStore = Reflux.createStore({
             }
         }
 
-        if (last_partner_search_count > 10) last_partner_search = {}
+        if (last_partner_search_count > 10) {
+            last_partner_search = {}
+            last_partner_search_count = 0
+        }
 
         var partner_criteria_json = JSON.stringify(c.partner)
         var partner_ids
@@ -204,27 +164,29 @@ var loanStore = Reflux.createStore({
         } else {
             last_partner_search_count++
             var stSocialPerf = makeExactTester(c.partner.social_performance)
-            var stRegion = makeExactTester(c.partner.region)
-            var rgRisk = makeRangeTester(c.partner, 'partner_risk_rating')
-            var rgDefault = makeRangeTester(c.partner, 'partner_default')
-            var rgDelinq = makeRangeTester(c.partner, 'partner_arrears')
-            var rgPY = makeRangeTester(c.partner, 'portfolio_yield')
-            var rgProfit = makeRangeTester(c.partner, 'profit')
-            var rgAtRisk = makeRangeTester(c.partner, 'loans_at_risk_rate')
-            var rgCEX = makeRangeTester(c.partner, 'currency_exchange_loss_rate')
+            var stRegion     = makeExactTester(c.partner.region)
+            var rgRisk       = makeRangeTester(c.partner, 'partner_risk_rating')
+            var rgDefault    = makeRangeTester(c.partner, 'partner_default')
+            var rgDelinq     = makeRangeTester(c.partner, 'partner_arrears')
+            var rgPY         = makeRangeTester(c.partner, 'portfolio_yield')
+            var rgProfit     = makeRangeTester(c.partner, 'profit')
+            var rgAtRisk     = makeRangeTester(c.partner, 'loans_at_risk_rate')
+            var rgCEX        = makeRangeTester(c.partner, 'currency_exchange_loss_rate')
 
             //filter the partners
-            partner_ids = partnerStore.syncGetPartners().where(p => {
-                return kivaloans.partners_from_loans.contains(p.id) &&
-                    stSocialPerf.arr_all(p.kl_sp) && stRegion.arr_any(p.kl_regions)
-                    && rgDefault.range(p.default_rate) && rgDelinq.range(p.delinquency_rate)
-                    && rgProfit.range(p.profitability) && rgPY.range(p.portfolio_yield)
-                    && rgAtRisk.range(p.loans_at_risk_rate) && rgCEX.range(p.currency_exchange_loss_rate)
+            partner_ids = kivaloans.partners_from_kiva.where(p => {
+                return stSocialPerf.arr_all(p.kl_sp)
+                    && stRegion.arr_any(p.kl_regions)
+                    && rgDefault.range(p.default_rate)
+                    && rgDelinq.range(p.delinquency_rate)
+                    && rgProfit.range(p.profitability)
+                    && rgPY.range(p.portfolio_yield)
+                    && rgAtRisk.range(p.loans_at_risk_rate)
+                    && rgCEX.range(p.currency_exchange_loss_rate)
                     && (isNaN(parseFloat(p.rating)) ? c.partner.rating == 0 : rgRisk.range(parseFloat(p.rating)))
             }).select(p => p.id)
 
-            if (kivaloans.hasLoans()) //if this function fires with no loans...? why not stop at the start?
-                last_partner_search[partner_criteria_json] = partner_ids
+            last_partner_search[partner_criteria_json] = partner_ids
             console.log("partner_ids, length: ", partner_ids, partner_ids.length)
         }
 

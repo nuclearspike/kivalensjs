@@ -45,8 +45,7 @@
   background-color: #cfcfcf !important; }
 
 .blur-me {
-  -webkit-filter: blur(20px);
-          filter: blur(20px); }
+  filter: blur(20px); }
 
 /**
  * React Select
@@ -146,6 +145,7 @@
 
 .Select-loading {
   -webkit-animation: Select-animation-spin 400ms infinite linear;
+  -o-animation: Select-animation-spin 400ms infinite linear;
   animation: Select-animation-spin 400ms infinite linear;
   width: 16px;
   height: 16px;
@@ -309,8 +309,7 @@
 
 @keyframes Select-animation-spin {
   to {
-    -webkit-transform: rotate(1turn);
-            transform: rotate(1turn); } }
+    transform: rotate(1turn); } }
 
 @-webkit-keyframes Select-animation-spin {
   to {
@@ -350,13 +349,13 @@
   background: #cfcfcf; }
 
 .horizontal-slider .bar {
-  top: 6px;
+  top: 12px;
   height: 5px; }
 
 .horizontal-slider .handle {
   top: 1px;
-  width: 15px;
-  height: 15px;
+  width: 25px;
+  height: 25px;
   line-height: 15px; }
 
 #horizontal-0, #horizontal-1, #horizontal-2, #horizontal-3, #vertical {

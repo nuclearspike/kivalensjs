@@ -9,7 +9,6 @@
 **/
 
 import criteria from './criteriaStore'
-import partners from './partnerStore'
 import loans from './loanStore'
 
-export default {criteria: criteria, loans: loans, partners: partners}
+export default {criteria: criteria, loans: loans}

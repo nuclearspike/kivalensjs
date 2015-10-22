@@ -96,12 +96,13 @@ var Loan = React.createClass({
         if (this.state.activeTab == 2){
             highcharts = (<Highcharts config={this.produceChart(this.state.loan)} ref='chart' />)
         }
+        var loan = this.state.loan
         return (
             <div>
-                <h1>{addRemove} {this.state.loan.name}</h1>
+                <h1>{addRemove} {loan.name}</h1>
                 <Tabs activeKey={this.state.activeTab} onSelect={this.tabSelect}>
                     <Tab eventKey={1} title="Image" className="ample-padding-top">
-                        <KivaImage loan={this.state.loan} type="width" image_width={800} width="100%"/>
+                        <KivaImage loan={loan} type="width" image_width={800} width="100%"/>
                     </Tab>
                     <Tab eventKey={2} title="Details" className="ample-padding-top">
                         <Col lg={8}>
@@ -109,18 +110,27 @@ var Loan = React.createClass({
                                 <ProgressBar striped bsStyle="success" now={this.state.funded_perc} key={1}/>
                                 <ProgressBar bsStyle="warning" now={this.state.basket_perc} key={2}/>
                             </ProgressBar>
-                        <b>{this.state.loan.location.country} | {this.state.loan.sector} | {this.state.loan.activity} | {this.state.loan.use}</b>
-                        <p dangerouslySetInnerHTML={{__html: this.state.loan.description.texts.en}} ></p>
+                        <b>{loan.location.country} | {loan.sector} | {loan.activity} | {loan.use}</b>
+                        <p dangerouslySetInnerHTML={{__html: loan.description.texts.en}} ></p>
 
-                        <a href={`http://www.kiva.org/lend/${this.state.loan.id}?default_team=kivalens`} target="_blank">View on Kiva.org</a>
+                            <dl className="dl-horizontal">
+                                <dt>Tags</dt><dd>{(loan.kl_tags.length)? loan.kl_tags.join(', '): '(none)'}</dd>
+                                <dt>Themes</dt><dd>{(loan.themes && loan.themes.length)? loan.themes.join(', '): '(none)'}</dd>
+                                <dt>Borrowers</dt><dd>{loan.borrowers.length}</dd>
+                                <dt>Loan Amount</dt><dd>{loan.loan_amount}</dd>
+                                <dt>Funded Amount</dt><dd>{loan.funded_amount}</dd>
+                                <dt>Basket Amount</dt><dd>{loan.basket_amount}</dd>
+                                <dt>Still Needed</dt><dd>{loan.loan_amount - loan.funded_amount - loan.basket_amount}</dd>
+                            </dl>
+                        <a href={`http://www.kiva.org/lend/${loan.id}?default_team=kivalens`} target="_blank">View on Kiva.org</a>
                         </Col>
 
                         <Col style={{height: '500px'}} lg={4} id='graph_container'>
                         {highcharts}
                             <dl className="dl-horizontal">
-                                <dt>50% back by</dt><dd>{this.state.loan.kl_half_back.toString("MMM d, yyyy")}</dd>
-                                <dt>75% back by</dt><dd>{this.state.loan.kl_75_back.toString("MMM d, yyyy")}</dd>
-                                <dt>Final repayment</dt><dd>{this.state.loan.kl_final_repayment.toString("MMM d, yyyy")}</dd>
+                                <dt>50% back by</dt><dd>{loan.kl_half_back.toString("MMM d, yyyy")}</dd>
+                                <dt>75% back by</dt><dd>{loan.kl_75_back.toString("MMM d, yyyy")}</dd>
+                                <dt>Final repayment</dt><dd>{loan.kl_final_repayment.toString("MMM d, yyyy")}</dd>
                             </dl>
                         </Col>
                     </Tab>

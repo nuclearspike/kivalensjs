@@ -13,6 +13,7 @@ a.loans = Reflux.createActions({
     "backgroundResync":{ children: ["removed","added","updated"]}
 });
 
+//used??
 a.partners = Reflux.createActions({
     "load": {children: ["completed", "failed"]},
     "filter": {children: ["completed"]},

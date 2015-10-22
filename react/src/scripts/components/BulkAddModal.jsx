@@ -18,7 +18,7 @@ const BulkAddModal = React.createClass({
     close: function(){
         this.setState({ show: false });
         a.loans.basket.changed()
-        window.rga.event({category: 'bulk_add', action: 'close'})
+        window.rga.event({category: 'bulk_add', action: 'bulk_add:close'})
         if (this.props.onHide) this.props.onHide()
     },
     doIt: function(){
@@ -36,7 +36,7 @@ const BulkAddModal = React.createClass({
             }
             return amount_remaining < 25 //return true == quit
         })
-        window.rga.event({category: 'bulk_add', action: 'add', value: to_add.length})
+        window.rga.event({category: 'bulk_add', action: 'bulk_add:add', value: to_add.length})
         a.loans.basket.batchAdd(to_add)
         this.close()
     },
