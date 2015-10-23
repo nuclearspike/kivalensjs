@@ -208,10 +208,10 @@ class PagedKiva {
     processPageOfData(request, response){
         if (this.visitorFunct) response.forEach(this.visitorFunct)
         request.results = response
-        request.state = sDONE
         this.result_object_count += response.length;
         this.promise.notify({percentage: (this.result_object_count * 100)/this.total_object_count,
             label: `${this.result_object_count}/${this.total_object_count} downloaded`})
+        request.state = sDONE
 
         //only care that we processed all pages. if the number of loans changes while paging, still continue.
         if (this.requests.all(req => req.state == sDONE)) {
@@ -242,7 +242,7 @@ class PagedKiva {
     wrapUp() {
         this.promise.notify({label: 'Processing...'})
         var result_objects = []
-        this.requests.forEach(req => result_objects = result_objects.concat(req.results))
+        this.requests.where(req => req.state == sDONE).forEach(req => result_objects = result_objects.concat(req.results))
         this.promise.notify({done: true})
         this.promise.resolve(result_objects)
     }
@@ -264,12 +264,32 @@ class PagedKiva {
 }
 
 class LoansSearch extends PagedKiva {
-    constructor(params, getDetails = true){
+    constructor(params, getDetails = true, max_repayment_date = null){
         params = $.extend({}, {status:'fundraising'}, params)
-        if (location.hostname == 'localhost') params.country_code = 'pe'
+        if (max_repayment_date) $.extend(params, {sort_by: 'repayment_term'})
         super('loans/search.json', params, 'loans')  //shows as red in ide. :( it's all good.
+        this.max_repayment_date = max_repayment_date
+        //if (location.hostname == 'localhost') params.country_code = 'pe'
         this.twoStage = getDetails
         this.visitorFunct = ResultProcessors.processLoan
+    }
+
+    continuePaging(loans){
+        if (this.max_repayment_date){
+            //if all loans on the given page won't repay until after the max, then we've passed
+            if (loans.all(loan => loan.kl_final_repayment.isAfter(this.max_repayment_date)))
+                return false
+        }
+        return true
+    }
+
+    start(){
+        //this seems problematic
+        return super.start().then(loans => {
+            if (this.max_repayment_date)
+                loans = loans.where(loan => loan.kl_final_repayment.isBefore(this.max_repayment_date))
+            return loans
+        }).fail(this.promise.reject)
     }
 }
 
@@ -282,8 +302,8 @@ class LenderLoans extends PagedKiva {
     continuePaging(loans) {
         //only do this stuff if we are only wanting fundraising which is what we want now. but if open-sourced other projects may want it for different reasons.
         if (this.fundraising_only && !loans.any(loan => loan.status == 'fundraising')){
-            //if all loans on the page were posted at least 30 days ago, stop looking.
-            if (loans.all(loan => Date.from_iso(loan.posted_date).isBefore((30).days().ago())))
+            //if all loans on the page were posted at least 30 days ago, stop looking. //todo: instead: look at planned expiration
+            if (loans.all(loan => Date.from_iso(loan.posted_date).isBefore((35).days().ago())))
                 return false
         }
         return true
@@ -350,11 +370,11 @@ class Loans {
         if (this.update_interval > 0)
             setInterval(this.backgroundResync.bind(this), this.update_interval)
     }
-    init(){
+    init(options = null){
         //fetch partners.
+        options = $.extend(options, {})
         this.notify_promise.notify({loan_load_progress: {percentage: 0, label: 'Fetching Partners...'}})
         this.getAllPartners().done(partners => {
-            //
             this.searchKiva().progress(progress => this.notify_promise.notify({loan_load_progress: progress})).done(()=> this.notify_promise.notify({loans_loaded: true}))
         })
         //used saved partner filter
@@ -378,10 +398,10 @@ class Loans {
     }
     searchKiva(kiva_params){
         if (!kiva_params) kiva_params = this.base_kiva_params
-        return new LoansSearch(kiva_params).start().done(loans => this.setKivaLoans(loans))
+        return new LoansSearch(kiva_params, true, Date.parse("5/2/2016")).start().done(loans => this.setKivaLoans(loans))
     }
     searchLocal(kl_criteria){
-        ///
+        ///move filter code from
     }
     getById(id){
         return this.indexed_loans[id]
@@ -402,7 +422,7 @@ class Loans {
             window.partners = this.partners_from_kiva
 
             //gather all country objects where partners operate, flatten and remove dupes.
-            this.countries = [].concat.apply([], this.partners_from_kiva.select(p => p.countries)).distinct((a,b) => a.iso_code == b.iso_code);
+            this.countries = [].concat.apply([], this.partners_from_kiva.select(p => p.countries)).distinct((a,b) => a.iso_code == b.iso_code).orderBy(c => c.name)
             return this.partners_from_kiva
         })
     }

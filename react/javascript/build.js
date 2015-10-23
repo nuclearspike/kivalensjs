@@ -63068,7 +63068,7 @@ a.loans = _reflux2['default'].createActions({
     "backgroundResync": { children: ["removed", "added", "updated"] }
 });
 
-//used??
+//used anymore?
 a.partners = _reflux2['default'].createActions({
     "load": { children: ["completed", "failed"] },
     "filter": { children: ["completed"] },
@@ -63096,7 +63096,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _get = function get(_x8, _x9, _x10) { var _again = true; _function: while (_again) { var object = _x8, property = _x9, receiver = _x10; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x8 = parent; _x9 = property; _x10 = receiver; _again = true; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+var _get = function get(_x10, _x11, _x12) { var _again = true; _function: while (_again) { var object = _x10, property = _x11, receiver = _x12; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x10 = parent; _x11 = property; _x12 = receiver; _again = true; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
@@ -63398,10 +63398,10 @@ var PagedKiva = (function () {
         value: function processPageOfData(request, response) {
             if (this.visitorFunct) response.forEach(this.visitorFunct);
             request.results = response;
-            request.state = sDONE;
             this.result_object_count += response.length;
             this.promise.notify({ percentage: this.result_object_count * 100 / this.total_object_count,
                 label: this.result_object_count + "/" + this.total_object_count + " downloaded" });
+            request.state = sDONE;
 
             //only care that we processed all pages. if the number of loans changes while paging, still continue.
             if (this.requests.all(function (req) {
@@ -63449,7 +63449,9 @@ var PagedKiva = (function () {
         value: function wrapUp() {
             this.promise.notify({ label: 'Processing...' });
             var result_objects = [];
-            this.requests.forEach(function (req) {
+            this.requests.where(function (req) {
+                return req.state == sDONE;
+            }).forEach(function (req) {
                 return result_objects = result_objects.concat(req.results);
             });
             this.promise.notify({ done: true });
@@ -63484,15 +63486,46 @@ var LoansSearch = (function (_PagedKiva) {
 
     function LoansSearch(params) {
         var getDetails = arguments.length <= 1 || arguments[1] === undefined ? true : arguments[1];
+        var max_repayment_date = arguments.length <= 2 || arguments[2] === undefined ? null : arguments[2];
 
         _classCallCheck(this, LoansSearch);
 
         params = $.extend({}, { status: 'fundraising' }, params);
-        if (location.hostname == 'localhost') params.country_code = 'pe';
+        if (max_repayment_date) $.extend(params, { sort_by: 'repayment_term' });
         _get(Object.getPrototypeOf(LoansSearch.prototype), "constructor", this).call(this, 'loans/search.json', params, 'loans'); //shows as red in ide. :( it's all good.
+        this.max_repayment_date = max_repayment_date;
+        //if (location.hostname == 'localhost') params.country_code = 'pe'
         this.twoStage = getDetails;
         this.visitorFunct = ResultProcessors.processLoan;
     }
+
+    _createClass(LoansSearch, [{
+        key: "continuePaging",
+        value: function continuePaging(loans) {
+            var _this6 = this;
+
+            if (this.max_repayment_date) {
+                //if all loans on the given page won't repay until after the max, then we've passed
+                if (loans.all(function (loan) {
+                    return loan.kl_final_repayment.isAfter(_this6.max_repayment_date);
+                })) return false;
+            }
+            return true;
+        }
+    }, {
+        key: "start",
+        value: function start() {
+            var _this7 = this;
+
+            //this seems problematic
+            return _get(Object.getPrototypeOf(LoansSearch.prototype), "start", this).call(this).then(function (loans) {
+                if (_this7.max_repayment_date) loans = loans.where(function (loan) {
+                    return loan.kl_final_repayment.isBefore(_this7.max_repayment_date);
+                });
+                return loans;
+            }).fail(this.promise.reject);
+        }
+    }]);
 
     return LoansSearch;
 })(PagedKiva);
@@ -63520,9 +63553,9 @@ var LenderLoans = (function (_PagedKiva2) {
             if (this.fundraising_only && !loans.any(function (loan) {
                 return loan.status == 'fundraising';
             })) {
-                //if all loans on the page were posted at least 30 days ago, stop looking.
+                //if all loans on the page were posted at least 30 days ago, stop looking. //todo: instead: look at planned expiration
                 if (loans.all(function (loan) {
-                    return Date.from_iso(loan.posted_date).isBefore(30..days().ago());
+                    return Date.from_iso(loan.posted_date).isBefore(35..days().ago());
                 })) return false;
             }
             return true;
@@ -63530,11 +63563,11 @@ var LenderLoans = (function (_PagedKiva2) {
     }, {
         key: "start",
         value: function start() {
-            var _this6 = this;
+            var _this8 = this;
 
             //return only an array of the ids of the loans (in a done()) //if the "then()" promise fails, reject the original
             return _get(Object.getPrototypeOf(LenderLoans.prototype), "start", this).call(this).then(function (loans) {
-                if (_this6.fundraising_only) loans = loans.where(function (loan) {
+                if (_this8.fundraising_only) loans = loans.where(function (loan) {
                     return loan.status == 'fundraising';
                 });
                 return loans.select(function (loan) {
@@ -63559,7 +63592,7 @@ var LoanBatch = (function () {
     _createClass(LoanBatch, [{
         key: "start",
         value: function start() {
-            var _this7 = this;
+            var _this9 = this;
 
             //kiva does not allow more than 100 loans in a batch. break the list into chunks of up to 100 and process them.
             // this will send progress messages with individual loan objects or just wait for the .done()
@@ -63570,10 +63603,10 @@ var LoanBatch = (function () {
             for (var i = 0; i < chunks.length; i++) {
                 $def.notify({ percentage: 0, label: 'Preparing to download...' });
                 Request.sem_get("loans/" + chunks[i].join(',') + ".json", {}, 'loans', false).done(function (loans) {
-                    $def.notify({ percentage: r_loans.length * 100 / _this7.ids.length, label: r_loans.length + "/" + _this7.ids.length + " downloaded" });
+                    $def.notify({ percentage: r_loans.length * 100 / _this9.ids.length, label: r_loans.length + "/" + _this9.ids.length + " downloaded" });
                     ResultProcessors.processLoans(loans);
                     r_loans = r_loans.concat(loans);
-                    if (r_loans.length >= _this7.ids.length) {
+                    if (r_loans.length >= _this9.ids.length) {
                         $def.notify({ done: true });
                         $def.resolve(r_loans);
                     }
@@ -63612,16 +63645,18 @@ var Loans = (function () {
     _createClass(Loans, [{
         key: "init",
         value: function init() {
-            var _this8 = this;
+            var _this10 = this;
+
+            var options = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
 
             //fetch partners.
+            options = $.extend(options, {});
             this.notify_promise.notify({ loan_load_progress: { percentage: 0, label: 'Fetching Partners...' } });
             this.getAllPartners().done(function (partners) {
-                //
-                _this8.searchKiva().progress(function (progress) {
-                    return _this8.notify_promise.notify({ loan_load_progress: progress });
+                _this10.searchKiva().progress(function (progress) {
+                    return _this10.notify_promise.notify({ loan_load_progress: progress });
                 }).done(function () {
-                    return _this8.notify_promise.notify({ loans_loaded: true });
+                    return _this10.notify_promise.notify({ loans_loaded: true });
                 });
             });
             //used saved partner filter
@@ -63635,7 +63670,7 @@ var Loans = (function () {
     }, {
         key: "setKivaLoans",
         value: function setKivaLoans(loans) {
-            var _this9 = this;
+            var _this11 = this;
 
             var reset = arguments.length <= 1 || arguments[1] === undefined ? true : arguments[1];
 
@@ -63657,7 +63692,7 @@ var Loans = (function () {
                 return loan.partner_id;
             }).distinct();
             loans.forEach(function (loan) {
-                return _this9.indexed_loans[loan.id] = loan;
+                return _this11.indexed_loans[loan.id] = loan;
             });
         }
     }, {
@@ -63668,17 +63703,17 @@ var Loans = (function () {
     }, {
         key: "searchKiva",
         value: function searchKiva(kiva_params) {
-            var _this10 = this;
+            var _this12 = this;
 
             if (!kiva_params) kiva_params = this.base_kiva_params;
-            return new LoansSearch(kiva_params).start().done(function (loans) {
-                return _this10.setKivaLoans(loans);
+            return new LoansSearch(kiva_params, true, Date.parse("5/2/2016")).start().done(function (loans) {
+                return _this12.setKivaLoans(loans);
             });
         }
     }, {
         key: "searchLocal",
         value: function searchLocal(kl_criteria) {
-            ///
+            ///move filter code from
         }
     }, {
         key: "getById",
@@ -63693,13 +63728,13 @@ var Loans = (function () {
     }, {
         key: "getAllPartners",
         value: function getAllPartners() {
-            var _this11 = this;
+            var _this13 = this;
 
             //needs a way to inform user something is happening.
             return Request.sem_get('partners.json', {}, 'partners', false).then(function (partners) {
                 var regions_lu = { "North America": "na", "Central America": "ca", "South America": "sa", "Africa": "af", "Asia": "as", "Middle East": "me", "Eastern Europe": "ee", "Western Europe": "we", "Antarctica": "an", "Oceania": "oc" };
-                _this11.partners_from_kiva = partners;
-                _this11.partners_from_kiva.forEach(function (p) {
+                _this13.partners_from_kiva = partners;
+                _this13.partners_from_kiva.forEach(function (p) {
                     p.kl_sp = p.social_performance_strengths ? p.social_performance_strengths.select(function (sp) {
                         return sp.id;
                     }) : [];
@@ -63708,15 +63743,17 @@ var Loans = (function () {
                     }).distinct();
                 });
                 //todo: temp. for debugging
-                window.partners = _this11.partners_from_kiva;
+                window.partners = _this13.partners_from_kiva;
 
                 //gather all country objects where partners operate, flatten and remove dupes.
-                _this11.countries = [].concat.apply([], _this11.partners_from_kiva.select(function (p) {
+                _this13.countries = [].concat.apply([], _this13.partners_from_kiva.select(function (p) {
                     return p.countries;
                 })).distinct(function (a, b) {
                     return a.iso_code == b.iso_code;
+                }).orderBy(function (c) {
+                    return c.name;
                 });
-                return _this11.partners_from_kiva;
+                return _this13.partners_from_kiva;
             });
         }
     }, {
@@ -63752,7 +63789,7 @@ var Loans = (function () {
     }, {
         key: "backgroundResync",
         value: function backgroundResync() {
-            var _this12 = this;
+            var _this14 = this;
 
             this.background_resync++;
             var kl = this;
@@ -63773,11 +63810,11 @@ var Loans = (function () {
                     }
                 });
                 console.log("############### LOANS UPDATED:", loans_updated);
-                if (loans_updated > 0) _this12.notify_promise.notify({ background_updated: loans_updated });
+                if (loans_updated > 0) _this14.notify_promise.notify({ background_updated: loans_updated });
 
                 //find the loans that weren't found during the last update and return them. Possibly due to being funded. But not always. They don't seem to be funded loans... ?
-                var mia_loans = _this12.loans_from_kiva.where(function (loan) {
-                    return loan.status == 'fundraising' && loan.kl_background_resync != _this12.background_resync;
+                var mia_loans = _this14.loans_from_kiva.where(function (loan) {
+                    return loan.status == 'fundraising' && loan.kl_background_resync != _this14.background_resync;
                 }).select(function (loan) {
                     return loan.id;
                 });
@@ -63795,7 +63832,7 @@ var Loans = (function () {
                 new LoanBatch(loans_added).start().done(function (loans) {
                     //this is ok when there aren't any??
                     console.log("############### NEW LOANS FOUND:", loans_added.length, loans);
-                    _this12.setKivaLoans(loans, false);
+                    _this14.setKivaLoans(loans, false);
                 });
             });
         }
@@ -63975,7 +64012,7 @@ var About = _react2['default'].createClass({
             _react2['default'].createElement(
                 'p',
                 null,
-                'KivaLens was initially created in 2009 (as a Silverlight plugin) because I wanted to find loans in ways that Kiva did not allow. I ended up working at Kiva for a couple years and incorporated a lot of the search features directly into Kiva\'s site which also then made their way into the API as well. So the need for KivaLens diminished but there are still some things that Kiva does not do that are handy. I have been working to re-implement KivaLens as a React app (pure HTML output, so it will work on all browsers with no plugin install, tablets and phones too). I\'ve also open-sourced it, so feel free to ',
+                'KivaLens was initially created in 2009 (as a Silverlight plugin) because I wanted to find loans in ways that Kiva did not offer filter/sorts for. I ended up working at Kiva for a few years and incorporated a lot of the search features directly into Kiva\'s site which also then made their way into the API as well. So the need for KivaLens diminished but there are still some things that Kiva does not do that are handy. I have been working to re-implement KivaLens as a React app (pure HTML output, so it will work on all browsers with no plugin install, tablets and phones too). I\'ve also open-sourced it, so feel free to ',
                 _react2['default'].createElement(
                     'a',
                     { href: 'mailto:liquidmonkey@gmail.com', target: '_blank' },
@@ -63992,7 +64029,7 @@ var About = _react2['default'].createClass({
             _react2['default'].createElement(
                 'p',
                 null,
-                'There\'s also a Google Chrome brower extension I wrote that inserts repayment graph (sparklines) on the Lend tab, talks to you about things it notices about the loan, details about lenders and teams you hover over, etc. ',
+                'There\'s also a Google Chrome browser extension I wrote that inserts repayment graph (sparklines) on the Lend tab, talks to you about things it notices about the loan, details about lenders and teams you hover over, etc. ',
                 _react2['default'].createElement(
                     'a',
                     { href: 'https://chrome.google.com/webstore/detail/kiva-lender-assistant-bet/jkljjpdljndblihlcoenjbmdakaomhgo?hl=en-US', target: '_blank' },
@@ -64514,8 +64551,7 @@ var ChartDistribution = _react2['default'].createClass({
         _actions2['default'].loans.filter();
     },
     produceChart: function produceChart() {
-        var result;
-        result = {
+        var result = {
             chart: {
                 plotBackgroundColor: null,
                 plotBorderWidth: 0,
@@ -64570,7 +64606,7 @@ var ChartDistribution = _react2['default'].createClass({
                 data: []
             }]
         };
-        _actions2['default'].loans.filter();
+        _actions2['default'].loans.filter(); //this makes me nervous
         return result;
     },
     redoCharts: function redoCharts(loans) {
@@ -64775,10 +64811,8 @@ var CriteriaTabs = _react2['default'].createClass({
         }).select(function (a) {
             return { value: a, label: a };
         });
-        this.options.country_code = kivaloans.partners_from_kiva.select(function (c) {
+        this.options.country_code = kivaloans.countries.select(function (c) {
             return { label: c.name, value: c.iso_code };
-        }).orderBy(function (c) {
-            return c.label;
         });
         this.setState({ loansReady: true });
         this.criteriaChanged();
@@ -64805,7 +64839,7 @@ var CriteriaTabs = _react2['default'].createClass({
         this.options.expiring_in_days = { defaultValue: [], min: 0, max: 35 };
 
         //partner sliders
-        this.options.partner_risk_rating = { defaultValue: [], min: 0, max: 5 };
+        this.options.partner_risk_rating = { defaultValue: [], min: 0, max: 5, step: 0.5 };
         this.options.partner_arrears = { defaultValue: [], min: 0, max: 50 };
         this.options.partner_default = { defaultValue: [], min: 0, max: 30 };
         this.options.portfolio_yield = { defaultValue: [], min: 0, max: 100 };
@@ -64851,10 +64885,6 @@ var CriteriaTabs = _react2['default'].createClass({
         loan_sliders.forEach(function (ref) {
             return getSliderVal(criteria.loan, ref);
         });
-        //var newState = {}
-        //loan_sliders.map(ref => {
-        //newState
-        //})
         var partner_sliders = ['partner_risk_rating', 'partner_arrears', 'partner_default', 'portfolio_yield', 'profit', 'loans_at_risk_rate', 'currency_exchange_loss_rate'];
         partner_sliders.forEach(function (ref) {
             return getSliderVal(criteria.partner, ref);
@@ -64875,7 +64905,7 @@ var CriteriaTabs = _react2['default'].createClass({
     clearCriteria: function clearCriteria() {
         var blank_c = this.blankCriteria();
         this.criteriaChanged();
-        this.setState({ criteria_loan_use: '', criteria_loan_name: '' });
+        this.setState({ criteria_loan_use: '', criteria_loan_name: '' }); //hacky
         _actions2['default'].criteria.change(blank_c);
     },
     tabSelect: function tabSelect(selectedKey) {
@@ -64926,6 +64956,7 @@ var CriteriaTabs = _react2['default'].createClass({
                 //keep old value
                 defaults = [c_group[ref + '_min'], c_group[ref + '_max']];
             }
+            var step = options.step || 1;
             return _react2['default'].createElement(
                 _reactBootstrap.Row,
                 { key: ref },
@@ -64948,7 +64979,7 @@ var CriteriaTabs = _react2['default'].createClass({
                 _react2['default'].createElement(
                     _reactBootstrap.Col,
                     { md: 6 },
-                    _react2['default'].createElement(_reactSlider2['default'], { ref: ref, className: 'horizontal-slider', min: options.min, max: options.max, defaultValue: defaults, withBars: true, onChange: this.criteriaChanged })
+                    _react2['default'].createElement(_reactSlider2['default'], { ref: ref, className: 'horizontal-slider', min: options.min, max: options.max, defaultValue: defaults, step: step, withBars: true, onChange: this.criteriaChanged })
                 )
             );
         }).bind(this);
@@ -65013,7 +65044,7 @@ var CriteriaTabs = _react2['default'].createClass({
             ),
             _react2['default'].createElement(
                 _reactBootstrap.Button,
-                { onClick: this.clearCriteria },
+                { disabled: true, onClick: this.clearCriteria },
                 'Clear'
             )
         );
@@ -65570,6 +65601,26 @@ var Loan = _react2['default'].createClass({
                                 'dd',
                                 null,
                                 loan.loan_amount - loan.funded_amount - loan.basket_amount
+                            ),
+                            _react2['default'].createElement(
+                                'dt',
+                                null,
+                                'Posted'
+                            ),
+                            _react2['default'].createElement(
+                                'dd',
+                                null,
+                                Date.from_iso(loan.posted_date).toString('MMM d, yyyy')
+                            ),
+                            _react2['default'].createElement(
+                                'dt',
+                                null,
+                                'Expires'
+                            ),
+                            _react2['default'].createElement(
+                                'dd',
+                                null,
+                                Date.from_iso(loan.planned_expiration_date).toString('MMM d, yyyy')
                             )
                         ),
                         _react2['default'].createElement(
@@ -66078,20 +66129,20 @@ var _actions2 = _interopRequireDefault(_actions);
 
 var criteriaStore = _reflux2['default'].createStore({
     listenables: [_actions2['default'].criteria],
-    last_known: {},
     init: function init() {
-        //console.log("criteriaStore:init")
-        //load from local storage.
+        if (typeof localStorage === 'object') this.last_known = JSON.parse(localStorage.getItem('last_criteria'));
+        console.log("loaded from localStorage:", this.last_known);
     },
     onChange: function onChange(criteria) {
-        console.log("criteriaStore:onChange", criteria);
+        //console.log("criteriaStore:onChange", criteria)
+        if (typeof localStorage === 'object') localStorage.setItem('last_criteria', JSON.stringify(this.last_known));
+        _actions2['default'].loans.basket.changed();
         this.last_known = criteria;
         _actions2['default'].loans.filter(criteria);
     },
     onGetLast: function onGetLast() {
-        //console.log("criteriaStore:onGetLast")
         _actions2['default'].criteria.getLast.completed(this.last_known);
-        _actions2['default'].criteria.change(this.last_known); //?
+        _actions2['default'].criteria.change(this.last_known); //? why ?
     },
     syncGetLast: function syncGetLast() {
         return this.last_known;
@@ -66161,7 +66212,7 @@ var last_partner_search = {};
 var last_partner_search_count = 0;
 var kivaloans = new _apiKiva.Loans(30 * 60 * 1000);
 
-//bridge the downloading/processing with the React app.
+//bridge the downloading/processing generic API class with the React app.
 kivaloans.init().progress(function (progress) {
     if (progress.background_added) _actions2['default'].loans.backgroundResync.added(progress.background_added);
     if (progress.background_updated) _actions2['default'].loans.backgroundResync.updated(progress.background_updated);

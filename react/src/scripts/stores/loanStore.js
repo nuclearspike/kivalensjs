@@ -12,7 +12,7 @@ var last_partner_search = {}
 var last_partner_search_count = 0
 var kivaloans = new Loans(30*60*1000)
 
-//bridge the downloading/processing with the React app.
+//bridge the downloading/processing generic API class with the React app.
 kivaloans.init().progress(progress => {
     if (progress.background_added)
         a.loans.backgroundResync.added(progress.background_added)

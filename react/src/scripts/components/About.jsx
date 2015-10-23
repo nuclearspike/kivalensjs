@@ -14,7 +14,7 @@ var About = React.createClass({
             </p>
             <p>
                 KivaLens was initially created in 2009 (as a Silverlight plugin) because I wanted to find loans
-                in ways that Kiva did not allow. I ended up working at Kiva for a couple years and incorporated a
+                in ways that Kiva did not offer filter/sorts for. I ended up working at Kiva for a few years and incorporated a
                 lot of the search features directly into Kiva's site which also then made their way into the API
                 as well. So the need for KivaLens diminished but there are still some things that Kiva does not do
                 that are handy. I have been working to re-implement KivaLens as a React app (pure HTML output,
@@ -25,7 +25,7 @@ var About = React.createClass({
             </p>
 
             <p>
-                There's also a Google Chrome brower extension I wrote that inserts repayment graph (sparklines)
+                There's also a Google Chrome browser extension I wrote that inserts repayment graph (sparklines)
                 on the Lend tab, talks to you about things it notices about the loan, details about lenders and
                 teams you hover over, etc. <a href="https://chrome.google.com/webstore/detail/kiva-lender-assistant-bet/jkljjpdljndblihlcoenjbmdakaomhgo?hl=en-US" target="_blank">
                 Check out screenshots, a detailed description and install Kiva Lender Assistant here.</a> or <a href="https://github.com/nuclearspike/lenderassist" target="_blank">checkout

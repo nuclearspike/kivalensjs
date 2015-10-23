@@ -121,6 +121,8 @@ var Loan = React.createClass({
                                 <dt>Funded Amount</dt><dd>{loan.funded_amount}</dd>
                                 <dt>Basket Amount</dt><dd>{loan.basket_amount}</dd>
                                 <dt>Still Needed</dt><dd>{loan.loan_amount - loan.funded_amount - loan.basket_amount}</dd>
+                                <dt>Posted</dt><dd>{Date.from_iso(loan.posted_date).toString('MMM d, yyyy')}</dd>
+                                <dt>Expires</dt><dd>{Date.from_iso(loan.planned_expiration_date).toString('MMM d, yyyy')}</dd>
                             </dl>
                         <a href={`http://www.kiva.org/lend/${loan.id}?default_team=kivalens`} target="_blank">View on Kiva.org</a>
                         </Col>

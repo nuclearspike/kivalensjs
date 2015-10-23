@@ -18,8 +18,7 @@ const ChartDistribution = React.createClass({
         a.loans.filter()
     },
     produceChart: function(){
-        var result;
-        result = {
+        var result = {
             chart: {
                 plotBackgroundColor: null,
                 plotBorderWidth: 0,
@@ -77,7 +76,7 @@ const ChartDistribution = React.createClass({
                     data: []
                 }]
         }
-        a.loans.filter()
+        a.loans.filter() //this makes me nervous
         return result
     },
     redoCharts: function(loans){

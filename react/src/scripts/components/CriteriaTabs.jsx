@@ -28,7 +28,7 @@ const CriteriaTabs = React.createClass({
     },
     loansReady: function(){
         this.options.activity = kivaloans.loans_from_kiva.select(loan => loan.activity).distinct().orderBy(name => name).select(a => {return {value: a, label: a}})
-        this.options.country_code = kivaloans.partners_from_kiva.select(c => {return {label: c.name, value: c.iso_code}}).orderBy(c => c.label)
+        this.options.country_code = kivaloans.countries.select(c => {return {label: c.name, value: c.iso_code}})
         this.setState({loansReady : true})
         this.criteriaChanged()
     },
@@ -52,7 +52,7 @@ const CriteriaTabs = React.createClass({
         this.options.expiring_in_days = {defaultValue: [], min: 0, max: 35}
 
         //partner sliders
-        this.options.partner_risk_rating = {defaultValue: [], min: 0, max: 5}
+        this.options.partner_risk_rating = {defaultValue: [], min: 0, max: 5, step: 0.5}
         this.options.partner_arrears = {defaultValue: [], min: 0, max: 50}
         this.options.partner_default = {defaultValue: [], min: 0, max: 30}
         this.options.portfolio_yield = {defaultValue: [], min: 0, max: 100}
@@ -88,10 +88,6 @@ const CriteriaTabs = React.createClass({
 
         var loan_sliders = ['repaid_in','borrower_count','still_needed','expiring_in_days']
         loan_sliders.forEach(ref => getSliderVal(criteria.loan, ref))
-        //var newState = {}
-        //loan_sliders.map(ref => {
-            //newState
-        //})
         var partner_sliders = ['partner_risk_rating','partner_arrears','partner_default','portfolio_yield','profit','loans_at_risk_rate','currency_exchange_loss_rate']
         partner_sliders.forEach(ref => getSliderVal(criteria.partner, ref))
         this.last_criteria = criteria
@@ -110,7 +106,7 @@ const CriteriaTabs = React.createClass({
     clearCriteria(){
         var blank_c = this.blankCriteria()
         this.criteriaChanged()
-        this.setState({criteria_loan_use: '', criteria_loan_name: ''})
+        this.setState({criteria_loan_use: '', criteria_loan_name: ''}) //hacky
         a.criteria.change(blank_c)
     },
     tabSelect: function(selectedKey){
@@ -140,13 +136,14 @@ const CriteriaTabs = React.createClass({
             if (c_group[`${ref}_min`] && c_group[`${ref}_max`]) { //keep old value
                 defaults = [c_group[`${ref}_min`], c_group[`${ref}_max`]]
             }
+            var step = options.step || 1
             return (<Row key={ref}>
                     <Col md={2}>
                         <label className="control-label">{label}</label>
                         <p>{this.last_criteria[group][`${ref}_min`]}-{this.last_criteria[group][`${ref}_max`]}</p>
                     </Col>
                     <Col md={6}>
-                        <Slider ref={ref} className='horizontal-slider' min={options.min} max={options.max} defaultValue={defaults} withBars onChange={this.criteriaChanged} />
+                        <Slider ref={ref} className='horizontal-slider' min={options.min} max={options.max} defaultValue={defaults} step={step} withBars onChange={this.criteriaChanged} />
                     </Col>
                 </Row>)
         }.bind(this)
@@ -204,7 +201,7 @@ const CriteriaTabs = React.createClass({
                     </Row>
                 </Tab>
             </Tabs>
-            <Button onClick={this.clearCriteria}>Clear</Button>
+            <Button disabled onClick={this.clearCriteria}>Clear</Button>
             </div>
         );
     }
