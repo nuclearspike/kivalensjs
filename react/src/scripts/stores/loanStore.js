@@ -199,6 +199,7 @@ var loanStore = Reflux.createStore({
         var stThemes = makeExactTester(c.loan.themes)
         var rgRepaid = makeRangeTester(c.loan, 'repaid_in')
         var rgBorrowerCount = makeRangeTester(c.loan, 'borrower_count')
+        var rgPercentFemale = makeRangeTester(c.loan, 'percent_female')
         var rgStillNeeded = makeRangeTester(c.loan, 'still_needed')
         var rgExpiringInDays = makeRangeTester(c.loan, 'expiring_in_days')
 
@@ -214,6 +215,7 @@ var loanStore = Reflux.createStore({
                 stThemes.arr_all(loan.themes) &&
                 rgRepaid.range(loan.kl_repaid_in) &&
                 rgBorrowerCount.range(loan.borrowers.length) &&
+                rgPercentFemale.range(loan.kl_percent_women) &&
                 rgStillNeeded.range(loan.loan_amount - loan.basket_amount - loan.funded_amount) &&
                 rgExpiringInDays.range(loan.kl_expiring_in_days) &&
                 stName.contains(loan.name) &&

@@ -32,7 +32,7 @@ const App = React.createClass({
     },
     componentDidMount(){
         ga.initialize('UA-10202885-1');
-        //this only happens during startup of the app.
+        //this only happens during startup of the app. don't allow #/ but
         if (location.href.indexOf('#/?') > -1) location.replace(`http://${location.host}${location.pathname}#/search`)
     },
     logPageChange(){
@@ -57,9 +57,7 @@ const App = React.createClass({
 
 //When Page read, mount it.
 document.addEventListener("DOMContentLoaded", function(event) {
-    $(document).ready(function() {
-        $.ajaxSetup({ cache: false });
-    });
+    $.ajaxSetup({ cache: false });
 
     if (document.getElementById("react-app")){
         ReactDOM.render((<Router>

@@ -1,4 +1,5 @@
-var sem = require('semaphore')(8);
+var sem_one = require('semaphore')(8);
+var sem_two = require('semaphore')(8);
 
 //this unit was designed to be able to be pulled from here without any requirements on any stores/actions/etc.
 
@@ -20,9 +21,9 @@ var api_options = {}
 //looking to get rid of this completely
 export default class K {
     static setAPIOptions(options){
-        api_options = options
-        if (options.max_concurrent)
-            sem.capacity = options.max_concurrent
+        $.extend(api_options, {max_concurrent: 8}, options)
+        if (api_options.max_concurrent)
+            sem_one.capacity = api_options.max_concurrent
     }
 }
 
@@ -44,10 +45,10 @@ class Request {
     fetch(){
         var $def = $.Deferred()
 
-        sem.take(function(){
-            if (this.state == sCANCELLED) {
-                sem.leave()
-                $def.reject()
+        sem_one.take(function(){
+            if (this.state == sCANCELLED) { //this only works with single stage.
+                sem_one.leave()
+                //$def.reject() //failing the process is dangerous, done() won't fire!
                 return $def
             } else {
                 if (this.page)
@@ -55,11 +56,11 @@ class Request {
                 $def.fail(()=> this.state = sFAILED)
                 Request.get(this.url, this.params)
                     .done(result => {
-                        sem.leave(1)
+                        sem_one.leave(1)
                         this.raw_result = result
                     }) //cannot pass the func itself since it takes params.
                     .done($def.resolve)
-                    .fail($def.reject)
+                    //.fail($def.reject)
                     .progress($def.notify)
             }
         }.bind(this))
@@ -72,10 +73,27 @@ class Request {
     }
 
     fetchFromIds(ids){
-        //if possibly more than 100, use LoanBatch()
         this.state = sDOWNLOADING
         this.ids = ids
-        return Request.sem_get(`${this.collection}/${ids.join(',')}.json`, {}, this.collection, false)
+
+        var $def = $.Deferred()
+
+        sem_two.take(function(){ //this pattern happens several times, it should be a function.
+            if (this.state == sCANCELLED) { //this only works with single stage.
+                sem_two.leave()
+                //$def.reject()
+                return $def
+            } else {
+                $def.fail(()=> this.state = sFAILED)
+                Request.get(`${this.collection}/${ids.join(',')}.json`, {})
+                    .done(() => sem_two.leave(1)) //cannot pass the func itself since it takes params.
+                    .done($def.resolve)
+                    .fail($def.reject) //does this really fire properly? no one is listening for this
+                    .progress($def.notify)
+            }
+        }.bind(this))
+
+        return $def.then(result => result[this.collection])
     }
 
     //fetch data from kiva right now. use sparingly. sem_get makes sure the browser never goes above a certain number of active requests.
@@ -90,8 +108,8 @@ class Request {
     //semaphored access to kiva api to not overload it. also, it handles collections.
     static sem_get(url, params, collection, isSingle){
         var $def = $.Deferred()
-        sem.take(function(){
-            this.get(url, params).always(()=> sem.leave()).done($def.resolve).fail($def.reject).progress($def.notify)
+        sem_one.take(function(){
+            this.get(url, params).always(()=> sem_one.leave()).done($def.resolve).fail($def.reject).progress($def.notify)
         }.bind(this))
 
         //should this be a wrapping function?
@@ -150,6 +168,8 @@ class ResultProcessors {
             addIt.kl_repaid_in = (addIt.kl_final_repayment - new Date()) / (30 * 24 * 60 * 60 * 1000)
             addIt.kl_expiring_in_days = (Date.from_iso(loan.planned_expiration_date) - new Date()) / (24 * 60 * 60 * 1000)
 
+            addIt.kl_percent_women = loan.borrowers.where(b => b.gender == "F").length * 100 / loan.borrowers.length
+
             var amount_50 = loan.loan_amount  * 0.5
             var amount_75 = loan.loan_amount * 0.75
             var running_total = 0
@@ -199,17 +219,17 @@ class PagedKiva {
     }
 
     processPageOfIds(request, response){
-        this.promise.notify({percentage: (this.requests.where(req => req.ids.length > 0).length * 100 / this.requests.length),
-            label: `Getting the basics... Step 1 of 2`})
-        request.fetchFromIds(response)
-            .done(detail_response => this.processPageOfData(request, detail_response) )
+        var completedPagesOfIds = this.requests.where(req => req.ids.length > 0).length;
+        if (completedPagesOfIds >= this.requests.length) sem_two.capacity = api_options.max_concurrent
+        this.promise.notify({task: 'ids', done: completedPagesOfIds, total: this.requests.length})
+        request.fetchFromIds(response).done(detail_response => this.processPageOfData(request, detail_response) )
     }
 
     processPageOfData(request, response){
         if (this.visitorFunct) response.forEach(this.visitorFunct)
         request.results = response
         this.result_object_count += response.length;
-        this.promise.notify({percentage: (this.result_object_count * 100)/this.total_object_count,
+        this.promise.notify({task: 'details', done: this.result_object_count, total: this.total_object_count,
             label: `${this.result_object_count}/${this.total_object_count} downloaded`})
         request.state = sDONE
 
@@ -220,12 +240,10 @@ class PagedKiva {
         }
 
         //this seems like it can miss stuff.
-        if (!this.continuePaging(response)){
-            request.continuePaging = false
-        }
+        if (!this.continuePaging(response)) request.continuePaging = false
 
         var ignoreAfter = this.requests.first(req => !req.continuePaging)
-        if (ignoreAfter) { //if one is calling cancel on the whole process,
+        if (ignoreAfter) { //if one is calling cancel on everything after
             //cancel all remaining requests.
             this.requests.skipWhile(req => req.page <= ignoreAfter.page).where(req => req.state != sCANCELLED).forEach(req => req.state = sCANCELLED)
             //then once all pages up to the one that called it quits are done, wrap it up.
@@ -243,7 +261,7 @@ class PagedKiva {
         this.promise.notify({label: 'Processing...'})
         var result_objects = []
         this.requests.where(req => req.state == sDONE).forEach(req => result_objects = result_objects.concat(req.results))
-        this.promise.notify({done: true})
+        this.promise.notify({complete: true})
         this.promise.resolve(result_objects)
     }
 
@@ -254,8 +272,14 @@ class PagedKiva {
     }
 
     start(){
-        if (this.twoStage) $.extend(this.params, {ids_only: 'true'})
-        this.promise.notify({label: 'Downloading...'})
+        if (this.twoStage) {
+            $.extend(this.params, {ids_only: 'true'})
+            sem_one.capacity = Math.round(api_options.max_concurrent * .3)
+            sem_two.capacity = Math.round(api_options.max_concurrent * .7) + 1
+        } else {
+            sem_one.capacity = api_options.max_concurrent
+        }
+        this.promise.notify({label: 'Getting the basics...'})
         this.setupRequest(1).fetch()
             .fail(this.promise.reject)
             .done(result => this.processFirstResponse(this.requests.first(), result))
@@ -334,10 +358,11 @@ class LoanBatch {
         var r_loans = []
 
         for (var i = 0; i < chunks.length; i++){
-            $def.notify({percentage: 0, label: 'Preparing to download...'})
+            $def.notify({task: 'details', done: 0, total: 1, label: 'Preparing to download...'})
             Request.sem_get(`loans/${chunks[i].join(',')}.json`, {}, 'loans', false)
                 .done(loans => {
-                    $def.notify({percentage: r_loans.length * 100 / this.ids.length, label: `${r_loans.length}/${this.ids.length} downloaded`})
+                    $def.notify({task: 'details', done: r_loans.length , total: this.ids.length,
+                        label: `${r_loans.length}/${this.ids.length} downloaded`})
                     ResultProcessors.processLoans(loans)
                     r_loans = r_loans.concat(loans)
                     if (r_loans.length >= this.ids.length) {
@@ -370,15 +395,30 @@ class Loans {
         if (this.update_interval > 0)
             setInterval(this.backgroundResync.bind(this), this.update_interval)
     }
-    init(options = null){
+    init(crit){
         //fetch partners.
-        options = $.extend(options, {})
-        this.notify_promise.notify({loan_load_progress: {percentage: 0, label: 'Fetching Partners...'}})
+        crit = $.extend(crit, {})
+        this.notify_promise.notify({loan_load_progress: {done: 0, total: 1, label: 'Fetching Partners...'}})
         this.getAllPartners().done(partners => {
-            this.searchKiva().progress(progress => this.notify_promise.notify({loan_load_progress: progress})).done(()=> this.notify_promise.notify({loans_loaded: true}))
+            var max_repayment_date = null
+
+            if (typeof localStorage === 'object') {
+                var base_options = JSON.parse(localStorage.getItem('base_options'))
+                base_options = $.extend({}, {maxRepaymentTerms: 120, maxRepaymentTerms_on: false}, base_options)
+                if (base_options.maxRepaymentTerms_on)
+                    max_repayment_date = Date.today().addMonths(parseInt(base_options.maxRepaymentTerms))
+            }
+            //todo: switch over to using the meta criteria
+            //if (crit && crit.loan && crit.loan.repaid_in_max)
+            //    max_repayment_date = (crit.loan.repaid_in_max).months().fromNow()
+            this.searchKiva(this.convertCriteriaToKivaParams(crit), max_repayment_date).progress(progress => this.notify_promise.notify({loan_load_progress: progress})).done(()=> this.notify_promise.notify({loans_loaded: true}))
         })
         //used saved partner filter
         return this.notify_promise
+    }
+    convertCriteriaToKivaParams(crit) {
+        //filter partners //todo: this needs to mesh the options.
+        return null
     }
     setBaseKivaParams(base_kiva_params){
         this.base_kiva_params = base_kiva_params
@@ -396,9 +436,9 @@ class Loans {
     hasLoans(){
         return this.loans_from_kiva.length > 0
     }
-    searchKiva(kiva_params){
+    searchKiva(kiva_params, max_repayment_date){
         if (!kiva_params) kiva_params = this.base_kiva_params
-        return new LoansSearch(kiva_params, true, Date.parse("5/2/2016")).start().done(loans => this.setKivaLoans(loans))
+        return new LoansSearch(kiva_params, true, max_repayment_date).start().done(loans => this.setKivaLoans(loans))
     }
     searchLocal(kl_criteria){
         ///move filter code from
@@ -410,7 +450,6 @@ class Loans {
         return this.indexed_loans[id] != undefined
     }
     getAllPartners(){
-        //needs a way to inform user something is happening.
         return Request.sem_get('partners.json', {}, 'partners', false).then(partners => {
             var regions_lu = {"North America":"na","Central America":"ca","South America":"sa","Africa":"af","Asia":"as","Middle East":"me","Eastern Europe":"ee","Western Europe":"we","Antarctica":"an","Oceania":"oc"}
             this.partners_from_kiva = partners
@@ -420,7 +459,6 @@ class Loans {
             })
             //todo: temp. for debugging
             window.partners = this.partners_from_kiva
-
             //gather all country objects where partners operate, flatten and remove dupes.
             this.countries = [].concat.apply([], this.partners_from_kiva.select(p => p.countries)).distinct((a,b) => a.iso_code == b.iso_code).orderBy(c => c.name)
             return this.partners_from_kiva

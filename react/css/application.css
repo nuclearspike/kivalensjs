@@ -16,6 +16,9 @@
 .float_left {
   float: left; }
 
+.float_right {
+  float: right; }
+
 .infinite-list {
   overflow: auto;
   position: relative; }
@@ -45,7 +48,8 @@
   background-color: #cfcfcf !important; }
 
 .blur-me {
-  filter: blur(20px); }
+  -webkit-filter: blur(20px);
+          filter: blur(20px); }
 
 /**
  * React Select
@@ -145,7 +149,6 @@
 
 .Select-loading {
   -webkit-animation: Select-animation-spin 400ms infinite linear;
-  -o-animation: Select-animation-spin 400ms infinite linear;
   animation: Select-animation-spin 400ms infinite linear;
   width: 16px;
   height: 16px;
@@ -309,7 +312,8 @@
 
 @keyframes Select-animation-spin {
   to {
-    transform: rotate(1turn); } }
+    -webkit-transform: rotate(1turn);
+            transform: rotate(1turn); } }
 
 @-webkit-keyframes Select-animation-spin {
   to {

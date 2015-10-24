@@ -11,14 +11,15 @@ var LoadingLoansModal = React.createClass({
     componentDidMount: function() {
         window.rga.modalview('/loading');
         this.listenTo(a.loans.load.progressed, progress => {
-            var new_state = {show: true}
-            if (progress.percentage) new_state.progress = progress.percentage
+            var new_state = {show: !kivaloans.hasLoans()}
+            if (progress.done) new_state[`${progress.task}_progress`]  = (progress.done * 100) / progress.total * (progress.task == 'ids'? .33 : .67)
             if (progress.label) new_state.progress_label = progress.label
+            if (progress.complete) new_state.show = false
             this.setState(new_state)
         })
         this.listenTo(a.loans.load.completed, ()=>{this.setState({show: false})})
         this.listenTo(a.loans.load.failed, (status)=>{
-            console.log("FAILED", status)
+            console.error("FAILED", status)
             this.setState({progress_label: 'Download Failed! Error Message from Kiva:', error_message: status })
         })
     },
@@ -31,7 +32,10 @@ var LoadingLoansModal = React.createClass({
                     </Modal.Header>
 
                     <Modal.Body>
-                        <ProgressBar active now={this.state.progress} />
+                        <ProgressBar>
+                            <ProgressBar bsStyle="info" active={this.state.ids_progress < 32} label={this.state.ids_progress > 10 ? 'basics': ''} now={this.state.ids_progress} />
+                            <ProgressBar active label={this.state.details_progress > 10 ? 'details': ''} now={this.state.details_progress} />
+                        </ProgressBar>
                         <p>To greatly reduce load time, check out the "Options"
                             tab to always exclude certain types of loans from the initial load.</p>
                     </Modal.Body>

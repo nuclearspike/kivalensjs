@@ -116,7 +116,7 @@ var Loan = React.createClass({
                             <dl className="dl-horizontal">
                                 <dt>Tags</dt><dd>{(loan.kl_tags.length)? loan.kl_tags.join(', '): '(none)'}</dd>
                                 <dt>Themes</dt><dd>{(loan.themes && loan.themes.length)? loan.themes.join(', '): '(none)'}</dd>
-                                <dt>Borrowers</dt><dd>{loan.borrowers.length}</dd>
+                                <dt>Borrowers</dt><dd>{loan.borrowers.length} ({Math.round(loan.kl_percent_women)}% Female) </dd>
                                 <dt>Loan Amount</dt><dd>{loan.loan_amount}</dd>
                                 <dt>Funded Amount</dt><dd>{loan.funded_amount}</dd>
                                 <dt>Basket Amount</dt><dd>{loan.basket_amount}</dd>

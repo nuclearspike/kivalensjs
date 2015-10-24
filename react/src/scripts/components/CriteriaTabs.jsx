@@ -48,6 +48,7 @@ const CriteriaTabs = React.createClass({
         //loan sliders
         this.options.repaid_in = {defaultValue: [], min: 2, max: 120}
         this.options.borrower_count = {defaultValue: [], min: 1, max: 50}
+        this.options.percent_female = {defaultValue: [], min: 1, max: 100}
         this.options.still_needed = {defaultValue: [], min: 0, max: 10000}
         this.options.expiring_in_days = {defaultValue: [], min: 0, max: 35}
 
@@ -86,7 +87,7 @@ const CriteriaTabs = React.createClass({
             social_performance: getSelVal('social_performance').split(',').where(sp => sp && !isNaN(sp)).select(sp => parseInt(sp))
         }
 
-        var loan_sliders = ['repaid_in','borrower_count','still_needed','expiring_in_days']
+        var loan_sliders = ['repaid_in','borrower_count','percent_female','still_needed','expiring_in_days']
         loan_sliders.forEach(ref => getSliderVal(criteria.loan, ref))
         var partner_sliders = ['partner_risk_rating','partner_arrears','partner_default','portfolio_yield','profit','loans_at_risk_rate','currency_exchange_loss_rate']
         partner_sliders.forEach(ref => getSliderVal(criteria.partner, ref))
@@ -159,6 +160,7 @@ const CriteriaTabs = React.createClass({
 
         var loanCritSliders = [{ref: "repaid_in", label: "Repaid In (months)"},
             {ref: 'borrower_count', label: 'Borrower Count'},
+            {ref: 'percent_female', label: 'Percent Female'},
             {ref: "still_needed", label: "Still Needed ($)"},
             {ref: "expiring_in_days", label: "Expiring In (days)"}
         ]
