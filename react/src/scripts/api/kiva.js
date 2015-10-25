@@ -55,10 +55,8 @@ class Request {
                     $.extend(this.params, {page: this.page})
                 $def.fail(()=> this.state = sFAILED)
                 Request.get(this.url, this.params)
-                    .done(result => {
-                        sem_one.leave(1)
-                        this.raw_result = result
-                    }) //cannot pass the func itself since it takes params.
+                    .always(()=> sem_one.leave(1))
+                    .done(result => this.raw_result = result) //cannot pass the func itself since it takes params.
                     .done($def.resolve)
                     //.fail($def.reject)
                     .progress($def.notify)
@@ -81,12 +79,12 @@ class Request {
         sem_two.take(function(){ //this pattern happens several times, it should be a function.
             if (this.state == sCANCELLED) { //this only works with single stage.
                 sem_two.leave()
-                //$def.reject()
+                //$def.reject() bad idea
                 return $def
             } else {
                 $def.fail(()=> this.state = sFAILED)
                 Request.get(`${this.collection}/${ids.join(',')}.json`, {})
-                    .done(() => sem_two.leave(1)) //cannot pass the func itself since it takes params.
+                    .always(() => sem_two.leave(1)) //cannot pass the func itself since it takes params.
                     .done($def.resolve)
                     .fail($def.reject) //does this really fire properly? no one is listening for this
                     .progress($def.notify)
@@ -148,6 +146,10 @@ class ResultProcessors {
         }
 
         var addIt = { kl_downloaded: new Date() }
+
+        addIt.kl_posted_date = Date.from_iso(loan.posted_date)
+        addIt.posted_hours_ago = (new Date() - addIt.kl_posted_date) / 60*60*1000
+        addIt.kl_dollars_per_hour = (loan.funded_amount + loan.basket_amount) / ((new Date() - Date.from_iso(loan.posted_date)) / 60*60*1000 )
 
         if (loan.description.texts) { //the presence implies this is a detail result
             var descr_arr
@@ -429,7 +431,7 @@ class Loans {
             this.indexed_loans = {}
         }
         //loans added through this method will always be distinct and properly sorted.
-        this.loans_from_kiva = this.loans_from_kiva.concat(loans).distinct((a,b)=> a.id == b.id).orderBy(loan => loan.kl_half_back).thenBy(loan => loan.kl_75_back).thenBy(loan => loan.kl_final_repayment)
+        this.loans_from_kiva = this.loans_from_kiva.concat(loans).distinct((a,b)=> a.id == b.id)
         this.partner_ids_from_loans = this.loans_from_kiva.select(loan => loan.partner_id).distinct()
         loans.forEach(loan => this.indexed_loans[loan.id] = loan)
     }

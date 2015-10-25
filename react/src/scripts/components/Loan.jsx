@@ -7,11 +7,14 @@ import {Tabs,Tab,Col,ProgressBar,Button} from 'react-bootstrap'
 import {KivaImage} from '.'
 import a from '../actions'
 import s from '../stores/'
+import numeral from 'numeral'
 
 var Loan = React.createClass({
     mixins:[Reflux.ListenerMixin, History],
     getInitialState: function(){
-        return {loan: s.loans.syncGet(this.props.params.id), activeTab: 1, inBasket: s.loans.syncInBasket(this.props.params.id)}
+        var loan = s.loans.syncGet(this.props.params.id)
+        var partner = loan? kivaloans.getPartner(loan.partner_id) :null
+        return {loan: loan, partner: partner, activeTab: 1, inBasket: s.loans.syncInBasket(this.props.params.id)}
     },
     componentWillMount: function(){
         if (!s.loans.syncHasLoadedLoans()){
@@ -25,7 +28,10 @@ var Loan = React.createClass({
         var funded_perc = (loan.funded_amount * 100 /  loan.loan_amount)
         var basket_perc = (loan.basket_amount * 100 /  loan.loan_amount)
         this.calcRepaymentsGraph(loan)
-        this.setState({loan: loan, basket_perc: basket_perc, funded_perc: funded_perc, inBasket: s.loans.syncInBasket(loan.id)})
+        var partner = this.state.partner
+        if (!partner || loan.partner_id != partner.id)
+            partner = kivaloans.getPartner(loan.partner_id)
+        this.setState({loan: loan, basket_perc: basket_perc, funded_perc: funded_perc, inBasket: s.loans.syncInBasket(loan.id), partner: partner})
     },
     componentDidMount: function(){
         this.listenTo(a.loans.detail.completed, this.switchToLoan)
@@ -87,19 +93,18 @@ var Loan = React.createClass({
         loan.kl_repay_data = grouped_payments.select(payment => payment.amount)
     },
     render: function() {
-        var addRemove = (this.state.inBasket ?
-            <Button onClick={a.loans.basket.remove.bind(this, this.state.loan.id)}>Remove from Basket</Button> :
-            <Button onClick={a.loans.basket.add.bind(this, this.state.loan.id, 25)}>Add to Basket</Button>
-        )
-
-        var highcharts;
-        if (this.state.activeTab == 2){
-            highcharts = (<Highcharts config={this.produceChart(this.state.loan)} ref='chart' />)
-        }
         var loan = this.state.loan
+        var partner = this.state.partner
+
         return (
             <div>
-                <h1>{addRemove} {loan.name}</h1>
+                <h1 style={{marginTop:'0px'}}>{loan.name}
+                    <If condition={this.state.inBasket}>
+                        <Button className="float_right" onClick={a.loans.basket.remove.bind(this, this.state.loan.id)}>Remove from Basket</Button>
+                    <Else/>
+                        <Button className="float_right"  onClick={a.loans.basket.add.bind(this, this.state.loan.id, 25)}>Add to Basket</Button>
+                    </If>
+                </h1>
                 <Tabs activeKey={this.state.activeTab} onSelect={this.tabSelect}>
                     <Tab eventKey={1} title="Image" className="ample-padding-top">
                         <KivaImage loan={loan} type="width" image_width={800} width="100%"/>
@@ -121,14 +126,16 @@ var Loan = React.createClass({
                                 <dt>Funded Amount</dt><dd>{loan.funded_amount}</dd>
                                 <dt>Basket Amount</dt><dd>{loan.basket_amount}</dd>
                                 <dt>Still Needed</dt><dd>{loan.loan_amount - loan.funded_amount - loan.basket_amount}</dd>
-                                <dt>Posted</dt><dd>{Date.from_iso(loan.posted_date).toString('MMM d, yyyy')}</dd>
+                                <dt>Posted</dt><dd>{loan.kl_posted_date.toString('MMM d, yyyy')}</dd>
                                 <dt>Expires</dt><dd>{Date.from_iso(loan.planned_expiration_date).toString('MMM d, yyyy')}</dd>
                             </dl>
                         <a href={`http://www.kiva.org/lend/${loan.id}?default_team=kivalens`} target="_blank">View on Kiva.org</a>
                         </Col>
 
                         <Col style={{height: '500px'}} lg={4} id='graph_container'>
-                        {highcharts}
+                            <If condition={this.state.activeTab == 2}>
+                                <Highcharts config={this.produceChart(this.state.loan)} ref='chart' />
+                            </If>
                             <dl className="dl-horizontal">
                                 <dt>50% back by</dt><dd>{loan.kl_half_back.toString("MMM d, yyyy")}</dd>
                                 <dt>75% back by</dt><dd>{loan.kl_75_back.toString("MMM d, yyyy")}</dd>
@@ -136,7 +143,32 @@ var Loan = React.createClass({
                             </dl>
                         </Col>
                     </Tab>
-                    <Tab eventKey={3} disabled title="Partner" className="ample-padding-top">
+                    <Tab eventKey={3} title="Partner" className="ample-padding-top">
+                        <h2>{partner.name}</h2>
+                        <dl className="dl-horizontal">
+                            <dt>Rating</dt><dd>{partner.rating}</dd>
+                            <dt>Start Date</dt><dd>{new Date(partner.start_date).toString("MMM d, yyyy")}</dd>
+                            <dt>{partner.countries.length == 1 ? 'Country' : 'Countries'}</dt><dd>{partner.countries.select(c => c.name).join(', ')}</dd>
+                            <dt>Delinquency</dt><dd>{numeral(partner.delinquency_rate).format('0.000')}% {partner.delinquency_rate_note}</dd>
+                            <dt>Default</dt><dd>{numeral(partner.default_rate).format('0.000')}% {partner.default_rate_note}</dd>
+                            <dt>Total Raised</dt><dd>${numeral(partner.total_amount_raised).format('0,0')}</dd>
+                            <dt>Loans</dt><dd>{numeral(partner.loans_posted).format('0,0')}</dd>
+                            <dt>Portfolio Yield</dt><dd>{numeral(partner.portfolio_yield).format('0.0')}% {partner.portfolio_yield_note}</dd>
+                            <dt>Profitablility</dt><dd>{numeral(partner.profitability).format('0.0')}%</dd>
+                            <dt>Charges Fees / Interest</dt><dd>{partner.charges_fees_and_interest ? 'Yes': 'No'}</dd>
+                            <dt>Loans at Risk Rate</dt><dd>{numeral(partner.loans_at_risk_rate).format('0.000')}%</dd>
+                            <dt>Avg Loan/Cap Income</dt><dd>{numeral(partner.average_loan_size_percent_per_capita_income).format('0.00')}%</dd>
+                            <dt>Currency Ex Loss</dt><dd>{numeral(partner.currency_exchange_loss_rate).format('0.000')}%</dd>
+                            <If condition={partner.url}>
+                                <span><dt>Website</dt><dd><a href={partner.url} target='_blank'>{partner.url}</a></dd></span>
+                            </If>
+                        </dl>
+                        <h3>Social Performance</h3>
+                        <ul>
+                            <For each="sp" index="i" of={partner.social_performance_strengths}>
+                                <li key={i}><b>{sp.name}</b>: {sp.description}</li>
+                            </For>
+                        </ul>
                     </Tab>
                 </Tabs>
             </div>

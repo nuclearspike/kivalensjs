@@ -10,7 +10,6 @@ var uglify = require('gulp-uglify');
 var minifycss = require('gulp-minify-css');
 var sass = require('gulp-sass');
 var browserSync = require('browser-sync');
-
 var browserify = require('browserify');
 var watchify = require('watchify');
 var notifier = require('node-notifier');
@@ -26,6 +25,7 @@ var argv = require('yargs').argv,
 var open = require('gulp-open');
 
 var production = false; //todo: find what node production environment settings do.
+
 
 gulp.task('browser-sync', function() {
   browserSync({
@@ -60,8 +60,7 @@ gulp.task('styles', function(){
 });
 
 function compile(watch) {
-    var bundler = browserify('./src/scripts/app.js', { debug: true })
-            .transform(babelify)
+    var bundler = browserify('./src/scripts/app.js', { debug: true, transform: [babelify.configure({plugins: ["jsx-control-statements/babel"]})] })
             //.plugin('minifyify', { map: 'javascript/bundle.js.map', output: 'javascript/bundle.js.map' });
 
     if (watch) {

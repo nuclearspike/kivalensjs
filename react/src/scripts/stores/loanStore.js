@@ -26,6 +26,47 @@ kivaloans.init().progress(progress => {
 
 window.kivaloans = kivaloans //todo: not just for debugging. ?
 
+
+var makeSearchTester = function(text){
+    var result =  (text && text.length > 0) ? text.match(/(\w+)/g).distinct().select(word => word.toUpperCase() ) : []
+    console.log('makeSearchTester',result)
+    return {
+        startsWith: function(loan_attr){
+            return result.length == 0 ? true : result.any( search_text => sStartsWith(loan_attr, search_text)  )
+        },
+        contains: function(loan_attr){
+            return result.length == 0 ? true : result.any( search_text => loan_attr.toUpperCase().indexOf(search_text) > -1  )
+        },
+        terms_arr: result}
+}
+
+var makeRangeTester = function(crit_group, value_name){
+    var min = crit_group[`${value_name}_min`]
+    var max = crit_group[`${value_name}_max`]
+    return {
+        range: function(attr){ return min <= attr && attr <= max }
+    }
+}
+
+var makeExactTester = function(value){
+    var terms_arr = []
+    if (value && value.length > 0)
+        terms_arr = (Array.isArray(value)) ? value : value.split(',')
+    console.log('makeExactTester',terms_arr)
+    return {
+        exact: function(loan_attr){
+            return terms_arr.length == 0 ? true: terms_arr.contains(loan_attr)
+        },
+        arr_all: function(loan_attr){
+            return terms_arr.length == 0 ? true: loan_attr && terms_arr.all(term => loan_attr.contains(term))
+        },
+        arr_any: function(loan_attr){
+            return terms_arr.length == 0 ? true: loan_attr && terms_arr.any(term => loan_attr.contains(term))
+        }
+    }
+}
+
+
 var loanStore = Reflux.createStore({
     listenables: [a.loans],
     init:function(){
@@ -102,56 +143,7 @@ var loanStore = Reflux.createStore({
             a.loans.filter()
         return last_filtered
     },
-    syncFilterLoans: function(c){
-        if (!kivaloans.hasLoans()) return []
-        if (!c){ c = criteriaStore.syncGetLast() }
-        $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
-        console.log("$$$$$$$ syncFilterLoans",c)
-
-        //break this into another unit --store? LoansAPI.filter(loans, criteria)
-
-        //for each search term for sector, break it into an array, ignoring spaces and commas
-        //for each loan, test the sector against each search term.
-
-        var makeSearchTester = function(text){
-            var result =  (text && text.length > 0) ? text.match(/(\w+)/g).distinct().select(word => word.toUpperCase() ) : []
-            console.log('makeSearchTester',result)
-            return {
-                startsWith: function(loan_attr){
-                    return result.length == 0 ? true : result.any( search_text => sStartsWith(loan_attr, search_text)  )
-                },
-                contains: function(loan_attr){
-                    return result.length == 0 ? true : result.any( search_text => loan_attr.toUpperCase().indexOf(search_text) > -1  )
-                },
-                terms_arr: result}
-        }
-
-        var makeRangeTester = function(crit_group, value_name){
-            var min = crit_group[`${value_name}_min`]
-            var max = crit_group[`${value_name}_max`]
-            return {
-                range: function(attr){ return min <= attr && attr <= max }
-            }
-        }
-
-        var makeExactTester = function(value){
-            var terms_arr = []
-            if (value && value.length > 0)
-                terms_arr = (Array.isArray(value)) ? value : value.split(',')
-            console.log('makeExactTester',terms_arr)
-            return {
-                exact: function(loan_attr){
-                    return terms_arr.length == 0 ? true: terms_arr.contains(loan_attr)
-                },
-                arr_all: function(loan_attr){
-                    return terms_arr.length == 0 ? true: loan_attr && terms_arr.all(term => loan_attr.contains(term))
-                },
-                arr_any: function(loan_attr){
-                    return terms_arr.length == 0 ? true: loan_attr && terms_arr.any(term => loan_attr.contains(term))
-                }
-            }
-        }
-
+    syncFilterPartners: function(c){
         if (last_partner_search_count > 10) {
             last_partner_search = {}
             last_partner_search_count = 0
@@ -183,12 +175,24 @@ var loanStore = Reflux.createStore({
                     && rgPY.range(p.portfolio_yield)
                     && rgAtRisk.range(p.loans_at_risk_rate)
                     && rgCEX.range(p.currency_exchange_loss_rate)
-                    && (isNaN(parseFloat(p.rating)) ? c.partner.rating == 0 : rgRisk.range(parseFloat(p.rating)))
+                    && (isNaN(parseFloat(p.rating)) ? c.partner.rating_min == 0 : rgRisk.range(parseFloat(p.rating)))
             }).select(p => p.id)
 
             last_partner_search[partner_criteria_json] = partner_ids
             console.log("partner_ids, length: ", partner_ids, partner_ids.length)
         }
+        return partner_ids
+    },
+    syncFilterLoans: function(c){
+        if (!kivaloans.hasLoans()) return []
+        if (!c){ c = criteriaStore.syncGetLast() }
+        $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
+        console.log("$$$$$$$ syncFilterLoans",c)
+
+        //break this into another unit --store? LoansAPI.filter(loans, criteria)
+
+        //for each search term for sector, break it into an array, ignoring spaces and commas
+        //for each loan, test the sector against each search term.
 
         var stSector = makeExactTester(c.loan.sector)
         var stActivity = makeExactTester(c.loan.activity)
@@ -202,6 +206,8 @@ var loanStore = Reflux.createStore({
         var rgPercentFemale = makeRangeTester(c.loan, 'percent_female')
         var rgStillNeeded = makeRangeTester(c.loan, 'still_needed')
         var rgExpiringInDays = makeRangeTester(c.loan, 'expiring_in_days')
+
+        var partner_ids = this.syncFilterPartners(c)
 
         console.log('criteria', c)
 
@@ -221,9 +227,25 @@ var loanStore = Reflux.createStore({
                 stName.contains(loan.name) &&
                 stUse.terms_arr.all(search_term => loan.kl_use_or_descr_arr.any(w => w.startsWith(search_term) ) )
         })
-        //loans are default ordered by half_back.
-        if (c.loan.sort == 'final_repayment')
-            last_filtered = last_filtered.orderBy(loan => loan.kl_final_repayment)
+
+
+        //loans are default ordered by half_back, 75 back, last repayment
+        switch (c.loan.sort) {
+            case 'final_repayment':
+                last_filtered = last_filtered.orderBy(loan => loan.kl_final_repayment)
+                break
+            case 'popularity':
+                last_filtered = last_filtered.orderByDescending(loan => loan.kl_dollars_per_hour)
+                break
+            case 'newest':
+                last_filtered = last_filtered.orderBy(loan => loan.posted_hours_ago)
+                break
+            case 'expiring':
+                last_filtered = last_filtered.orderBy(loan => loan.kl_expiring_in_days)
+                break
+            default:
+                last_filtered = last_filtered.orderBy(loan => loan.kl_half_back).thenBy(loan => loan.kl_75_back).thenBy(loan => loan.kl_final_repayment)
+        }
         return last_filtered
     }
 });

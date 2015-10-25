@@ -12,10 +12,10 @@ const Criteria = React.createClass({
         console.log("Criteria.render()")
         return (
             <div>
-                <h1>Criteria
+                <h1 style={{marginTop:'0px'}}>Criteria
                     <ButtonGroup className="float_right">
                         <Button className="hidden-xs hidden-sm" onClick={ ()=> this.setState({ show_graphs: !this.state.show_graphs })}>Graphs</Button>
-                        <DropdownButton title='Saved Search' id='saved_search' pullRight>
+                        <DropdownButton disabled title='Saved Search' id='saved_search' pullRight>
                             <MenuItem eventKey="1">Coming Soon</MenuItem>
                         </DropdownButton>
                     </ButtonGroup>

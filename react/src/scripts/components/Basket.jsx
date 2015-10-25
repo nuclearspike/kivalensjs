@@ -53,7 +53,6 @@ const Basket = React.createClass({
         return (
             <div style={style}>
                 <Col md={4}>
-                    <span>Basket: {this.state.basket_count} Amount: {this.state.amount_sum}</span>
                     <ButtonGroup justified>
                         <Button href="#" key={1} disabled={this.state.basket_count == 0} onClick={this.clear}>Empty Basket</Button>
                         <Button href="#" key={2} disabled onClick={this.remove}>Remove Selected</Button>
@@ -67,8 +66,9 @@ const Basket = React.createClass({
                 </Col>
                 <Col md={8}>
                     <Panel>
+                        <h1>Basket: {this.state.basket_count} loans Amount: ${this.state.amount_sum}</h1>
                         <form method="POST" onSubmit={this.showGoodbye} action="http://www.kiva.org/basket/set?default_team=kivalens">
-                            <p>Checking out at Kiva will replace your current basket on Kiva.</p>
+                            <p>Note: Checking out will replace your current basket on Kiva.</p>
                             <input name="callback_url" value={`${location.protocol}//${location.host}${location.pathname}#clear-basket`} type="hidden" />
                             <input name="loans" value={this.makeBasket()} type="hidden" ref="basket_array" />
                             <input name="donation" value="0.00" type="hidden" />

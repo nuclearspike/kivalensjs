@@ -28,7 +28,7 @@ const BulkAddModal = React.createClass({
             //if already in basket, stop.
             if (s.loans.syncInBasket(loan.id)) return false
             //how much to lend for current loan
-            var to_lend = Math.min(loan.loan_amount - loan.funded_amount - loan.basket_amount, this.state.maxPerLoan)
+            var to_lend = Math.min(loan.loan_amount - loan.funded_amount - loan.basket_amount, amount_remaining, this.state.maxPerLoan)
             //add it.
             if (to_lend > 0) {
                 amount_remaining -= to_lend
