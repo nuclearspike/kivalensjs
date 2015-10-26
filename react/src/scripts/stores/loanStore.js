@@ -10,7 +10,7 @@ var basket_loans = []
 var last_filtered = []
 var last_partner_search = {}
 var last_partner_search_count = 0
-var kivaloans = new Loans(30*60*1000)
+var kivaloans = new Loans(15*60*1000)
 
 //bridge the downloading/processing generic API class with the React app.
 kivaloans.init().progress(progress => {
@@ -22,8 +22,11 @@ kivaloans.init().progress(progress => {
         a.loans.load.completed(kivaloans.loans_from_kiva)
     if (progress.loan_load_progress)
         a.loans.load.progressed(progress.loan_load_progress)
+    if (progress.failed)
+        a.loans.load.failed(progress.failed)
 })
 
+//a.loans.load.failed
 window.kivaloans = kivaloans //todo: not just for debugging. ?
 
 
@@ -228,6 +231,11 @@ var loanStore = Reflux.createStore({
                 stUse.terms_arr.all(search_term => loan.kl_use_or_descr_arr.any(w => w.startsWith(search_term) ) )
         })
 
+        var basicReverseOrder = (a,b) => { //this is a hack. OrderBy has issues! Not sure what the conditions are.
+            if (a > b) return -1
+            if (a < b) return 1
+            return 0
+        }
 
         //loans are default ordered by half_back, 75 back, last repayment
         switch (c.loan.sort) {
@@ -235,10 +243,10 @@ var loanStore = Reflux.createStore({
                 last_filtered = last_filtered.orderBy(loan => loan.kl_final_repayment)
                 break
             case 'popularity':
-                last_filtered = last_filtered.orderByDescending(loan => loan.kl_dollars_per_hour)
+                last_filtered = last_filtered.orderBy(loan => loan.kl_dollars_per_hour, basicReverseOrder)
                 break
             case 'newest':
-                last_filtered = last_filtered.orderBy(loan => loan.posted_hours_ago)
+                last_filtered = last_filtered.orderBy(loan => loan.kl_posted_hours_ago)
                 break
             case 'expiring':
                 last_filtered = last_filtered.orderBy(loan => loan.kl_expiring_in_days)

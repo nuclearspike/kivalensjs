@@ -29,7 +29,7 @@ var Search = React.createClass({
         })
         //if we enter the page and loans are not done yet.
         this.listenTo(a.loans.load.completed, loans => a.loans.filter())
-        if (s.loans.syncHasLoadedLoans()) a.loans.filter() //triggers the graphs.
+        if (s.loans.syncHasLoadedLoans()) a.loans.filter() //triggers the graphs. //should this be the way??
     },
     showNotification(message){
         this.setState({notification: {active: true, message: message}})
@@ -59,7 +59,7 @@ var Search = React.createClass({
                     <Notification dismissAfter={5000} isActive={this.state.notification.active} message={this.state.notification.message} action={''} />
                     <ButtonGroup justified>
                         <Button href="#" key={1} onClick={this.bulkAdd}>Bulk Add</Button>
-                        <Button href="#/search" key={2} onClick={this.changeCriteria}>Change Criteria</Button>
+                        <Button href="#/search" key={2} disabled={this.props.location.pathname == '/search'} onClick={this.changeCriteria}>Change Criteria</Button>
                     </ButtonGroup>
                     <InfiniteList
                         className="loan_list_container"

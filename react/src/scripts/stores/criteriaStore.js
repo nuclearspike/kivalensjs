@@ -11,11 +11,11 @@ var criteriaStore = Reflux.createStore({
     },
     onChange: function(criteria){
         //console.log("criteriaStore:onChange", criteria)
-        if (typeof localStorage === 'object')
-            localStorage.setItem('last_criteria', JSON.stringify(this.last_known))
-        a.loans.basket.changed()
+        //a.loans.basket.changed() //why???
         this.last_known = criteria
         a.loans.filter(criteria)
+        if (typeof localStorage === 'object')
+            localStorage.setItem('last_criteria', JSON.stringify(this.last_known))
     },
     onGetLast: function(){
         a.criteria.getLast.completed(this.last_known)

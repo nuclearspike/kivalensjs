@@ -1,7 +1,8 @@
 import React from 'react';
 import Reflux from 'reflux'
 import a from '../actions'
-import Highcharts from 'react-highcharts'
+//import Highcharts from 'react-highcharts/bundle/highcharts'
+var Highcharts = require('react-highcharts/dist/bundle/highcharts')
 import {Collapse,Well} from 'react-bootstrap';
 
 //var timeoutHandle = null;

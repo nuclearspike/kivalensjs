@@ -19,7 +19,6 @@ var LoadingLoansModal = React.createClass({
         })
         this.listenTo(a.loans.load.completed, ()=>{this.setState({show: false})})
         this.listenTo(a.loans.load.failed, (status)=>{
-            console.error("FAILED", status)
             this.setState({progress_label: 'Download Failed! Error Message from Kiva:', error_message: status })
         })
     },

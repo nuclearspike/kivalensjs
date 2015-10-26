@@ -66,7 +66,7 @@ const Basket = React.createClass({
                 </Col>
                 <Col md={8}>
                     <Panel>
-                        <h1>Basket: {this.state.basket_count} loans Amount: ${this.state.amount_sum}</h1>
+                        <h1>Basket: {this.state.basket_count} loans ${this.state.amount_sum}</h1>
                         <form method="POST" onSubmit={this.showGoodbye} action="http://www.kiva.org/basket/set?default_team=kivalens">
                             <p>Note: Checking out will replace your current basket on Kiva.</p>
                             <input name="callback_url" value={`${location.protocol}//${location.host}${location.pathname}#clear-basket`} type="hidden" />

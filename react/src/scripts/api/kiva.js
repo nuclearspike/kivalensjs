@@ -100,7 +100,7 @@ class Request {
         console.log('get():', path, params)
         return $.getJSON(`http://api.kivaws.org/v1/${path}?${serialize(params)}`)
             .done(result => console.log(result) )
-            .fail((xhr, status, err) => console.log(status, err, err.toString()) )
+            .fail((xhr, status, err) => console.log(status, err, xhr, err.toString()) )
     }
 
     //semaphored access to kiva api to not overload it. also, it handles collections.
@@ -147,9 +147,9 @@ class ResultProcessors {
 
         var addIt = { kl_downloaded: new Date() }
 
-        addIt.kl_posted_date = Date.from_iso(loan.posted_date)
-        addIt.posted_hours_ago = (new Date() - addIt.kl_posted_date) / 60*60*1000
-        addIt.kl_dollars_per_hour = (loan.funded_amount + loan.basket_amount) / ((new Date() - Date.from_iso(loan.posted_date)) / 60*60*1000 )
+        addIt.kl_posted_date = new Date(loan.posted_date)
+        addIt.kl_posted_hours_ago = (new Date() - addIt.kl_posted_date) / (60*60*1000)
+        addIt.kl_dollars_per_hour = (loan.funded_amount + loan.basket_amount) / addIt.kl_posted_hours_ago
 
         if (loan.description.texts) { //the presence implies this is a detail result
             var descr_arr
@@ -185,8 +185,22 @@ class ResultProcessors {
                     return true //quit
                 }
             })
+            //memory clean up
+            loan.description.languages.where(lang => lang != 'en').forEach(lang => delete loan.description.texts[lang])
+            delete loan.terms.local_payments
+
+        } else {
+            //this happens during the background refresh.
+            //throw new Error
         }
         $.extend(loan, addIt)
+
+        //do memory clean up of larger pieces of the loan object.
+        delete loan.tags
+        delete loan.journal_totals
+        delete loan.translator
+        delete loan.location.geo
+
         return loan
     }
 }
@@ -414,6 +428,8 @@ class Loans {
             //if (crit && crit.loan && crit.loan.repaid_in_max)
             //    max_repayment_date = (crit.loan.repaid_in_max).months().fromNow()
             this.searchKiva(this.convertCriteriaToKivaParams(crit), max_repayment_date).progress(progress => this.notify_promise.notify({loan_load_progress: progress})).done(()=> this.notify_promise.notify({loans_loaded: true}))
+        }).fail((xhr)=>{
+            this.notify_promise.notify({failed: xhr.responseJSON.message})
         })
         //used saved partner filter
         return this.notify_promise

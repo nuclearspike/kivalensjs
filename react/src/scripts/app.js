@@ -25,7 +25,7 @@ Array.prototype.chunk = function(chunkSize) {
 }
 
 //not the best name... but i need this for all kiva dates
-Date.from_iso = (s) => { return new Date(Date.parse(s)) }
+Date.from_iso = (s) => { return new Date(s) } //get rid of this now that i have the new datejs lib
 
 const App = React.createClass({
     getInitialState(){

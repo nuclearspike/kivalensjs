@@ -42,7 +42,7 @@
     "react-cursor": "^1.2.1",
     "react-ga": "^1.1.0",
     "react-growl": "^0.1.2",
-    "react-highcharts": "^2.1.0",
+    "react-highcharts/bundle/highcharts": "^4.0.0",
     "react-infinite-list": "^0.3.1",
     "react-input-autosize": "^0.6.1",
     "react-notification": "^2.2.0-beta",

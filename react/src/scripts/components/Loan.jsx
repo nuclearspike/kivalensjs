@@ -1,7 +1,8 @@
 'use strict';
 import React from 'react'
 import Reflux from 'reflux'
-import Highcharts from 'react-highcharts'
+//import Highcharts from 'react-highcharts/bundle/highcharts'
+var Highcharts = require('react-highcharts/dist/bundle/highcharts')
 import {History} from 'react-router'
 import {Tabs,Tab,Col,ProgressBar,Button} from 'react-bootstrap'
 import {KivaImage} from '.'
@@ -117,21 +118,23 @@ var Loan = React.createClass({
                             </ProgressBar>
                         <b>{loan.location.country} | {loan.sector} | {loan.activity} | {loan.use}</b>
                         <p dangerouslySetInnerHTML={{__html: loan.description.texts.en}} ></p>
-
+                        <a href={`http://www.kiva.org/lend/${loan.id}?default_team=kivalens`} target="_blank">View Loan on Kiva.org</a>
                             <dl className="dl-horizontal">
                                 <dt>Tags</dt><dd>{(loan.kl_tags.length)? loan.kl_tags.join(', '): '(none)'}</dd>
                                 <dt>Themes</dt><dd>{(loan.themes && loan.themes.length)? loan.themes.join(', '): '(none)'}</dd>
                                 <dt>Borrowers</dt><dd>{loan.borrowers.length} ({Math.round(loan.kl_percent_women)}% Female) </dd>
-                                <dt>Loan Amount</dt><dd>{loan.loan_amount}</dd>
-                                <dt>Funded Amount</dt><dd>{loan.funded_amount}</dd>
-                                <dt>Basket Amount</dt><dd>{loan.basket_amount}</dd>
-                                <dt>Still Needed</dt><dd>{loan.loan_amount - loan.funded_amount - loan.basket_amount}</dd>
-                                <dt>Posted</dt><dd>{loan.kl_posted_date.toString('MMM d, yyyy')}</dd>
-                                <dt>Expires</dt><dd>{Date.from_iso(loan.planned_expiration_date).toString('MMM d, yyyy')}</dd>
+                                <dt>Posted</dt><dd>{loan.kl_posted_date.toString('MMM d, yyyy @ h:mm:ss tt')}</dd>
+                                <dt>Expires</dt><dd>{Date.from_iso(loan.planned_expiration_date).toString('MMM d, yyyy @ h:mm:ss tt')}</dd>
                             </dl>
-                        <a href={`http://www.kiva.org/lend/${loan.id}?default_team=kivalens`} target="_blank">View on Kiva.org</a>
-                        </Col>
+                            <dl className="dl-horizontal">
+                                <dt>$/Hour</dt><dd>${numeral(loan.kl_dollars_per_hour).format('0.000')}</dd>
+                                <dt>Loan Amount</dt><dd>${loan.loan_amount}</dd>
+                                <dt>Funded Amount</dt><dd>${loan.funded_amount}</dd>
+                                <dt>Basket Amount</dt><dd>${loan.basket_amount}</dd>
+                                <dt>Still Needed</dt><dd>${loan.loan_amount - loan.funded_amount - loan.basket_amount}</dd>
+                            </dl>
 
+                        </Col>
                         <Col style={{height: '500px'}} lg={4} id='graph_container'>
                             <If condition={this.state.activeTab == 2}>
                                 <Highcharts config={this.produceChart(this.state.loan)} ref='chart' />
@@ -144,31 +147,39 @@ var Loan = React.createClass({
                         </Col>
                     </Tab>
                     <Tab eventKey={3} title="Partner" className="ample-padding-top">
-                        <h2>{partner.name}</h2>
-                        <dl className="dl-horizontal">
-                            <dt>Rating</dt><dd>{partner.rating}</dd>
-                            <dt>Start Date</dt><dd>{new Date(partner.start_date).toString("MMM d, yyyy")}</dd>
-                            <dt>{partner.countries.length == 1 ? 'Country' : 'Countries'}</dt><dd>{partner.countries.select(c => c.name).join(', ')}</dd>
-                            <dt>Delinquency</dt><dd>{numeral(partner.delinquency_rate).format('0.000')}% {partner.delinquency_rate_note}</dd>
-                            <dt>Default</dt><dd>{numeral(partner.default_rate).format('0.000')}% {partner.default_rate_note}</dd>
-                            <dt>Total Raised</dt><dd>${numeral(partner.total_amount_raised).format('0,0')}</dd>
-                            <dt>Loans</dt><dd>{numeral(partner.loans_posted).format('0,0')}</dd>
-                            <dt>Portfolio Yield</dt><dd>{numeral(partner.portfolio_yield).format('0.0')}% {partner.portfolio_yield_note}</dd>
-                            <dt>Profitablility</dt><dd>{numeral(partner.profitability).format('0.0')}%</dd>
-                            <dt>Charges Fees / Interest</dt><dd>{partner.charges_fees_and_interest ? 'Yes': 'No'}</dd>
-                            <dt>Loans at Risk Rate</dt><dd>{numeral(partner.loans_at_risk_rate).format('0.000')}%</dd>
-                            <dt>Avg Loan/Cap Income</dt><dd>{numeral(partner.average_loan_size_percent_per_capita_income).format('0.00')}%</dd>
-                            <dt>Currency Ex Loss</dt><dd>{numeral(partner.currency_exchange_loss_rate).format('0.000')}%</dd>
-                            <If condition={partner.url}>
-                                <span><dt>Website</dt><dd><a href={partner.url} target='_blank'>{partner.url}</a></dd></span>
-                            </If>
-                        </dl>
-                        <h3>Social Performance</h3>
-                        <ul>
-                            <For each="sp" index="i" of={partner.social_performance_strengths}>
-                                <li key={i}><b>{sp.name}</b>: {sp.description}</li>
-                            </For>
-                        </ul>
+                            <h2>{partner.name}</h2>
+                            <Col lg={5}>
+                            <dl className="dl-horizontal">
+                                <dt>Rating</dt><dd>{partner.rating}</dd>
+                                <dt>Start Date</dt><dd>{new Date(partner.start_date).toString("MMM d, yyyy")}</dd>
+                                <dt>{partner.countries.length == 1 ? 'Country' : 'Countries'}</dt><dd>{partner.countries.select(c => c.name).join(', ')}</dd>
+                                <dt>Delinquency</dt><dd>{numeral(partner.delinquency_rate).format('0.000')}% {partner.delinquency_rate_note}</dd>
+                                <dt>Default</dt><dd>{numeral(partner.default_rate).format('0.000')}% {partner.default_rate_note}</dd>
+                                <dt>Total Raised</dt><dd>${numeral(partner.total_amount_raised).format('0,0')}</dd>
+                                <dt>Loans</dt><dd>{numeral(partner.loans_posted).format('0,0')}</dd>
+                                <dt>Portfolio Yield</dt><dd>{numeral(partner.portfolio_yield).format('0.0')}% {partner.portfolio_yield_note}</dd>
+                                <dt>Profitablility</dt><dd>{numeral(partner.profitability).format('0.0')}%</dd>
+                                <dt>Charges Fees / Interest</dt><dd>{partner.charges_fees_and_interest ? 'Yes': 'No'}</dd>
+                                <dt>Loans at Risk Rate</dt><dd>{numeral(partner.loans_at_risk_rate).format('0.000')}%</dd>
+                                <dt>Avg Loan/Cap Income</dt><dd>{numeral(partner.average_loan_size_percent_per_capita_income).format('0.00')}%</dd>
+                                <dt>Currency Ex Loss</dt><dd>{numeral(partner.currency_exchange_loss_rate).format('0.000')}%</dd>
+                                <If condition={partner.url}>
+                                    <span><dt>Website</dt><dd><a href={partner.url} target='_blank'>{partner.url}</a></dd></span>
+                                </If>
+                            </dl>
+                            </Col>
+                        <Col lg={5}>
+                            <KivaImage className="float_left" type="width" loan={partner} image_width={800} width="100%"/>
+                            <a href={`http://www.kiva.org/partners/${partner.id}?default_team=kivalens`} target="_blank">View Partner on Kiva.org</a>
+                        </Col>
+                        <Col lg={10}>
+                            <h3>Social Performance Strengths</h3>
+                            <ul>
+                                <For each="sp" index="i" of={partner.social_performance_strengths}>
+                                    <li key={i}><b>{sp.name}</b>: {sp.description}</li>
+                                </For>
+                            </ul>
+                        </Col>
                     </Tab>
                 </Tabs>
             </div>
