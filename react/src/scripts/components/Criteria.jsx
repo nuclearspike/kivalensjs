@@ -1,18 +1,14 @@
 import React from 'react';
 import Reflux from 'reflux'
 import {Grid,Row,Col,Input,Button,Tabs,Tab,DropdownButton,MenuItem,ButtonGroup} from 'react-bootstrap';
+import LocalStorageMixin from 'react-localstorage'
 import {ChartDistribution,CriteriaTabs} from '.'
 
 const Criteria = React.createClass({
-    mixins: [Reflux.ListenerMixin],
-    getInitialState: function() {
-        var showGraphs = (localStorage.criteria_show_graphs) ? JSON.parse(localStorage.criteria_show_graphs) : true
-        return {show_graphs: showGraphs}
-    },
+    mixins: [Reflux.ListenerMixin, LocalStorageMixin],
+    getInitialState: function() { return {show_graphs: true} },
     toggleGraph(){
-        var newShowGraphs = !this.state.show_graphs
-        localStorage.criteria_show_graphs = newShowGraphs
-        this.setState({ show_graphs: newShowGraphs })
+        this.setState({ show_graphs: !this.state.show_graphs })
     },
     render: function() {
         console.log("Criteria.render()")

@@ -43,7 +43,7 @@ var LoadingLoansModal = React.createClass({
                             <p>There's also a "Kiva Lender Assistant" Chrome Browser plugin that will talk to you and show graphs and final repayment information on the Lend Tab. See the About page for more information.</p>
                             <p>You can click anywhere in one of the drop-down boxes to bring up the selection (you don't need to click the little arrow) or just start typing.</p>
                             <p>Kiva's site does not allow you to search by "Tags" but they are a great way to search! You can look for Interesting Photos, Inspiring Stories, Repeat Borrowers and many more!</p>
-                            <p>Did you know that the "Posted" and "Expires" Dates on the Loan Detail have been adjusted to your timezone&#63;</p>
+                            <p>Did you know that the "Posted" and "Expires" Dates on the Loan Detail have already been adjusted to your timezone&#63;</p>
                         </CycleChild>
                     </Modal.Body>
 

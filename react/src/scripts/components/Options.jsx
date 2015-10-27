@@ -26,7 +26,7 @@ const Options = React.createClass({
                     <p>Changing these settings will only take effect the next time you visit the site/reload the page.</p>
                     <p>(Please expect these settings to change and be reset over time while in beta. Sorry for any inconvenience)</p>
                     <Input type="checkbox" ref='maxRepaymentTerms_on' label={`Ignore Loans over ${this.state.maxRepaymentTerms} months for repayment term (stop downloading)`} checked={this.state.maxRepaymentTerms_on} onClick={this.maxRepaymentTermsUpdate} onChange={this.maxRepaymentTermsUpdate} />
-                    <Input type="range" min={8} max={120} defaultValue={this.state.maxRepaymentTerms} ref='maxRepaymentTerms' onInput={this.maxRepaymentTermsUpdate} onChange={this.maxRepaymentTermsUpdate}/>
+                    <input type="range" min={8} max={120} defaultValue={this.state.maxRepaymentTerms} ref='maxRepaymentTerms' onInput={this.maxRepaymentTermsUpdate} onChange={this.maxRepaymentTermsUpdate}/>
                 </Col>
             </Grid>
         )

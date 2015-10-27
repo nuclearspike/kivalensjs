@@ -23,7 +23,6 @@ var Loan = React.createClass({
             this.history.pushState(null, `/search`);
             window.location.reload()
         }
-        this.listenTo(a.loans.basket.changed, ()=>{ this.setState({inBasket: s.loans.syncInBasket(this.state.loan.id)}) })
     },
     switchToLoan: function(loan){
         var funded_perc = (loan.funded_amount * 100 /  loan.loan_amount)
@@ -36,6 +35,7 @@ var Loan = React.createClass({
     },
     componentDidMount: function(){
         this.listenTo(a.loans.detail.completed, this.switchToLoan)
+        this.listenTo(a.loans.basket.changed, ()=>{ this.setState({inBasket: s.loans.syncInBasket(this.state.loan.id)}) })
         if (s.loans.syncHasLoadedLoans()){ this.switchToLoan(s.loans.syncGet(this.props.params.id)) }
     },
     shouldComponentUpdate: function(nextProps, nextState){
@@ -128,7 +128,7 @@ var Loan = React.createClass({
                                 <dt>Expires</dt><dd>{Date.from_iso(loan.planned_expiration_date).toString('MMM d, yyyy @ h:mm:ss tt')}</dd>
                             </dl>
                             <dl className="dl-horizontal">
-                                <dt>$/Hour</dt><dd>${numeral(loan.kl_dollars_per_hour).format('0.000')}</dd>
+                                <dt>$/Hour</dt><dd>${numeral(loan.kl_dollars_per_hour).format('0.00')}</dd>
                                 <dt>Loan Amount</dt><dd>${loan.loan_amount}</dd>
                                 <dt>Funded Amount</dt><dd>${loan.funded_amount}</dd>
                                 <dt>Basket Amount</dt><dd>${loan.basket_amount}</dd>

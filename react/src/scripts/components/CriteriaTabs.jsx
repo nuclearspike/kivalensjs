@@ -46,29 +46,33 @@ const CriteriaTabs = React.createClass({
         this.options.sort = [{"value": null, label: "Date half is paid back, then 75%, then full (default)"},{value: "final_repayment", label: "Final repayment date"},{value:'newest',label:'Newest'},{value:'expiring',label:'Expiring'},{value:'popularity',label:'Popularity ($/hour)'}]
 
         //loan sliders
-        this.options.repaid_in = {defaultValue: [], min: 2, max: 120}
-        this.options.borrower_count = {defaultValue: [], min: 1, max: 50}
-        this.options.percent_female = {defaultValue: [], min: 1, max: 100}
-        this.options.still_needed = {defaultValue: [], min: 0, max: 10000, step: 25}
-        this.options.expiring_in_days = {defaultValue: [], min: 0, max: 35}
+        this.options.repaid_in = {min: 2, max: 120}
+        this.options.borrower_count = {min: 1, max: 20}
+        this.options.percent_female = {min: 1, max: 100}
+        this.options.still_needed = {min: 0, max: 5000, step: 25}
+        this.options.expiring_in_days = {min: 0, max: 35}
 
         //partner sliders
-        this.options.partner_risk_rating = {defaultValue: [], min: 0, max: 5, step: 0.5}
-        this.options.partner_arrears = {defaultValue: [], min: 0, max: 50}
-        this.options.partner_default = {defaultValue: [], min: 0, max: 30}
-        this.options.portfolio_yield = {defaultValue: [], min: 0, max: 100}
-        this.options.profit = {defaultValue: [], min: -100, max: 100}
-        this.options.loans_at_risk_rate = {defaultValue: [], min: 0, max: 100}
-        this.options.currency_exchange_loss_rate = {defaultValue: [], min: 0, max: 20}
+        this.options.partner_risk_rating = {min: 0, max: 5, step: 0.5}
+        this.options.partner_arrears = {min: 0, max: 50}
+        this.options.partner_default = {min: 0, max: 30}
+        this.options.portfolio_yield = {min: 0, max: 100}
+        this.options.profit = {min: -100, max: 100}
+        this.options.loans_at_risk_rate = {min: 0, max: 100}
+        this.options.currency_exchange_loss_rate = {min: 0, max: 20}
     },
     buildCriteria: function(){
         console.log('buildCriteria:start')
         var getSelVal = (name) => this.refs[name].refs.value.value //todo: this is dumb. "refs.value" is a hidden input.
 
         var getSliderVal = function(criteria_group, ref){
-            var arr = this.refs[ref].state.value
-            criteria_group[`${ref}_min`] = arr[0]
-            criteria_group[`${ref}_max`] = arr[1]
+            var arr = this.refs[ref].state.value.slice(0); //. slice to make a copy of the array. (state is private to the component. and therefore a hack)
+            if (arr.length == 2) {
+                if (arr[0] == this.options[ref].min) arr[0] = null
+                if (arr[1] == this.options[ref].max) arr[1] = null
+                criteria_group[`${ref}_min`] = arr[0]
+                criteria_group[`${ref}_max`] = arr[1]
+            }
         }.bind(this)
 
         var criteria = this.blankCriteria()
@@ -82,6 +86,7 @@ const CriteriaTabs = React.createClass({
             tags:  getSelVal('tags'),
             sort:  getSelVal('sort')
         }
+
         criteria.partner = {
             region: getSelVal('region'),
             social_performance: getSelVal('social_performance').split(',').where(sp => sp && !isNaN(sp)).select(sp => parseInt(sp))
@@ -133,15 +138,16 @@ const CriteriaTabs = React.createClass({
             var {ref, label} = props
             var options = this.options[ref]
             var c_group = $.extend(true, {}, this.last_criteria[group])
-            var defaults = (c_group[ref] && c_group[ref].defaultValue && c_group[ref].defaultValue.length == 2) ? c_group[ref].defaultValue : [options.min, options.max]
-            if (c_group[`${ref}_min`] && c_group[`${ref}_max`]) { //keep old value
-                defaults = [c_group[`${ref}_min`], c_group[`${ref}_max`]]
-            }
+            var min = c_group[`${ref}_min`] || options.min
+            var max = c_group[`${ref}_max`] || options.max
+            var display_min = min == options.min ? 'min' : min
+            var display_max = max == options.max ? 'max' : max
+            var defaults = [min, max]
             var step = options.step || 1
             return (<Row key={ref}>
                     <Col md={2}>
                         <label className="control-label">{label}</label>
-                        <p>{this.last_criteria[group][`${ref}_min`]}-{this.last_criteria[group][`${ref}_max`]}</p>
+                        <p>{display_min}-{display_max}</p>
                     </Col>
                     <Col md={6}>
                         <Slider ref={ref} className='horizontal-slider' min={options.min} max={options.max} defaultValue={defaults} step={step} withBars onChange={this.criteriaChanged} />

@@ -29,7 +29,6 @@ kivaloans.init().progress(progress => {
 //a.loans.load.failed
 window.kivaloans = kivaloans //todo: not just for debugging. ?
 
-
 var makeSearchTester = function(text){
     var result =  (text && text.length > 0) ? text.match(/(\w+)/g).distinct().select(word => word.toUpperCase() ) : []
     console.log('makeSearchTester',result)
@@ -47,7 +46,11 @@ var makeRangeTester = function(crit_group, value_name){
     var min = crit_group[`${value_name}_min`]
     var max = crit_group[`${value_name}_max`]
     return {
-        range: function(attr){ return min <= attr && attr <= max }
+        range: function(attr){
+            var min_met = (min == null)? true: min <= attr
+            var max_met = (max == null)? true: attr <= max
+            return min_met && max_met
+        }
     }
 }
 
@@ -177,7 +180,8 @@ var loanStore = Reflux.createStore({
                     && rgPY.range(p.portfolio_yield)
                     && rgAtRisk.range(p.loans_at_risk_rate)
                     && rgCEX.range(p.currency_exchange_loss_rate)
-                    && (isNaN(parseFloat(p.rating)) ? c.partner.rating_min == 0 : rgRisk.range(parseFloat(p.rating)))
+                    && (isNaN(parseFloat(p.rating)) ? c.partner.rating_min == null : rgRisk.range(parseFloat(p.rating)))
+                    //&& rgRisk.range(parseFloat(p.rating))
             }).select(p => p.id)
 
             last_partner_search[partner_criteria_json] = partner_ids

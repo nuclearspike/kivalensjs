@@ -7,7 +7,7 @@ var About = React.createClass({
         return (<Grid>
             <h1>About</h1>
             <p>
-                KivaLens is currently being rebuilt. The Silverlight version is broken and I'm not planning to fix it.
+                KivaLens is currently being rebuilt. The Silverlight version is broken and I'm not going to fix it.
                 Please <a href="mailto:liquidmonkey@gmail.com" target="_blank">let me know</a> your favorite missing
                 features and I'll implement those first. You can also join
                 the <a href="http://www.kiva.org/team/kivalens" target="_blank">KivaLens Team</a> to discuss.

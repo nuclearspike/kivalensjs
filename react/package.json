@@ -45,6 +45,7 @@
     "react-highcharts/bundle/highcharts": "^4.0.0",
     "react-infinite-list": "^0.3.1",
     "react-input-autosize": "^0.6.1",
+    "react-localstorage": "^0.2.8",
     "react-notification": "^2.2.0-beta",
     "react-router": "^1.0.0-rc3",
     "react-select": "^0.7.0",
