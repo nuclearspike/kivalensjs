@@ -1,7 +1,6 @@
 'use strict';
 import React from 'react'
 import Reflux from 'reflux'
-//import Highcharts from 'react-highcharts/bundle/highcharts'
 var Highcharts = require('react-highcharts/dist/bundle/highcharts')
 import {History} from 'react-router'
 import {Tabs,Tab,Col,ProgressBar,Button} from 'react-bootstrap'
@@ -15,7 +14,8 @@ var Loan = React.createClass({
     getInitialState: function(){
         var loan = s.loans.syncGet(this.props.params.id)
         var partner = loan? kivaloans.getPartner(loan.partner_id) :null
-        return {loan: loan, partner: partner, activeTab: 1, inBasket: s.loans.syncInBasket(this.props.params.id)}
+        var active_tab = (localStorage.loan_active_tab) ? parseInt(localStorage.loan_active_tab) : 1
+        return {loan: loan, partner: partner, activeTab: active_tab, inBasket: s.loans.syncInBasket(this.props.params.id)}
     },
     componentWillMount: function(){
         if (!s.loans.syncHasLoadedLoans()){
@@ -43,7 +43,8 @@ var Loan = React.createClass({
     },
     tabSelect: function(selectedKey){
         this.setState({activeTab: selectedKey});
-        setTimeout(()=> this.forceUpdate(), 500)
+        localStorage.loan_active_tab = selectedKey
+        setTimeout(()=> this.forceUpdate(), 500) //hacky! if this doesn't happen, the graphs paint wrong. :(
     },
     produceChart: function(loan){
         var result = {

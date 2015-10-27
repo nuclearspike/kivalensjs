@@ -418,12 +418,10 @@ class Loans {
         this.getAllPartners().done(partners => {
             var max_repayment_date = null
 
-            if (typeof localStorage === 'object') {
-                var base_options = JSON.parse(localStorage.getItem('base_options'))
-                base_options = $.extend({}, {maxRepaymentTerms: 120, maxRepaymentTerms_on: false}, base_options)
-                if (base_options.maxRepaymentTerms_on)
-                    max_repayment_date = Date.today().addMonths(parseInt(base_options.maxRepaymentTerms))
-            }
+            var base_options = JSON.parse(localStorage.getItem('base_options'))
+            base_options = $.extend({}, {maxRepaymentTerms: 120, maxRepaymentTerms_on: false}, base_options)
+            if (base_options.maxRepaymentTerms_on)
+                max_repayment_date = Date.today().addMonths(parseInt(base_options.maxRepaymentTerms))
             //todo: switch over to using the meta criteria
             //if (crit && crit.loan && crit.loan.repaid_in_max)
             //    max_repayment_date = (crit.loan.repaid_in_max).months().fromNow()

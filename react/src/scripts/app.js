@@ -27,6 +27,26 @@ Array.prototype.chunk = function(chunkSize) {
 //not the best name... but i need this for all kiva dates
 Date.from_iso = (s) => { return new Date(s) } //get rid of this now that i have the new datejs lib
 
+window.findBootstrapEnv = function() {
+    var envs = ["xs", "sm", "md", "lg"],
+        doc = window.document,
+        temp = doc.createElement("div");
+
+    doc.body.appendChild(temp);
+
+    for (var i = envs.length - 1; i >= 0; i--) {
+        var env = envs[i];
+
+        temp.className = "hidden-" + env;
+
+        if (temp.offsetParent === null) {
+            doc.body.removeChild(temp);
+            return env;
+        }
+    }
+    return "";
+}
+
 const App = React.createClass({
     getInitialState(){
         return { }

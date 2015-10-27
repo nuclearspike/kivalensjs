@@ -49,7 +49,7 @@ const CriteriaTabs = React.createClass({
         this.options.repaid_in = {defaultValue: [], min: 2, max: 120}
         this.options.borrower_count = {defaultValue: [], min: 1, max: 50}
         this.options.percent_female = {defaultValue: [], min: 1, max: 100}
-        this.options.still_needed = {defaultValue: [], min: 0, max: 10000}
+        this.options.still_needed = {defaultValue: [], min: 0, max: 10000, step: 25}
         this.options.expiring_in_days = {defaultValue: [], min: 0, max: 35}
 
         //partner sliders

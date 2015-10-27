@@ -12,7 +12,7 @@ const ChartDistribution = React.createClass({
         return {open: true}
     },
     getInitialState: function () {
-        return {open: this.props.open}
+        return {}
     },
     componentDidMount: function () {
         this.listenTo(a.loans.filter.completed, this.redoCharts)
@@ -77,11 +77,11 @@ const ChartDistribution = React.createClass({
                     data: []
                 }]
         }
-        a.loans.filter() //this makes me nervous
+        //a.loans.filter() //this makes me nervous
         return result
     },
     redoCharts: function(loans){
-        console.log("Criteria.redoCharts():timeout()")
+        if (['xs','sm'].contains(findBootstrapEnv())) return
         let chart = this.refs.chart.getChart();
         var countryData  = loans.groupBy(l=>l.location.country).map(g=>{return {name: g[0].location.country, y: g.length}})
         var sectorData   = loans.groupBy(l=>l.sector).map(g=>{ return {name: g[0].sector, y: g.length}})
@@ -91,15 +91,11 @@ const ChartDistribution = React.createClass({
         chart.series[2].setData(activityData)
     },
     render: function () {
-        return (
-            <Collapse in={this.props.open}>
-                <div className="hidden-xs hidden-sm">
+        return (<div className="hidden-xs hidden-sm">
                     <Well>
                         <Highcharts style={{height: '200px'}} config={this.produceChart()} ref='chart' />
                     </Well>
-                </div>
-            </Collapse>
-                   )
+                </div>)
     }
 })
 

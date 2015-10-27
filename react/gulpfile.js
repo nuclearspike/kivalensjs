@@ -127,7 +127,7 @@ gulp.task('d', [], function() {
             host: 'ftp.nuclearspike.com',
             user: argv.u,
             password: argv.pw,
-            parallel: 1,
+            parallel: 10,
             log: gutil.log
         });
 

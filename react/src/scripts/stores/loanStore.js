@@ -10,7 +10,7 @@ var basket_loans = []
 var last_filtered = []
 var last_partner_search = {}
 var last_partner_search_count = 0
-var kivaloans = new Loans(15*60*1000)
+var kivaloans = new Loans(0) //15*60*100
 
 //bridge the downloading/processing generic API class with the React app.
 kivaloans.init().progress(progress => {
@@ -74,7 +74,7 @@ var loanStore = Reflux.createStore({
     listenables: [a.loans],
     init:function(){
         console.log("loanStore:init")
-        if (typeof localStorage === 'object') basket_loans = JSON.parse(localStorage.getItem('basket'))
+        basket_loans = JSON.parse(localStorage.getItem('basket'))
         if (!Array.isArray(basket_loans)) basket_loans = []
         if (basket_loans.length > 0 && !basket_loans[0].loan_id) basket_loans = []
         a.loans.basket.changed();
@@ -82,8 +82,7 @@ var loanStore = Reflux.createStore({
 
     //BASKET
     _basketSave: function(){
-        if (typeof localStorage === 'object')
-            localStorage.setItem('basket', JSON.stringify(basket_loans))
+        localStorage.setItem('basket', JSON.stringify(basket_loans))
         a.loans.basket.changed()
     },
     syncInBasket: function(loan_id){ return basket_loans.first(bi => bi.loan_id == loan_id) != undefined },
