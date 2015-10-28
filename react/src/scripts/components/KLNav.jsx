@@ -14,8 +14,6 @@ const KLNav = React.createClass({
         this.listenTo(a.loans.basket.changed, ()=>{ this.setState({basket_count: s.loans.syncBasketCount()}) })
     },
     render() {
-        //<NavItem className="visible-xs-block" key={2} href="#/basket">Basket<Badge>{this.state.basket_count}</Badge></NavItem>
-
         return (
             <Navbar inverse fluid staticTop toggleNavKey={0}>
                 <NavBrand><Link to="/search">KivaLens</Link></NavBrand>

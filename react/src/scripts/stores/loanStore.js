@@ -1,7 +1,7 @@
 'use strict';
 
 import Reflux from 'reflux'
-import {LenderLoans, LoansSearch, LoanBatch, Loans} from '../api/kiva'
+import {Loans} from '../api/kiva'
 import a from '../actions'
 import criteriaStore from './criteriaStore'
 
@@ -24,6 +24,9 @@ kivaloans.init().progress(progress => {
         a.loans.load.progressed(progress.loan_load_progress)
     if (progress.failed)
         a.loans.load.failed(progress.failed)
+    if (progress.lender_loans_event)
+        a.criteria.lenderLoansEvent(progress.lender_loans_event)
+
 })
 
 //a.loans.load.failed
@@ -71,7 +74,6 @@ var makeExactTester = function(value){
         }
     }
 }
-
 
 var loanStore = Reflux.createStore({
     listenables: [a.loans],
@@ -217,6 +219,8 @@ var loanStore = Reflux.createStore({
 
         console.log('criteria', c)
 
+        var lender_loan_ids = c.portfolio.exclude_portfolio_loans ? kivaloans.lender_loans : []
+
         last_filtered = kivaloans.loans_from_kiva.where(loan => {
             return loan.status == 'fundraising' &&
                 partner_ids.contains(loan.partner_id) && //ids must always be populated. there isn't the normal "if empty, skip"
@@ -231,6 +235,7 @@ var loanStore = Reflux.createStore({
                 rgStillNeeded.range(loan.loan_amount - loan.basket_amount - loan.funded_amount) &&
                 rgExpiringInDays.range(loan.kl_expiring_in_days) &&
                 stName.contains(loan.name) &&
+                !lender_loan_ids.contains(loan.id)     //find a better way?
                 stUse.terms_arr.all(search_term => loan.kl_use_or_descr_arr.any(w => w.startsWith(search_term) ) )
         })
 
@@ -240,19 +245,25 @@ var loanStore = Reflux.createStore({
             return 0
         }
 
-        //loans are default ordered by half_back, 75 back, last repayment
+        var basicOrder = (a,b) => { //this is a hack. OrderBy has issues! Not sure what the conditions are.
+            if (a > b) return 1
+            if (a < b) return -1
+            return 0
+        }
+
+        //loans are default ordered by 50 back, 75 back, last repayment
         switch (c.loan.sort) {
             case 'final_repayment':
-                last_filtered = last_filtered.orderBy(loan => loan.kl_final_repayment)
+                last_filtered = last_filtered.orderBy(loan => loan.kl_final_repayment, basicOrder)
                 break
             case 'popularity':
                 last_filtered = last_filtered.orderBy(loan => loan.kl_dollars_per_hour, basicReverseOrder)
                 break
             case 'newest':
-                last_filtered = last_filtered.orderBy(loan => loan.kl_posted_hours_ago)
+                last_filtered = last_filtered.orderBy(loan => loan.kl_newest_sort, basicOrder) //.thenByDescending(loan => loan.id)
                 break
             case 'expiring':
-                last_filtered = last_filtered.orderBy(loan => loan.kl_expiring_in_days)
+                last_filtered = last_filtered.orderBy(loan => loan.kl_expiring_in_days, basicOrder).thenBy(loan => loan.id)
                 break
             default:
                 last_filtered = last_filtered.orderBy(loan => loan.kl_half_back).thenBy(loan => loan.kl_75_back).thenBy(loan => loan.kl_final_repayment)

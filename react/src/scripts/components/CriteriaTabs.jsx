@@ -12,18 +12,26 @@ var timeoutHandle=0
 const CriteriaTabs = React.createClass({
     mixins: [Reflux.ListenerMixin, LinkedStateMixin],
     getInitialState: function () {
-        return { activeTab: 1, state_count: 0, criteria_loan_use: '', criteria_loan_name: '' }
+        return { activeTab: 1, state_count: 0, criteria_loan_use: '', criteria_loan_name: '', portfolioTab: '' }
     },
     componentWillMount: function(){
         this.state_count = 0
         this.options = {}
         this.setKnownOptions()
-        this.last_criteria = $.extend(true, s.criteria.syncGetLast(), this.blankCriteria())
-        this.setState({criteria_loan_use: this.last_criteria.loan.use, criteria_loan_name: this.last_criteria.loan.name})
+        this.last_criteria = $.extend(true, this.blankCriteria(), s.criteria.syncGetLast())
+        this.setState({criteria_loan_use: this.last_criteria.loan.use, criteria_loan_name: this.last_criteria.loan.name}) //hack!
         if (kivaloans.loans_from_kiva.length) this.loansReady()
     },
     componentDidMount: function () {
         this.listenTo(a.loans.load.completed, this.loansReady)
+        this.listenTo(a.criteria.lenderLoansEvent, this.lenderLoansEvent)
+        this.criteriaChanged()
+    },
+    lenderLoansEvent(event){
+        //can be either started or done.
+        var newState = {}
+        newState.portfolioTab = (event == 'started') ? " (loading...)" : ""
+        this.setState(newState)
         this.criteriaChanged()
     },
     loansReady: function(){
@@ -92,6 +100,10 @@ const CriteriaTabs = React.createClass({
             social_performance: getSelVal('social_performance').split(',').where(sp => sp && !isNaN(sp)).select(sp => parseInt(sp))
         }
 
+        criteria.portfolio = {
+            exclude_portfolio_loans: this.refs.exclude_portfolio_loans.getChecked()
+        }
+
         var loan_sliders = ['repaid_in','borrower_count','percent_female','still_needed','expiring_in_days']
         loan_sliders.forEach(ref => getSliderVal(criteria.loan, ref))
         var partner_sliders = ['partner_risk_rating','partner_arrears','partner_default','portfolio_yield','profit','loans_at_risk_rate','currency_exchange_loss_rate']
@@ -99,7 +111,7 @@ const CriteriaTabs = React.createClass({
         this.last_criteria = criteria
         this.state_count++
         this.setState({state_count: this.state_count})
-        console.log("#########: criteria", criteria.loan, criteria.partner, criteria.portfolio)
+        console.log("######### buildCriteria: criteria", criteria.loan, criteria.partner, criteria.portfolio)
         a.criteria.change(criteria)
     },
     criteriaChanged(){
@@ -107,7 +119,7 @@ const CriteriaTabs = React.createClass({
         timeoutHandle = setTimeout(this.buildCriteria, 150)
     },
     blankCriteria(){
-        return {loan: {}, partner: {}, portfolio: {}}
+        return {loan: {}, partner: {}, portfolio: {exclude_portfolio_loans: true}}
     },
     clearCriteria(){
         var blank_c = this.blankCriteria()
@@ -185,6 +197,8 @@ const CriteriaTabs = React.createClass({
             {ref: 'currency_exchange_loss_rate', label: "Currency Exchange Loss (%)"}]
         var partnerCritsSlidersComponents = partCritSliders.map(opt => sliderRow(opt, 'partner'))
 
+        var lender_loans_message = kivaloans.lender_loans_message
+
         return (<div>
             <Tabs activeKey={this.state.activeTab} onSelect={this.tabSelect}>
                 <Tab eventKey={1} title="Borrower" className="ample-padding-top">
@@ -203,9 +217,11 @@ const CriteriaTabs = React.createClass({
                     {partnerCritsSlidersComponents}
                 </Tab>
 
-                <Tab eventKey={3} title="Your Portfolio" className="ample-padding-top">
+                <Tab eventKey={3} title={`Your Portfolio${this.state.portfolioTab}`} className="ample-padding-top">
                     <Row>
-                        <Input type='text' disabled label='Kiva Lender ID' labelClassName='col-md-2' wrapperClassName='col-md-6'  valueLink={this.linkState('lender_id')} onKeyUp={this.criteriaChanged} />
+                        <Col md={9}>
+                            <Input type="checkbox" ref='exclude_portfolio_loans' label={`Hide loans in my portfolio (${lender_loans_message})`} defaultChecked={this.last_criteria.portfolio.exclude_portfolio_loans} onClick={this.criteriaChanged} onChange={this.criteriaChanged} />
+                        </Col>
                     </Row>
                 </Tab>
             </Tabs>

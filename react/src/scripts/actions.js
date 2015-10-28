@@ -21,9 +21,8 @@ a.partners = Reflux.createActions({
 });
 
 a.criteria  = Reflux.createActions([
-    "change"
+    "change","lenderLoansEvent"
 ])
-
 a.criteria.getLast = Reflux.createAction({
     children: ["completed"]
 });

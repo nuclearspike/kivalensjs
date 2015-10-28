@@ -148,6 +148,7 @@ class ResultProcessors {
         var addIt = { kl_downloaded: new Date() }
 
         addIt.kl_posted_date = new Date(loan.posted_date)
+        addIt.kl_newest_sort = Math.round(new Date() - addIt.kl_posted_date)
         addIt.kl_posted_hours_ago = (new Date() - addIt.kl_posted_date) / (60*60*1000)
         addIt.kl_dollars_per_hour = (loan.funded_amount + loan.basket_amount) / addIt.kl_posted_hours_ago
 
@@ -355,7 +356,7 @@ class LenderLoans extends PagedKiva {
             if (this.fundraising_only)
                 loans = loans.where(loan => loan.status == 'fundraising')
             return loans.select(loan => loan.id)
-        }).fail(this.promise.reject)
+        }).fail(this.promise.reject) //? is this right?
     }
 }
 
@@ -396,6 +397,8 @@ class LoanBatch {
     }
 }
 
+const llUnknown = 0, llDownloading = 1, llComplete = 2
+
 //rename this. This is the interface to Kiva functions where it keeps the background resync going, indexes the results,
 class Loans {
     constructor(update_interval = 0){
@@ -403,6 +406,8 @@ class Loans {
         this.partner_ids_from_loans = []
         this.partners_from_kiva = []
         this.lender_loans = []
+        this.lender_loans_message = 'Lender ID not set'
+        this.lender_loans_state = llUnknown
         this.indexed_loans = {}
         this.base_kiva_params = {}
         this.background_resync = 0
@@ -418,10 +423,13 @@ class Loans {
         this.getAllPartners().done(partners => {
             var max_repayment_date = null
 
-            var base_options = JSON.parse(localStorage.getItem('base_options'))
+            var base_options = JSON.parse(localStorage.getItem('Options')) //todo: this is app-specific!
             base_options = $.extend({}, {maxRepaymentTerms: 120, maxRepaymentTerms_on: false}, base_options)
             if (base_options.maxRepaymentTerms_on)
                 max_repayment_date = Date.today().addMonths(parseInt(base_options.maxRepaymentTerms))
+            if (base_options.kiva_lender_id)
+                this.setLender(base_options.kiva_lender_id)
+
             //todo: switch over to using the meta criteria
             //if (crit && crit.loan && crit.loan.repaid_in_max)
             //    max_repayment_date = (crit.loan.repaid_in_max).months().fromNow()
@@ -483,11 +491,21 @@ class Loans {
     getPartner(id){
         return this.partners_from_kiva.first(p => p.id == id)
     }
-    setLender(lender_id){
-        if (lender_id) this.lender_id = lender_id
+    setLender(lender_id){  //todo: call this only when loans are loaded.
+        if (lender_id) {
+            this.lender_id = lender_id
+        } else { return }
+        this.lender_loans = []
+        if (this.lender_loans_state == llDownloading) return null ///not the right pattern.
+        this.lender_loans_message = `Loading fundraising loans for ${this.lender_id} (Please wait...)`
+        this.lender_loans_state = llDownloading
+        this.notify_promise.notify({lender_loans_event: 'started'})
         var kl = this
         return new LenderLoans(this.lender_id).start().done(ids => {
             kl.lender_loans = ids
+            kl.lender_loans_message = `Fundraising loans for ${kl.lender_id} found: ${ids.length}`
+            kl.lender_loans_state = llComplete
+            kl.notify_promise.notify({lender_loans_event: 'done'})
             console.log('LENDER LOAN IDS:', ids)
         })
     }

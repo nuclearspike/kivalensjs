@@ -11,7 +11,6 @@ const Criteria = React.createClass({
         this.setState({ show_graphs: !this.state.show_graphs })
     },
     render: function() {
-        console.log("Criteria.render()")
         return (
             <div>
                 <h1 style={{marginTop:'0px'}}>Criteria
