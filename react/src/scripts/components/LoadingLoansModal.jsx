@@ -40,7 +40,8 @@ var LoadingLoansModal = React.createClass({
                             <p>To greatly reduce load time, check out the "Options" tab to always exclude certain types of loans from the initial load.</p>
                             <p>Did you know that KivaLens now works on smart-phones and tablets (iPad, Kindle, etc), too&#63;</p>
                             <p>Do you know any software developers&#63; KivaLens is open-source and will accept quality contributions (check out the About page for more information)</p>
-                            <p>You can hide loans you've already loaned to by adding your Lender ID in the Options tab, then checking the Criteria option to hide them.&#63;</p>
+                            <p>You can hide loans you've already loaned to by adding your Lender ID in the Options tab, then checking the Criteria Portfolio option to hide them.&#63;</p>
+                            <p>Use the "Saved Search" button when you have your search exactly like you want it, give it a name and be able to return to it whenever you want.</p>
                             <p>There's also a "Kiva Lender Assistant" Chrome Browser plugin that will talk to you and show graphs and final repayment information on the Lend Tab. See the About page for more information.</p>
                             <p>You can click anywhere in one of the drop-down boxes to bring up the selection (you don't need to click the little arrow) or just start typing.</p>
                             <p>Kiva's site does not allow you to search by "Tags" but they are a great way to search! You can look for Interesting Photos, Inspiring Stories, Repeat Borrowers and many more!</p>

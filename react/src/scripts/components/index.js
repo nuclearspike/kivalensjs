@@ -22,6 +22,7 @@ import ChartDistribution from './ChartDistribution.jsx'
 import CriteriaTabs from './CriteriaTabs.jsx'
 import RandomChild from './RandomChild.jsx'
 import CycleChild from './CycleChild.jsx'
+import PromptModal from './PromptModal.jsx'
 
 //when mistakenly importing without {}'s around variable name. prevents obscure errors.
 import CatchNoCurlies from './CatchNoCurlies.jsx';
@@ -30,4 +31,4 @@ export default CatchNoCurlies;
 
 export {Search, Loan, NotFound, About, Basket, Options, Criteria, KivaImage,
     KLNav, KLFooter, LoadingLoansModal, BulkAddModal, LoanListItem, BasketListItem,
-    ChartDistribution, CriteriaTabs, ClearBasket, RandomChild, CycleChild}
+    ChartDistribution, CriteriaTabs, ClearBasket, RandomChild, CycleChild, PromptModal}

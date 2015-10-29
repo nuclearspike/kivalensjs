@@ -1,14 +1,13 @@
 import React from 'react';
 import Reflux from 'reflux'
 import {Modal,Button} from 'react-bootstrap'
+import LinkedStateMixin from 'react-addons-linked-state-mixin'
 import a from '../actions'
 import s from '../stores/'
 
 const BulkAddModal = React.createClass({
-    //mixins: [Reflux.ListenerMixin],
-    getInitialState: function () {
-        return {show: true, maxBasket: 25, maxPerLoan: 25}
-    },
+    mixins: [LinkedStateMixin],
+    getInitialState: function () { return {show: true, maxBasket: 1000, maxPerLoan: 25} },
     componentDidMount: function () {
         window.rga.modalview('/bulkadd');
         this.loans = s.loans.syncFilterLoansLast()
@@ -40,20 +39,7 @@ const BulkAddModal = React.createClass({
         a.loans.basket.batchAdd(to_add)
         this.close()
     },
-    maxBasketUpdate(){
-        this.setState({maxBasket: this.refs.maxBasket.value})
-    },
-    maxPerLoanUpdate(){
-        this.setState({maxPerLoan: this.refs.maxPerLoan.value})
-    },
     render: function () {
-        var _this = this
-        var maxBasketUpdate = function(){
-            _this.setState({maxBasket: _this.refs.maxBasket.value})
-        }
-        var maxPerLoanUpdate = function(){
-            _this.setState({maxPerLoan: _this.refs.maxPerLoan.value})
-        }
         return (
             <div className="static-modal">
                 <Modal show={this.state.show} onHide={this.close}>
@@ -71,10 +57,10 @@ const BulkAddModal = React.createClass({
                             loan may possibly get reduced.)</p>
 
                         Max to lend ${this.state.maxBasket}
-                        <input type="range" min="25" defaultValue={this.state.maxBasket} max={this.state.basket_space} step="25" ref='maxBasket' onInput={maxBasketUpdate} onChange={maxBasketUpdate}/>
+                        <input type="range" min="25" defaultValue={this.state.maxBasket} max={this.state.basket_space} step="25" valueLink={this.linkState('maxBasket')}/>
                         <br/>
                         Max per loan ${this.state.maxPerLoan}
-                        <input type="range" min="25" defaultValue={this.state.maxPerLoan} max="250" step="25" ref='maxPerLoan' onInput={maxPerLoanUpdate} onChange={maxPerLoanUpdate} />
+                        <input type="range" min="25" defaultValue={this.state.maxPerLoan} max="250" step="25" valueLink={this.linkState('maxPerLoan')} />
 
                     </Modal.Body>
 

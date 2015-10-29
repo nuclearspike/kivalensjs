@@ -1,7 +1,6 @@
 'use strict';
 
 import React from 'react'
-import Reflux from 'reflux'
 import {ListGroupItem} from 'react-bootstrap';
 import {KivaImage} from '.'
 import cx from 'classnames'
@@ -9,16 +8,11 @@ import a from '../actions'
 import s from '../stores/'
 
 const BasketListItem = React.createClass({
-    //mixins: [Reflux.ListenerMixin],
     getInitialState: function () {
         return {  }
     },
-    componentDidMount: function() {
-        //this.listenTo(a.loans.basket.changed, ()=>{ this.setState({inBasket: s.loans.syncInBasket(this.props.id)}) })
-    },
     render: function() {
         var loan = this.props.loan;
-
         return (
             <ListGroupItem
                 className={'loan_list_item'}

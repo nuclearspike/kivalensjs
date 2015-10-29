@@ -38,6 +38,7 @@
     "qb-react-growl": "0.0.5",
     "react": "^0.14.0",
     "react-bootstrap": "^0.27.1",
+    "react-bootstrap-prompt": "^1.0.1",
     "react-bs-notifier": "^0.3.0",
     "react-cursor": "^1.2.1",
     "react-ga": "^1.1.0",

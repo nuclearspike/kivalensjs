@@ -2,7 +2,7 @@
 
 import Reflux from 'reflux'
 
-var a = {loans: null, criteria: null, partners: null, notifications: null};
+var a = {loans: null, criteria: null, partners: null, notifications: null, utils: null};
 
 a.loans = Reflux.createActions({
     "load": {children: ["progressed", "completed", "failed"]},
@@ -21,7 +21,7 @@ a.partners = Reflux.createActions({
 });
 
 a.criteria  = Reflux.createActions([
-    "change","lenderLoansEvent"
+    "change","lenderLoansEvent","savedSearchListChanged","switchToSaved","reload","startFresh"
 ])
 a.criteria.getLast = Reflux.createAction({
     children: ["completed"]
@@ -29,6 +29,10 @@ a.criteria.getLast = Reflux.createAction({
 
 a.notifications = Reflux.createAction({
     children: ["show"]
+})
+
+a.utils = Reflux.createAction({
+    children: ["prompt"]
 })
 
 window.kl_actions = a

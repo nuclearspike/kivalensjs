@@ -18,13 +18,18 @@ const CriteriaTabs = React.createClass({
         this.state_count = 0
         this.options = {}
         this.setKnownOptions()
-        this.last_criteria = $.extend(true, this.blankCriteria(), s.criteria.syncGetLast())
-        this.setState({criteria_loan_use: this.last_criteria.loan.use, criteria_loan_name: this.last_criteria.loan.name}) //hack!
-        if (kivaloans.loans_from_kiva.length) this.loansReady()
+        this.reloadCriteria(s.criteria.syncGetLast()) //must be here or errors.
     },
     componentDidMount: function () {
         this.listenTo(a.loans.load.completed, this.loansReady)
         this.listenTo(a.criteria.lenderLoansEvent, this.lenderLoansEvent)
+        this.listenTo(a.criteria.reload, this.reloadCriteria)
+        if (kivaloans.loans_from_kiva.length) this.loansReady()
+        this.criteriaChanged()
+    },
+    reloadCriteria(criteria = {}){
+        this.last_criteria = $.extend(true, this.blankCriteria(), criteria)
+        this.setState({criteria_loan_use: this.last_criteria.loan.use, criteria_loan_name: this.last_criteria.loan.name}) //hack!
         this.criteriaChanged()
     },
     lenderLoansEvent(event){
@@ -104,10 +109,14 @@ const CriteriaTabs = React.createClass({
             exclude_portfolio_loans: this.refs.exclude_portfolio_loans.getChecked()
         }
 
+        //
         var loan_sliders = ['repaid_in','borrower_count','percent_female','still_needed','expiring_in_days']
         loan_sliders.forEach(ref => getSliderVal(criteria.loan, ref))
+
+        //if you add any to this array, it must change the criteriaStore as well for the meta
         var partner_sliders = ['partner_risk_rating','partner_arrears','partner_default','portfolio_yield','profit','loans_at_risk_rate','currency_exchange_loss_rate']
         partner_sliders.forEach(ref => getSliderVal(criteria.partner, ref))
+
         this.last_criteria = criteria
         this.state_count++
         this.setState({state_count: this.state_count})
@@ -122,10 +131,7 @@ const CriteriaTabs = React.createClass({
         return {loan: {}, partner: {}, portfolio: {exclude_portfolio_loans: true}}
     },
     clearCriteria(){
-        var blank_c = this.blankCriteria()
-        this.criteriaChanged()
-        this.setState({criteria_loan_use: '', criteria_loan_name: ''}) //hacky
-        a.criteria.change(blank_c)
+        this.reloadCriteria(this.blankCriteria())
     },
     tabSelect: function(selectedKey){
         this.setState({activeTab: selectedKey});
@@ -225,7 +231,7 @@ const CriteriaTabs = React.createClass({
                     </Row>
                 </Tab>
             </Tabs>
-            <Button disabled onClick={this.clearCriteria}>Clear</Button>
+            <Button onClick={this.clearCriteria}>Clear</Button>
             </div>
         );
     }

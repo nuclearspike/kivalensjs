@@ -7,7 +7,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import Router from 'react-router'
 import {Route, Redirect, IndexRoute} from 'react-router'
-import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, Criteria, ClearBasket, NotFound} from "./components";
+import {KLNav, KLFooter, Search, Loan, Basket, Options, About, Details, Schedule, Criteria, ClearBasket, NotFound, PromptModal} from "./components";
 import KivaAPI from './api/kiva'
 import ga from 'react-ga';
 import a from './actions'
@@ -70,6 +70,7 @@ const App = React.createClass({
         this.logPageChange()
         return <div>
                 <KLNav/>
+                    <PromptModal/>
                     {this.props.children}
                 <KLFooter/>
             </div>
