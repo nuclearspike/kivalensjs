@@ -188,7 +188,7 @@ class ResultProcessors {
             })
             //memory clean up
             loan.description.languages.where(lang => lang != 'en').forEach(lang => delete loan.description.texts[lang])
-            delete loan.terms.local_payments
+            delete loan.terms.local_payments //we don't care
 
         } else {
             //this happens during the background refresh.
@@ -197,7 +197,6 @@ class ResultProcessors {
         $.extend(loan, addIt)
 
         //do memory clean up of larger pieces of the loan object.
-        delete loan.tags
         delete loan.journal_totals
         delete loan.translator
         delete loan.location.geo

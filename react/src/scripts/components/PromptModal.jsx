@@ -9,7 +9,6 @@ const PromptModal = React.createClass({
     getInitialState() {return {show: false} },
     componentDidMount() {
         this.listenTo(a.utils.prompt, this.showPrompt)
-        //this.refs.return_value.getInputDOMNode().focus()
     },
     showPrompt(options){
         this.callback = options.callback
@@ -41,7 +40,7 @@ const PromptModal = React.createClass({
                     </Modal.Footer>
                 </Modal>
             </div>
-        );
+        )
     }
 })
 

@@ -4,13 +4,16 @@ import Reflux from 'reflux'
 import {Loans} from '../api/kiva'
 import a from '../actions'
 import criteriaStore from './criteriaStore'
+//var linq = require('lazy-linq');
+import * as linq from '../../../node_modules/lazy-linq/linq'
+linq.installAsEnumerable()
 
 //array of api loan objects that are sorted in the order they were returned.
 var basket_loans = []
 var last_filtered = []
 var last_partner_search = {}
 var last_partner_search_count = 0
-var kivaloans = new Loans(0) //15*60*100
+var kivaloans = new Loans(15*60*1000) //15*60*100
 
 //bridge the downloading/processing generic API class with the React app.
 kivaloans.init().progress(progress => {
@@ -196,6 +199,7 @@ var loanStore = Reflux.createStore({
         if (!c){ c = criteriaStore.syncGetLast() }
         $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
         console.log("$$$$$$$ syncFilterLoans",c)
+        console.time("syncFilterLoans")
 
         //break this into another unit --store? LoansAPI.filter(loans, criteria)
 
@@ -221,7 +225,7 @@ var loanStore = Reflux.createStore({
 
         var lender_loan_ids = c.portfolio.exclude_portfolio_loans ? kivaloans.lender_loans : []
 
-        last_filtered = kivaloans.loans_from_kiva.where(loan => {
+        var linq_loans = kivaloans.loans_from_kiva.where(loan => { //asEnumerable()
             return loan.status == 'fundraising' &&
                 partner_ids.contains(loan.partner_id) && //ids must always be populated. there isn't the normal "if empty, skip"
                 stSector.exact(loan.sector) &&
@@ -235,7 +239,7 @@ var loanStore = Reflux.createStore({
                 rgStillNeeded.range(loan.loan_amount - loan.basket_amount - loan.funded_amount) &&
                 rgExpiringInDays.range(loan.kl_expiring_in_days) &&
                 stName.contains(loan.name) &&
-                !lender_loan_ids.contains(loan.id)     //find a better way?
+                !lender_loan_ids.contains(loan.id) && //find a better way?
                 stUse.terms_arr.all(search_term => loan.kl_use_or_descr_arr.any(w => w.startsWith(search_term) ) )
         })
 
@@ -254,20 +258,22 @@ var loanStore = Reflux.createStore({
         //loans are default ordered by 50 back, 75 back, last repayment
         switch (c.loan.sort) {
             case 'final_repayment':
-                last_filtered = last_filtered.orderBy(loan => loan.kl_final_repayment, basicOrder)
+                linq_loans = linq_loans.orderBy(loan => loan.kl_final_repayment).thenByDescending(loan => loan.id)
                 break
             case 'popularity':
-                last_filtered = last_filtered.orderBy(loan => loan.kl_dollars_per_hour, basicReverseOrder)
+                linq_loans = linq_loans.orderBy(loan => loan.kl_dollars_per_hour, basicReverseOrder)
                 break
             case 'newest':
-                last_filtered = last_filtered.orderBy(loan => loan.kl_newest_sort, basicOrder) //.thenByDescending(loan => loan.id)
+                linq_loans = linq_loans.orderBy(loan => loan.kl_newest_sort).thenByDescending(loan => loan.id)
                 break
             case 'expiring':
-                last_filtered = last_filtered.orderBy(loan => loan.kl_expiring_in_days, basicOrder).thenBy(loan => loan.id)
+                linq_loans = linq_loans.orderBy(loan => loan.kl_expiring_in_days).thenBy(loan => loan.id)
                 break
             default:
-                last_filtered = last_filtered.orderBy(loan => loan.kl_half_back).thenBy(loan => loan.kl_75_back).thenBy(loan => loan.kl_final_repayment)
+                linq_loans = linq_loans.orderBy(loan => loan.kl_half_back).thenBy(loan => loan.kl_75_back).thenBy(loan => loan.kl_final_repayment)
         }
+        last_filtered = linq_loans //.toArray()
+        console.timeEnd("syncFilterLoans")
         return last_filtered
     }
 });

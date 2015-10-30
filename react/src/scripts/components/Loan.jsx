@@ -4,6 +4,7 @@ import Reflux from 'reflux'
 var Highcharts = require('react-highcharts/dist/bundle/highcharts')
 import {History} from 'react-router'
 import {Tabs,Tab,Col,ProgressBar,Button} from 'react-bootstrap'
+import TimeAgo from 'react-timeago'
 import {KivaImage} from '.'
 import a from '../actions'
 import s from '../stores/'
@@ -97,7 +98,7 @@ var Loan = React.createClass({
     render: function() {
         var loan = this.state.loan
         var partner = this.state.partner
-
+        if (!partner.social_performance_strengths) partner.social_performance_strengths = [] //happens other than old partners? todo: do a partner processor?
         return (
             <div>
                 <h1 style={{marginTop:'0px'}}>{loan.name}
@@ -124,8 +125,8 @@ var Loan = React.createClass({
                                 <dt>Tags</dt><dd>{(loan.kl_tags.length)? loan.kl_tags.join(', '): '(none)'}</dd>
                                 <dt>Themes</dt><dd>{(loan.themes && loan.themes.length)? loan.themes.join(', '): '(none)'}</dd>
                                 <dt>Borrowers</dt><dd>{loan.borrowers.length} ({Math.round(loan.kl_percent_women)}% Female) </dd>
-                                <dt>Posted</dt><dd>{loan.kl_posted_date.toString('MMM d, yyyy @ h:mm:ss tt')}</dd>
-                                <dt>Expires</dt><dd>{Date.from_iso(loan.planned_expiration_date).toString('MMM d, yyyy @ h:mm:ss tt')}</dd>
+                                <dt>Posted</dt><dd>{loan.kl_posted_date.toString('MMM d, yyyy @ h:mm:ss tt')} (<TimeAgo date={loan.posted_date} />)</dd>
+                                <dt>Expires</dt><dd>{Date.from_iso(loan.planned_expiration_date).toString('MMM d, yyyy @ h:mm:ss tt')} (<TimeAgo date={loan.planned_expiration_date} />) </dd>
                             </dl>
                             <dl className="dl-horizontal">
                                 <dt>$/Hour</dt><dd>${numeral(loan.kl_dollars_per_hour).format('0.00')}</dd>

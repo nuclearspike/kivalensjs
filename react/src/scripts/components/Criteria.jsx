@@ -19,29 +19,27 @@ const Criteria = React.createClass({
         newState.saved_searches = s.criteria.syncGetAllNames()
         newState.lastSaved = s.criteria.syncGetLastSwitch()
         this.setState(newState)
-        a.loans.filter() //todo: temp??? graphs disappearing.
+        //a.loans.filter() //todo: temp??? graphs disappearing.
+    },
+    clearCriteria(){
+        a.criteria.startFresh()
+        this.setState({cycle: Math.random().toString()})
     },
     promptForName(){
         console.log("promptForName()")
         var options = {title: "Enter Name for Search Criteria", label: 'Name', callback: s.criteria.syncSaveLastByName}
         a.utils.prompt(options)
-        //var new_name = prompt('Enter Name for Search Criteria')
-        //if (new_name) s.criteria.syncSaveLastByName(new_name)
     },
     toggleGraph(){ this.setState({ show_graphs: !this.state.show_graphs }) },
     render() {
+        var tab_key = this.state.lastSaved + this.state.cycle
         return (
             <div>
                 <h1 style={{marginTop:'0px'}}>Criteria
                     <ButtonGroup className="float_right">
                         <Button className="hidden-xs hidden-sm" onClick={this.toggleGraph}>Graphs</Button>
+                        <Button onClick={this.clearCriteria}>Clear</Button>
                         <DropdownButton title='Saved Search' id='saved_search' pullRight>
-                            <If condition={this.state.lastSaved}>
-                                <MenuItem eventKey={4000} key='start_fresh' onClick={a.criteria.startFresh}>Create New</MenuItem>
-                            </If>
-                            <If condition={this.state.lastSaved}>
-                                <MenuItem divider />
-                            </If>
                             <For each='saved' index='i' of={this.state.saved_searches}>
                                 <MenuItem eventKey={i} key={i} onClick={a.criteria.switchToSaved.bind(this, saved)}>{saved}</MenuItem>
                             </For>
@@ -49,22 +47,22 @@ const Criteria = React.createClass({
                                 <MenuItem divider />
                             </If>
                             <If condition={this.state.lastSaved}>
-                                <MenuItem eventKey={1000} key='save_current' onClick={s.criteria.syncSaveLastByName.bind(this, this.state.lastSaved)}>Save Current Criteria as '{this.state.lastSaved}'</MenuItem>
+                                <MenuItem eventKey={1001} key='save_current' onClick={s.criteria.syncSaveLastByName.bind(this, this.state.lastSaved)}>Re-save Current Criteria '{this.state.lastSaved}'</MenuItem>
                             </If>
                             <If condition={this.state.lastSaved}>
-                                <MenuItem eventKey={3000} key='delete_saved' onClick={s.criteria.syncDelete.bind(this, this.state.lastSaved)}>Delete '{this.state.lastSaved}'</MenuItem>
+                                <MenuItem eventKey={1002} key='delete_saved' onClick={s.criteria.syncDelete.bind(this, this.state.lastSaved)}>Delete '{this.state.lastSaved}'</MenuItem>
                             </If>
                             <If condition={this.state.lastSaved}>
                                 <MenuItem divider />
                             </If>
-                            <MenuItem eventKey={2000} key='save_current_as' onClick={this.promptForName}>Save Current Criteria As...</MenuItem>
+                            <MenuItem eventKey={1003} key='save_current_as' onClick={this.promptForName}>Save Current Criteria As...</MenuItem>
                         </DropdownButton>
                     </ButtonGroup>
                 </h1>
                 <If condition={this.state.show_graphs}>
                     <ChartDistribution/>
                 </If>
-                <CriteriaTabs/>
+                <CriteriaTabs key={tab_key}/>
             </div>
         );
     }

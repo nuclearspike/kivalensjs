@@ -7,13 +7,13 @@ import a from '../actions'
 var LoadingLoansModal = React.createClass({
     mixins: [Reflux.ListenerMixin],
     getInitialState:function(){
-        return {progress_label: 'Please Wait', progress: 0, show: this.props.show, error_message: ''}
+        return {progress_label: 'Please Wait', show: this.props.show, error_message: ''}
     },
     componentDidMount: function() {
         window.rga.modalview('/loading');
         this.listenTo(a.loans.load.progressed, progress => {
             var new_state = {show: !kivaloans.hasLoans()}
-            if (progress.done) new_state[`${progress.task}_progress`]  = (progress.done * 100) / progress.total * (progress.task == 'ids'? .33 : .67)
+            if (progress.done) new_state[`${progress.task}_progress`] = (progress.done * 100) / progress.total * (progress.task == 'ids'? .33 : .67)
             if (progress.label) new_state.progress_label = progress.label
             if (progress.complete) new_state.show = false
             this.setState(new_state)

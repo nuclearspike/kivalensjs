@@ -12,22 +12,22 @@ var criteriaStore = Reflux.createStore({
         if (!this.last_known) this.last_known = {loan:{},partner:{},porfolio:{}}
     },
     onChange(criteria){
-        //console.log("criteriaStore:onChange", criteria)
+        console.log("criteriaStore:onChange", criteria)
         if (!criteria) criteria = this.last_known
         this.last_known = criteria
         a.loans.filter(criteria)
         localStorage.setItem('last_criteria', JSON.stringify(this.last_known))
     },
-    onGetLast(){ //why use this??
-        a.criteria.getLast.completed(this.last_known)
-        a.criteria.change(this.last_known) //? why ?
-    },
     syncGetLast(){
         return this.last_known
+    },
+    syncBlankCriteria(){
+        return {loan: {still_needed_min: 25}, partner: {}, portfolio: {exclude_portfolio_loans: true}}
     },
 
     //Saved Searches
     onSwitchToSaved(name){
+        window.rga.event({category: 'saved_search', action: 'saved_search: switch', label: name})
         var crit = this.all[name]
         if (crit){
             this.last_switch = name
@@ -37,9 +37,10 @@ var criteriaStore = Reflux.createStore({
         }
     },
     onStartFresh(){
+        var new_c = this.syncBlankCriteria()
         this.last_switch = null
-        a.criteria.reload()
-        this.onChange()
+        a.criteria.reload(new_c)
+        this.onChange(new_c)
         a.criteria.savedSearchListChanged()
     },
     syncGetLastSwitch(){
@@ -59,11 +60,14 @@ var criteriaStore = Reflux.createStore({
         return this.all[name]
     },
     syncSaveLastByName(name){
+        window.rga.event({category: 'saved_search', action: `saved_search: save: ${this.all[name] ? 're-save': 'new-save'}`, label: name})
+
         this.all[name] = this.last_known
         this.last_switch = name
         this.syncSavedAll()
     },
     syncDelete(name){
+        window.rga.event({category: 'saved_search', action: 'saved_search: delete', label: name})
         delete this.all[name]
         if (this.last_switch == name) this.last_switch = ''
         this.syncSavedAll()
