@@ -102,6 +102,65 @@ var About = React.createClass({
                 </li>
             </ul>
 
+            <h3>Reducing Risk</h3>
+            <ul>
+                <li>
+                    Institutional Risk: The "Risk Rating" for a partner is based on Kiva's assessment on whether or not
+                    partner will fail based on a huge formula as well as some good old fashioned gut feelings. The higher
+                    the star rating, the less likely it is for the partner to fail. This is not any indication on whether
+                    or not the borrower is risky or not.
+                </li>
+                <li>
+                    Currency Exchange Risk: Even if a borrower pays back in full, if they are paying back in a currency
+                    other than USD, there is a risk that you can lose some money due to the exchange rate. Using the
+                    Currency Exchange Loss % Partner slider, you can use history as your best indicator of the future.
+                </li>
+                <li>
+                    Default Rates: All partners will have defaults, some partners choose to cover the losses of defaulted
+                    borrowers in order to pay back Kiva lenders as a part of doing business to receive 0% financing from
+                    Kiva and to keep higher in the rankings. Choosing partners with 0% default means you are most likely
+                    choosing a partner that is covering losses, which if you have large amounts of money in, may be
+                    exactly what you're looking for.
+                </li>
+                <li>
+                    Portfolio Yield: Reducing organizations down to a number and then making assumptions based off
+                    that number can actually unintentionally exclude the very partners you would actually most like
+                    if you knew more about them. One of the most significant learnings I had when I worked at Kiva was
+                    regarding Portfolio Yield. PY values are based on costs charged to the borrower versus the amount
+                    of the loan. So, consider this... a partner that specializes in rural loans to agricultural
+                    borrowers where the loan amount is low, the expense to the partner to service the loan
+                    (travelling hours to collect monthly) is actually quite high, relative to a more urban partner that
+                    only does high value loans where their cost to service the loan is very low since the borrowers
+                    come in to their office. So, don't judge high PY values too harshly or you may just be excluding
+                    partners that are servicing the most needy borrowers.
+                </li>
+                <li>
+                    Profitability: When I initially wrote KivaLens (prior to working at Kiva), I incorrectly assumed
+                    that a partner with a negative profitability naturally meant they were at greater risk for
+                    institutional collapse and thus causing all outstanding loans to fail. This is not always true!
+                    There are a number of partners that receive money from outside sources to compensate for
+                    the losses that appear on their books from either private or government bodies. So,
+                    don't think that just because your borrower is getting a loan from a partner
+                    that has a large negative profit, that it means they're necessarily more likely to collapse
+                    and you'll lose your money. It's not that simple.
+                </li>
+                <li>
+                    Group Loans: Many times, with group loans if one borrower fails to pay, the other members of the
+                    group have agreed to pay for the defaulted borrower. To a lender who is focused on minimizing risk
+                    of loss, this means group loans generally are expected to have a higher probability of repayment
+                    than individual.
+                </li>
+                <li>
+                    Repeat Borrowers: Just because a borrower is coming back for a second or third loan does NOT mean
+                    they are more risky. In fact, it can mean the opposite. If a borrower has completed a loan
+                    successfully and the partner has chosen to give them another loan, then many times that means
+                    they are more likely to repay. Repeat borrowers does not necessarily mean they are in a cycle
+                    of debt, but instead that they've shown that their previous loan was so successful in improving
+                    their business that another loan can help them to continue to grow their business. Use
+                    the {'#'}RepeatBorrower tag search to help find them.
+                </li>
+            </ul>
+
             <h3>Open-source</h3>
             <p>
                 Kiva Lens is now open-source, so feel free to <a href="mailto:liquidmonkey@gmail.com?subject=KivaLensDeveloper" target="_blank">email me</a> about

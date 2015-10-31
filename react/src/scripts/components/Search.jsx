@@ -49,12 +49,12 @@ var Search = React.createClass({
     render: function()  {
         console.log("Search:render()")
         var style = {height:'100%', width: '100%'};
-        var bulkAddModal = (this.state.showBulkAdd)? (<BulkAddModal onHide={this.modalHidden} />) : null
-        //    max-width: 365px; for the col
         return (
             <div style={style} >
                 <LoadingLoansModal show={!s.loans.syncHasLoadedLoans()}/>
-                {bulkAddModal}
+                <If condition={this.state.showBulkAdd}>
+                    <BulkAddModal onHide={this.modalHidden} />
+                </If>
                 <Col md={4}>
                     <Notification dismissAfter={5000} isActive={this.state.notification.active} message={this.state.notification.message} action={''} />
                     <ButtonGroup justified>
