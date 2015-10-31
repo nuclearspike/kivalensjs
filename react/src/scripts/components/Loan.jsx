@@ -3,7 +3,7 @@ import React from 'react'
 import Reflux from 'reflux'
 var Highcharts = require('react-highcharts/dist/bundle/highcharts')
 import {History} from 'react-router'
-import {Tabs,Tab,Col,ProgressBar,Button} from 'react-bootstrap'
+import {Tabs,Tab,Col,Row,ProgressBar,Button} from 'react-bootstrap'
 import TimeAgo from 'react-timeago'
 import {KivaImage} from '.'
 import a from '../actions'
@@ -118,9 +118,12 @@ var Loan = React.createClass({
                                 <ProgressBar striped bsStyle="success" now={this.state.funded_perc} key={1}/>
                                 <ProgressBar bsStyle="warning" now={this.state.basket_perc} key={2}/>
                             </ProgressBar>
-                        <b>{loan.location.country} | {loan.sector} | {loan.activity} | {loan.use}</b>
-                        <p dangerouslySetInnerHTML={{__html: loan.description.texts.en}} ></p>
-                        <a href={`http://www.kiva.org/lend/${loan.id}?default_team=kivalens`} target="_blank">View Loan on Kiva.org</a>
+                        <Row>
+                            <b>{loan.location.country} | {loan.sector} | {loan.activity} | {loan.use}</b>
+                        </Row>
+                        <Row>
+                            <a href={`http://www.kiva.org/lend/${loan.id}?default_team=kivalens`} target="_blank">View on Kiva.org</a>
+                        </Row>
                             <dl className="dl-horizontal">
                                 <dt>Tags</dt><dd>{(loan.kl_tags.length)? loan.kl_tags.join(', '): '(none)'}</dd>
                                 <dt>Themes</dt><dd>{(loan.themes && loan.themes.length)? loan.themes.join(', '): '(none)'}</dd>
@@ -135,6 +138,7 @@ var Loan = React.createClass({
                                 <dt>Basket Amount</dt><dd>${loan.basket_amount}</dd>
                                 <dt>Still Needed</dt><dd>${loan.loan_amount - loan.funded_amount - loan.basket_amount}</dd>
                             </dl>
+                            <p dangerouslySetInnerHTML={{__html: loan.description.texts.en}} ></p>
 
                         </Col>
                         <Col style={{height: '500px'}} lg={4} id='graph_container'>

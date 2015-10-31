@@ -17,6 +17,7 @@ const BasketListItem = React.createClass({
             <ListGroupItem
                 className={'loan_list_item'}
                 key={loan.id}
+                onClick={a.loans.basket.select.bind(null, loan.id)}
                 href={`#/basket`}>
                 <KivaImage className="float_left" type="square" loan={loan} image_width={113} height={90} width={90}/>
                 <div className="details">

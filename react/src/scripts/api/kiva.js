@@ -137,7 +137,7 @@ class ResultProcessors {
                 var matches = text.match(/(\w+)/g) //splits on word boundaries
                 if (!Array.isArray(matches)) return []
                 return matches.distinct() //ignores repeats
-                    .where(word => word != undefined && word.length > 2) //ignores words 2 characters or less
+                    .where(word => (word != undefined) && (word.length > 2)) //ignores words 2 characters or less
                     .select(word => word.toUpperCase()) //UPPERCASE
                     .where(word => !ignore_words.contains(word) ) //ignores common words
             } else {
@@ -186,6 +186,7 @@ class ResultProcessors {
                     return true //quit
                 }
             })
+
             //memory clean up
             loan.description.languages.where(lang => lang != 'en').forEach(lang => delete loan.description.texts[lang])
             delete loan.terms.local_payments //we don't care

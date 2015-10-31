@@ -7,7 +7,52 @@ var criteriaStore = Reflux.createStore({
     init(){
         this.last_known = JSON.parse(localStorage.getItem('last_criteria'))
         this.all = JSON.parse(localStorage.getItem('all_criteria'))
-        if (!this.all) this.all = {}
+        if (!this.all) {
+            this.all = {
+                "Expiring Soon": {
+                    "loan": {
+                        "sort": "expiring",
+                        "still_needed_min": 25,
+                        "expiring_in_days_max": 3
+                    },
+                    "partner": {},
+                    "portfolio": {"exclude_portfolio_loans": true}
+                },
+                "Short Term": {
+                    "loan": {
+                        "repaid_in_max": 6,
+                        "still_needed_min": 25
+                    },
+                    "partner": {},
+                    "portfolio": {"exclude_portfolio_loans": true}
+                },
+                "Popular": {
+                    "loan": {
+                        "sort": "popularity",
+                        "still_needed_min": 25
+                    },
+                    "partner": {},
+                    "portfolio": {"exclude_portfolio_loans": true}
+                },
+                "Interesting Photo": {
+                    "loan": {
+                        "tags": "#InterestingPhoto",
+                        "still_needed_min": 25
+                    },
+                    "partner": {},
+                    "portfolio": {"exclude_portfolio_loans": true}
+                },
+                "Inspiring Story": {
+                    "loan": {
+                        "tags": "#InspiringStory",
+                        "still_needed_min": 25
+                    },
+                    "partner": {},
+                    "portfolio": {"exclude_portfolio_loans": true}
+                }
+            }
+            this.syncSavedAll()
+        }
         console.log("loaded from localStorage:",this.last_known)
         if (!this.last_known) this.last_known = {loan:{},partner:{},porfolio:{}}
     },
@@ -25,11 +70,30 @@ var criteriaStore = Reflux.createStore({
         return {loan: {still_needed_min: 25}, partner: {}, portfolio: {exclude_portfolio_loans: true}}
     },
 
+    stripNullValues(crit){
+        ['loan','partner','portfolio'].forEach(group => {
+            if (crit[group]) {
+                Object.keys(crit[group]).forEach(key => {
+                    if (crit[group][key] == null || crit[group][key] == undefined || crit[group][key] == '') delete crit[group][key]
+                })
+            }
+        })
+
+        return crit
+    },
+    fixUpgrades(crit){
+        if (crit.partner && crit.partner.social_performance && Array.isArray(crit.partner.social_performance)){
+            crit.partner.social_performance = crit.partner.social_performance.join(',')
+        }
+        return crit
+    },
+
     //Saved Searches
     onSwitchToSaved(name){
         window.rga.event({category: 'saved_search', action: 'saved_search: switch', label: name})
         var crit = this.all[name]
         if (crit){
+            this.fixUpgrades(crit)
             this.last_switch = name
             a.criteria.reload(crit)
             this.onChange(crit)
@@ -57,12 +121,13 @@ var criteriaStore = Reflux.createStore({
         a.criteria.savedSearchListChanged()
     },
     syncGetByName(name){
-        return this.all[name]
+        return this.stripNullValues(this.all[name])
     },
     syncSaveLastByName(name){
+        if (!name) return
         window.rga.event({category: 'saved_search', action: `saved_search: save: ${this.all[name] ? 're-save': 'new-save'}`, label: name})
 
-        this.all[name] = this.last_known
+        this.all[name] = this.stripNullValues(this.last_known)
         this.last_switch = name
         this.syncSavedAll()
     },

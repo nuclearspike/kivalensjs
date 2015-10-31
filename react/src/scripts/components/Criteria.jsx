@@ -39,7 +39,7 @@ const Criteria = React.createClass({
                     <ButtonGroup className="float_right">
                         <Button className="hidden-xs hidden-sm" onClick={this.toggleGraph}>Graphs</Button>
                         <Button onClick={this.clearCriteria}>Clear</Button>
-                        <DropdownButton title='Saved Search' id='saved_search' pullRight>
+                        <DropdownButton title={`Saved Search ${this.state.lastSaved ? "'" + this.state.lastSaved + "'" : ''}`} id='saved_search' pullRight>
                             <For each='saved' index='i' of={this.state.saved_searches}>
                                 <MenuItem eventKey={i} key={i} onClick={a.criteria.switchToSaved.bind(this, saved)}>{saved}</MenuItem>
                             </For>

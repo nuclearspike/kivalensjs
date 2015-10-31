@@ -11,31 +11,29 @@ import InfiniteList from 'react-infinite-list'
 const Basket = React.createClass({
     mixins: [Reflux.ListenerMixin],
     getInitialState() {
+        return $.extend(true, this.generateState(), {showGoodbye: false})
+    },
+    componentDidMount(){
+        this.listenTo(a.loans.load.completed,()=>{ this.setState(this.generateState()) })
+        this.listenTo(a.loans.basket.changed,()=>{ this.setState(this.generateState()) })
+        this.listenTo(a.loans.basket.select, id => this.setState({selected_item_id: id}))
+    },
+    generateState(){
         var basket_items = s.loans.syncGetBasket()
         return {
             basket_count: basket_items.length,
             basket_items: basket_items,
             loans: basket_items.select(bi => bi.loan),
-            amount_sum: basket_items.sum(bi => bi.amount),
-            showGoodbye: false
+            amount_sum: basket_items.sum(bi => bi.amount)
         }
-    },
-    componentDidMount(){
-        this.listenTo(a.loans.basket.changed,()=>{
-            var basket_items = s.loans.syncGetBasket()
-            this.setState({
-                basket_count: basket_items.length,
-                basket_items: basket_items,
-                loans: basket_items.select(bi => bi.loan),
-                amount_sum: basket_items.sum(bi => bi.amount)
-            })
-        })
     },
     makeBasket: function(){
         return JSON.stringify(this.state.basket_items.select(bi => {return {"id": bi.loan.id, "amount": bi.amount}}))
     },
-    remove() {
-
+    remove(e) {
+        e.preventDefault()
+        a.loans.basket.remove(this.state.selected_item_id)
+        this.setState({selected_item_id: null})
     },
     clear(e){
         e.preventDefault()
@@ -55,7 +53,7 @@ const Basket = React.createClass({
                 <Col md={4}>
                     <ButtonGroup justified>
                         <Button href="#" key={1} disabled={this.state.basket_count == 0} onClick={this.clear}>Empty Basket</Button>
-                        <Button href="#" key={2} disabled onClick={this.remove}>Remove Selected</Button>
+                        <Button href="#" key={2} disabled={!this.state.selected_item_id} onClick={this.remove}>Remove Selected</Button>
                     </ButtonGroup>
                     <InfiniteList
                         className="loan_list_container"

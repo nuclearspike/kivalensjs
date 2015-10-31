@@ -165,7 +165,8 @@ var loanStore = Reflux.createStore({
             partner_ids = last_partner_search[partner_criteria_json]
         } else {
             last_partner_search_count++
-            var stSocialPerf = makeExactTester(c.partner.social_performance)
+            var sp_arr = c.partner.social_performance ? c.partner.social_performance.split(',').where(sp => sp && !isNaN(sp)).select(sp => parseInt(sp)) : []
+            var stSocialPerf = makeExactTester(sp_arr)
             var stRegion     = makeExactTester(c.partner.region)
             var rgRisk       = makeRangeTester(c.partner, 'partner_risk_rating')
             var rgDefault    = makeRangeTester(c.partner, 'partner_default')

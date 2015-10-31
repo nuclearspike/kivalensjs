@@ -29,7 +29,8 @@ const Options = React.createClass({
                             min={8}
                             max={120}
                             valueLink={this.linkState('maxRepaymentTerms')}/>
-                        After the initial load, if you keep the app open long enough, the rest of the loans will get loaded.
+                        After the initial load, if you keep the app open long enough, the rest of the loans will get loaded so you'll still need to use the
+                        final repayment date criteria option.
                     </Panel>
                     <Panel header='Who are you?'>
                         <Row>
