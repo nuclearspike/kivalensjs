@@ -18,7 +18,7 @@ var About = React.createClass({
             <h3>Questions{'?'}</h3>
             <p>
                 All of the data that KivaLens displays is either a direct presentation of or computation from data that
-                pulled from <a href="http://build.kiva.org/api" target="_blank">Kiva.org's Public API</a>. If you have
+                is pulled from <a href="http://build.kiva.org/api" target="_blank">Kiva.org's Public API</a>. If you have
                 any questions about why a loan is showing certain data (where you have confirmed that it's the
                 same on Kiva's own site) or if you have questions about what that data means, please check
                 out <a href="http://www.kiva.org/help" target="_blank">Kiva's Help Center or contact Kiva Customer Service</a>.
@@ -103,6 +103,10 @@ var About = React.createClass({
             </ul>
 
             <h3>Reducing Risk</h3>
+            <p>
+                None of this guarantees you anything. These are just learnings I've had from being both a power lender
+                and while I was employed at Kiva.
+            </p>
             <ul>
                 <li>
                     Institutional Risk: The "Risk Rating" for a partner is based on Kiva's assessment on whether or not
