@@ -106,14 +106,15 @@ var About = React.createClass({
             <ul>
                 <li>
                     Institutional Risk: The "Risk Rating" for a partner is based on Kiva's assessment on whether or not
-                    partner will fail based on a huge formula as well as some good old fashioned gut feelings. The higher
+                    a partner will fail based on a huge formula as well as some good old fashioned gut feelings. The higher
                     the star rating, the less likely it is for the partner to fail. This is not any indication on whether
                     or not the borrower is risky or not.
                 </li>
                 <li>
                     Currency Exchange Risk: Even if a borrower pays back in full, if they are paying back in a currency
                     other than USD, there is a risk that you can lose some money due to the exchange rate. Using the
-                    Currency Exchange Loss % Partner slider, you can use history as your best indicator of the future.
+                    Currency Exchange Loss % Partner slider, you can use history as your best indicator of the future for
+                    how much you may lose. Some partners cover more of the currency loss than others.
                 </li>
                 <li>
                     Default Rates: All partners will have defaults, some partners choose to cover the losses of defaulted
