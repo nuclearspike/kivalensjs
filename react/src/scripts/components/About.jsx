@@ -25,7 +25,7 @@ var About = React.createClass({
             </p>
             <p>
                 If you find a discrepancy between Kiva's site and what KivaLens' displays for loans or partners or if
-                you feel that a computation is incorrect, or you find something unusual about how KivaLens is working
+                you feel that a computation or filter is incorrect, or you find something unusual about how KivaLens is working
                 then <a href="mailto:liquidmonkey@gmail.com?subject=KivaLens-Bug" target="_blank">let me know</a> and
                 include as many details about what loan/partner and information you can so that I can reproduce the
                 problem.
