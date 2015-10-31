@@ -166,7 +166,13 @@ const CriteriaTabs = React.createClass({
         this.options.portfolio_yield = {min: 0, max: 100, label: 'Portfolio Yield (%)'}
         this.options.profit = {min: -100, max: 100, label: 'Profit (%)'}
         this.options.loans_at_risk_rate = {min: 0, max: 100, label: 'Loans at Risk (%)'}
-        this.options.currency_exchange_loss_rate = {min: 0, max: 20, label: 'Currency Exchange Loss (%)'}
+        this.options.currency_exchange_loss_rate = {min: 0, max: 10, label: 'Currency Exchange Loss (%)'}
+        this.options.average_loan_size_percent_per_capita_income = {min: 0, max: 300, label: 'Average Loan/Capita Income'}
+
+    },
+    criteriaChanged(){
+        clearTimeout(timeoutHandle);
+        timeoutHandle = setTimeout(this.buildCriteria, 150)
     },
     buildCriteria: function(){
         var criteria = s.criteria.syncBlankCriteria()
@@ -176,10 +182,6 @@ const CriteriaTabs = React.createClass({
         this.setState({state_count: this.state_count})
         console.log("######### buildCriteria: criteria", criteria)
         a.criteria.change(criteria)
-    },
-    criteriaChanged(){
-        clearTimeout(timeoutHandle);
-        timeoutHandle = setTimeout(this.buildCriteria, 250)
     },
     tabSelect: function(selectedKey){
         if (this.state.activeTab != selectedKey) {
@@ -216,7 +218,7 @@ const CriteriaTabs = React.createClass({
                     <For each='name' index='i' of={['region','social_performance']}>
                         <SelectRow key={i} group={cPartner} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
                     </For>
-                    <For each='name' index='i' of={['partner_risk_rating','partner_arrears','partner_default','portfolio_yield','profit','loans_at_risk_rate','currency_exchange_loss_rate']}>
+                    <For each='name' index='i' of={['partner_risk_rating','partner_arrears','partner_default','portfolio_yield','profit','loans_at_risk_rate','currency_exchange_loss_rate', 'average_loan_size_percent_per_capita_income']}>
                         <SliderRow key={`${this.state.tab_flips}_${i}`} group={cPartner} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
                     </For>
                 </Tab>

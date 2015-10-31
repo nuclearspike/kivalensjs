@@ -181,6 +181,7 @@ var loanStore = Reflux.createStore({
             var rgProfit     = makeRangeTester(c.partner, 'profit')
             var rgAtRisk     = makeRangeTester(c.partner, 'loans_at_risk_rate')
             var rgCEX        = makeRangeTester(c.partner, 'currency_exchange_loss_rate')
+            var rgPCP        = makeRangeTester(c.partner, 'average_loan_size_percent_per_capita_income')
 
             //filter the partners
             partner_ids = kivaloans.partners_from_kiva.where(p => {
@@ -192,6 +193,7 @@ var loanStore = Reflux.createStore({
                     && rgPY.range(p.portfolio_yield)
                     && rgAtRisk.range(p.loans_at_risk_rate)
                     && rgCEX.range(p.currency_exchange_loss_rate)
+                    && rgPCP.range(p.average_loan_size_percent_per_capita_income)
                     && (isNaN(parseFloat(p.rating)) ? c.partner.rating_min == null : rgRisk.range(parseFloat(p.rating)))
                     //&& rgRisk.range(parseFloat(p.rating))
             }).select(p => p.id)
