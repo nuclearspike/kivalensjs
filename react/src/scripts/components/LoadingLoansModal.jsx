@@ -37,7 +37,7 @@ var LoadingLoansModal = React.createClass({
                             <ProgressBar active label={this.state.details_progress > 10 ? 'details': ''} now={this.state.details_progress} />
                         </ProgressBar>
                         <CycleChild name='didYouKnow_loading'>
-                            <p>To greatly reduce load time, check out the "Options" tab to always exclude certain types of loans from the initial load.</p>
+                            <p>To greatly reduce load time, check out the "Options" tab to if you never consider longer term loans.</p>
                             <p>Did you know that KivaLens now works on smart-phones and tablets (iPad, Kindle, etc), too&#63;</p>
                             <p>Do you know any software developers&#63; KivaLens is open-source and will accept quality contributions (check out the About page for more information)</p>
                             <p>You can hide loans you've already loaned to by adding your Lender ID in the Options tab, then checking the Criteria Portfolio option to hide them.</p>

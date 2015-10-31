@@ -265,7 +265,7 @@ var loanStore = Reflux.createStore({
         //loans are default ordered by 50 back, 75 back, last repayment
         switch (c.loan.sort) {
             case 'final_repayment':
-                linq_loans = linq_loans.orderBy(loan => loan.kl_final_repayment).thenByDescending(loan => loan.id)
+                linq_loans = linq_loans.orderBy(loan => loan.kl_final_repayment).thenBy(loan => loan.kl_half_back).thenBy(loan => loan.kl_75_back)
                 break
             case 'popularity':
                 linq_loans = linq_loans.orderBy(loan => loan.kl_dollars_per_hour, basicReverseOrder)

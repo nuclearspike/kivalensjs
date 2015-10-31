@@ -37,11 +37,11 @@ const SelectRow = React.createClass({
         name: React.PropTypes.string.isRequired,
         onChange: React.PropTypes.func.isRequired
     },
-    property(){
+    propertyCursor(){
         return this.props.group.refine(this.props.name)
     },
     selectChange(value, values){
-        this.property().set(value) //defaultValue={this.props.group.refine(this.props.name).value}
+        this.propertyCursor().set(value)
         this.props.onChange()
     },
     render(){
@@ -51,7 +51,7 @@ const SelectRow = React.createClass({
                 <label className="control-label">{options.label}</label>
             </Col>
             <Col md={6}>
-                <Select multi={options.multi} ref='select' value={this.property().value} options={options.select_options} clearable={options.multi} placeholder={(options.match)? `Match ${options.match} selected ${options.label}` : ''} onChange={this.selectChange} />
+                <Select multi={options.multi} ref='select' value={this.propertyCursor().value} options={options.select_options} clearable={options.multi} placeholder={(options.match)? `Match ${options.match} selected ${options.label}` : ''} onChange={this.selectChange} />
             </Col>
         </Row>
     }

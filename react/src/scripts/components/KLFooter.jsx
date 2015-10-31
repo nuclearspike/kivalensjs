@@ -7,7 +7,7 @@ class KLFooter extends React.Component {
         return (<Grid>
                 <Row style={{paddingTop:'20px', paddingBottom:'50px'}}>
                     <Col md={12} className="ample-padding-top text-center">
-                            &copy;{new Date().getFullYear()} KivaLens is not endorsed or supported by Kiva.org.
+                            &copy;{new Date().getFullYear()} KivaLens is not supported by Kiva.org.
                             See <a href="#/about">About</a> for contact information.
                     </Col>
                 </Row>
