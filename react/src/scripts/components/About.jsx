@@ -11,9 +11,24 @@ var About = React.createClass({
                 KivaLens is currently being rebuilt. The Silverlight version had issues with changes made to Kiva's API
                 and rather than fix it, I decided to re-invent it using different tools that weren't available when KivaLens
                 was first written. Please <a href="mailto:liquidmonkey@gmail.com?subject=KivaLens" target="_blank">let me know</a> your
-                favorite missing features and I'll implement those first. Please report any odd behaviors or bugs you
-                find. You can also join
+                favorite missing features and I'll implement those first. You can also join
                 the <a href="http://www.kiva.org/team/kivalens" target="_blank">KivaLens Team</a> to discuss.
+            </p>
+
+            <h3>Questions{'?'}</h3>
+            <p>
+                All of the data that KivaLens displays is either a direct presentation of or computation from data that
+                pulled from <a href="http://build.kiva.org/api" target="_blank">Kiva.org's Public API</a>. If you have
+                any questions about why a loan is showing certain data (where you have confirmed that it's the
+                same on Kiva's own site) or if you have questions about what that data means, please check
+                out <a href="http://www.kiva.org/help" target="_blank">Kiva's Help Center or contact Kiva Customer Service</a>.
+            </p>
+            <p>
+                If you find a discrepancy between Kiva's site and what KivaLens' displays for loans or partners or if
+                you feel that a computation is incorrect, or you find something unusual about how KivaLens is working
+                then <a href="mailto:liquidmonkey@gmail.com?subject=KivaLens-Bug" target="_blank">let me know</a> and
+                include as many details about what loan/partner and information you can so that I can reproduce the
+                problem.
             </p>
 
             <h3>Features</h3>
@@ -29,16 +44,16 @@ var About = React.createClass({
                     New Sort! You still have the ability to sort by final repayment date, but I've added a new sort
                     that will sort by when the loan is scheduled by percentages. Let's say you have 3 loans, all
                     with a final repayment date 3 months away. The new sort will prioritize which one pays more
-                    quickly. Let's say loan &#35;1 has a set amount you get back each month. &#35;2 has a larger amount
-                    on the first repayment then by the final it's very little and &#35;3 doesn't get repaid at all
+                    quickly. Let's say loan {'#'}1 has a set amount you get back each month. {'#'}2 has a larger amount
+                    on the first repayment then by the final it's very little and {'#'}3 doesn't get repaid at all
                     until the final repayment. The new sorts will prioritize by how quickly you get 50%, then
-                    75% then 100% back. So for the loans above, &#35;2 would be the first, then &#35;1, then &#35;3.
+                    75% then 100% back. So for the loans above, {'#'}2 would be the first, then {'#'}1, then {'#'}3.
                 </li>
 
                 <li>
                     Auto-complete drop-downs for Sector, Activity, Country, Region (new), Social Performance
                     Badges (new), Themes (new), Tags (new). Options marked as "new" were not possible before
-                    on KivaLens and Tags cannot currently be used for filtering on Kiva...&amp; some are really
+                    on KivaLens and Tags cannot currently be used for filtering on Kiva...{'&'} some are really
                     great (Inspiring Story, Interesting Photo, Volunteer Like, and a bunch more) and can help you
                     reduce the list even more if you still have too many to look through.
                 </li>
@@ -90,9 +105,10 @@ var About = React.createClass({
             <h3>Open-source</h3>
             <p>
                 Kiva Lens is now open-source, so feel free to <a href="mailto:liquidmonkey@gmail.com?subject=KivaLensDeveloper" target="_blank">email me</a> about
-                working on it. You can check out the source code (in progress). It uses React, Reflux, react-bootstrap, gulp,
-                browserify, node, ES6, babel (JSX, ES6 transpiler), Kiva API, linqjs, Highcharts, and more. Check
-                out <a href="https://github.com/nuclearspike/kivalensjs/tree/master/react" target="_blank">my github repository</a>.
+                working on it. It uses React, Reflux, react-bootstrap, gulp,
+                browserify, node, ES6, babel (JSX, ES6 transpiler), Kiva API, linqjs, Highcharts, and more. You can check out
+                the source code (in progress)
+                at my <a href="https://github.com/nuclearspike/kivalensjs/tree/master/react" target="_blank">github repository</a>.
             </p>
 
             <h3>History</h3>
