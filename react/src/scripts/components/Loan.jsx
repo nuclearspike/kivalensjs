@@ -164,7 +164,12 @@ var Loan = React.createClass({
                                 <dt>Total Raised</dt><dd>${numeral(partner.total_amount_raised).format('0,0')}</dd>
                                 <dt>Loans</dt><dd>{numeral(partner.loans_posted).format('0,0')}</dd>
                                 <dt>Portfolio Yield</dt><dd>{numeral(partner.portfolio_yield).format('0.0')}% {partner.portfolio_yield_note}</dd>
-                                <dt>Profitablility</dt><dd>{numeral(partner.profitability).format('0.0')}%</dd>
+                                <dt>Profitablility</dt>
+                                <If condition={partner.profitability}>
+                                    <dd>{numeral(partner.profitability).format('0.0')}%</dd>
+                                <Else/>
+                                    <dd>(unknown)</dd>
+                                </If>
                                 <dt>Charges Fees / Interest</dt><dd>{partner.charges_fees_and_interest ? 'Yes': 'No'}</dd>
                                 <dt>Loans at Risk Rate</dt><dd>{numeral(partner.loans_at_risk_rate).format('0.000')}%</dd>
                                 <dt>Avg Loan/Cap Income</dt><dd>{numeral(partner.average_loan_size_percent_per_capita_income).format('0.00')}%</dd>

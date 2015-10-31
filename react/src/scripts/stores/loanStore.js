@@ -165,7 +165,13 @@ var loanStore = Reflux.createStore({
             partner_ids = last_partner_search[partner_criteria_json]
         } else {
             last_partner_search_count++
-            var sp_arr = c.partner.social_performance ? c.partner.social_performance.split(',').where(sp => sp && !isNaN(sp)).select(sp => parseInt(sp)) : []
+            //typeof string is temporary
+            var sp_arr
+            try {
+                sp_arr = (typeof c.partner.social_performance === 'string') ? c.partner.social_performance.split(',').where(sp => sp && !isNaN(sp)).select(sp => parseInt(sp)) : []
+            }catch(e){
+                sp_arr = []
+            }
             var stSocialPerf = makeExactTester(sp_arr)
             var stRegion     = makeExactTester(c.partner.region)
             var rgRisk       = makeRangeTester(c.partner, 'partner_risk_rating')

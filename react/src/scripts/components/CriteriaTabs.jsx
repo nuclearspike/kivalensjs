@@ -11,6 +11,7 @@ import {Cursor, ImmutableOptimizations} from 'react-cursor'
 var timeoutHandle=0
 
 const InputRow = React.createClass({
+    mixins: [ImmutableOptimizations(['group'])],
     propTypes: {
         label: React.PropTypes.string.isRequired,
         group: React.PropTypes.instanceOf(Cursor).isRequired,
@@ -29,6 +30,7 @@ const InputRow = React.createClass({
 })
 
 const SelectRow = React.createClass({
+    mixins: [ImmutableOptimizations(['group'])],
     propTypes: {
         options: React.PropTypes.instanceOf(Object).isRequired,
         group: React.PropTypes.instanceOf(Cursor).isRequired,
@@ -105,13 +107,13 @@ const SliderRow = React.createClass({
 const CriteriaTabs = React.createClass({
     mixins: [Reflux.ListenerMixin, LinkedStateMixin],
     getInitialState: function () {
-        return { activeTab: 1, state_count: 0, portfolioTab: '', criteria:s.criteria.syncBlankCriteria()}
+        return { activeTab: 1, state_count: 0, tab_flips: 0, portfolioTab: '', criteria: s.criteria.syncGetLast()}
     },
     componentWillMount: function(){
         this.state_count = 0
+        this.tab_flips = 0
         this.options = {}
         this.setKnownOptions()
-        this.reloadCriteria(s.criteria.syncGetLast()) //must be here or errors.
     },
     componentDidMount: function () {
         this.listenTo(a.loans.load.completed, this.loansReady)
@@ -121,9 +123,7 @@ const CriteriaTabs = React.createClass({
         this.criteriaChanged()
     },
     reloadCriteria(criteria = {}){
-        this.last_criteria = $.extend(true, s.criteria.syncBlankCriteria(), criteria)
-        this.setState({criteria: this.last_criteria})
-        this.forceUpdate()
+        this.setState({criteria: $.extend(true, s.criteria.syncBlankCriteria(), criteria)})
         this.criteriaChanged()
     },
     lenderLoansEvent(event){
@@ -156,7 +156,7 @@ const CriteriaTabs = React.createClass({
         this.options.repaid_in = {min: 2, max: 120, label: 'Repaid In (months)'}
         this.options.borrower_count = {min: 1, max: 20, label: 'Borrower Count'}
         this.options.percent_female = {min: 0, max: 100, label: 'Percent Female'}
-        this.options.still_needed = {min: 0, max: 1000, step: 25, label: 'Still Needed ($)'}
+        this.options.still_needed = {min: 0, max: 1000, step: 25, label: 'Still Needed ($)'} //min: 25? otherwise it bounces back to 25 if set to min
         this.options.expiring_in_days = {min: 0, max: 35, label: 'Expiring In (days)'}
 
         //partner sliders
@@ -170,24 +170,24 @@ const CriteriaTabs = React.createClass({
     },
     buildCriteria: function(){
         var criteria = s.criteria.syncBlankCriteria()
-        criteria.portfolio = {
-            exclude_portfolio_loans: this.refs.exclude_portfolio_loans.getChecked()
-        }
-
-        this.last_criteria = s.criteria.stripNullValues($.extend(true, this.state.criteria, criteria))
+        criteria.portfolio = { exclude_portfolio_loans: this.refs.exclude_portfolio_loans.getChecked() }
+        criteria = s.criteria.stripNullValues($.extend(true, this.state.criteria, criteria))
         this.state_count++
         this.setState({state_count: this.state_count})
-        console.log("######### buildCriteria: criteria", this.last_criteria)
-        a.criteria.change(this.last_criteria)
+        console.log("######### buildCriteria: criteria", criteria)
+        a.criteria.change(criteria)
     },
     criteriaChanged(){
         clearTimeout(timeoutHandle);
-        timeoutHandle = setTimeout(this.buildCriteria, 150)
+        timeoutHandle = setTimeout(this.buildCriteria, 250)
     },
     tabSelect: function(selectedKey){
-        this.setState({activeTab: selectedKey});
-        //hacky. multi-sliders dont like being on tabs. tab not show during initial render has locked components.
-        setTimeout(()=> this.forceUpdate(), 500)
+        if (this.state.activeTab != selectedKey) {
+            this.tab_flips++
+            this.setState({activeTab: selectedKey, tab_flips: this.tab_flips})
+            //todo: tab_flips is a hack. it is used in the key of the sliders to force a re-mounting when flipping tabs
+            //otherwise it only renders one knob which is locked in position.
+        }
     },
     render: function() {
         var cursor = Cursor.build(this);
@@ -196,9 +196,9 @@ const CriteriaTabs = React.createClass({
         var lender_loans_message = kivaloans.lender_loans_message
 
         return (<div>
-            <Tabs activeKey={this.state.activeTab} onSelect={this.tabSelect}>
-                <If condition={location.hostname == 'localhost'}>
-                    <pre>{JSON.stringify(this.state.criteria, null, 2)}</pre>
+            <Tabs animation={false} activeKey={this.state.activeTab} onSelect={this.tabSelect}>
+                <If condition={location.hostname == 'localhost!!'}>
+                    <pre>{JSON.stringify(this.state, null, 2)}</pre>
                 </If>
                 <Tab eventKey={1} title="Borrower" className="ample-padding-top">
                     <InputRow label='Use or Description' group={cLoan} name='use' onChange={this.criteriaChanged}/>
@@ -208,7 +208,7 @@ const CriteriaTabs = React.createClass({
                         <SelectRow key={i} group={cLoan} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
                     </For>
                     <For each='name' index='i' of={['repaid_in','borrower_count','percent_female','still_needed','expiring_in_days']}>
-                        <SliderRow key={i} group={cLoan} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
+                        <SliderRow key={`${this.state.tab_flips}_${i}`} group={cLoan} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
                     </For>
                 </Tab>
 
@@ -217,14 +217,14 @@ const CriteriaTabs = React.createClass({
                         <SelectRow key={i} group={cPartner} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
                     </For>
                     <For each='name' index='i' of={['partner_risk_rating','partner_arrears','partner_default','portfolio_yield','profit','loans_at_risk_rate','currency_exchange_loss_rate']}>
-                        <SliderRow key={i} group={cPartner} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
+                        <SliderRow key={`${this.state.tab_flips}_${i}`} group={cPartner} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
                     </For>
                 </Tab>
 
                 <Tab eventKey={3} title={`Your Portfolio${this.state.portfolioTab}`} className="ample-padding-top">
                     <Row>
                         <Col md={9}>
-                            <Input type="checkbox" ref='exclude_portfolio_loans' label={`Hide loans in my portfolio (${lender_loans_message})`} defaultChecked={this.last_criteria.portfolio.exclude_portfolio_loans} onClick={this.criteriaChanged} onChange={this.criteriaChanged} />
+                            <Input type="checkbox" ref='exclude_portfolio_loans' label={`Hide loans in my portfolio (${lender_loans_message})`} defaultChecked={this.state.criteria.portfolio.exclude_portfolio_loans} onClick={this.criteriaChanged} onChange={this.criteriaChanged} />
                         </Col>
                     </Row>
                 </Tab>

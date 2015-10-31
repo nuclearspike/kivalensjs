@@ -64,7 +64,7 @@ var criteriaStore = Reflux.createStore({
         localStorage.setItem('last_criteria', JSON.stringify(this.last_known))
     },
     syncGetLast(){
-        return this.last_known
+        return $.extend(true, {}, this.syncBlankCriteria(), this.last_known)
     },
     syncBlankCriteria(){
         return {loan: {still_needed_min: 25}, partner: {}, portfolio: {exclude_portfolio_loans: true}}
@@ -74,7 +74,7 @@ var criteriaStore = Reflux.createStore({
         ['loan','partner','portfolio'].forEach(group => {
             if (crit[group]) {
                 Object.keys(crit[group]).forEach(key => {
-                    if (crit[group][key] == null || crit[group][key] == undefined || crit[group][key] == '') delete crit[group][key]
+                    if (crit[group][key] === null || crit[group][key] === undefined || crit[group][key] === '') delete crit[group][key]
                 })
             }
         })
@@ -117,6 +117,7 @@ var criteriaStore = Reflux.createStore({
         return Object.keys(this.all)
     },
     syncSavedAll(){
+        console.log('syncSavedAll', this.all)
         localStorage.setItem('all_criteria', JSON.stringify(this.all))
         a.criteria.savedSearchListChanged()
     },

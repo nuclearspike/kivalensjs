@@ -23,7 +23,7 @@ const Criteria = React.createClass({
     },
     clearCriteria(){
         a.criteria.startFresh()
-        this.setState({cycle: Math.random().toString()})
+        this.setState({cycle: Math.random().toString()})  //HACK!!
     },
     promptForName(){
         console.log("promptForName()")
