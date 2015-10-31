@@ -48,8 +48,14 @@
   background-color: #cfcfcf !important; }
 
 .blur-me {
-  -webkit-filter: blur(20px);
-          filter: blur(20px); }
+  filter: blur(20px); }
+
+div.notification-bar {
+  font-size: 2rem !important; }
+
+.pad-sides {
+  padding-left: 10px;
+  padding-right: 10px; }
 
 /**
  * React Select
@@ -149,6 +155,7 @@
 
 .Select-loading {
   -webkit-animation: Select-animation-spin 400ms infinite linear;
+  -o-animation: Select-animation-spin 400ms infinite linear;
   animation: Select-animation-spin 400ms infinite linear;
   width: 16px;
   height: 16px;
@@ -312,8 +319,7 @@
 
 @keyframes Select-animation-spin {
   to {
-    -webkit-transform: rotate(1turn);
-            transform: rotate(1turn); } }
+    transform: rotate(1turn); } }
 
 @-webkit-keyframes Select-animation-spin {
   to {
