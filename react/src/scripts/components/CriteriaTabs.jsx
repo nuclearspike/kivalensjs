@@ -108,7 +108,7 @@ const SliderRow = React.createClass({
 const CriteriaTabs = React.createClass({
     mixins: [Reflux.ListenerMixin],
     getInitialState: function () {
-        return { activeTab: 1, state_count: 0, tab_flips: 0, portfolioTab: '', chart_without_config: {}, criteria: s.criteria.syncGetLast()}
+        return { activeTab: 1, state_count: 0, tab_flips: 0, portfolioTab: '', helper_charts: {}, criteria: s.criteria.syncGetLast()}
     },
     componentWillMount: function(){
         this.state_count = 0
@@ -120,8 +120,15 @@ const CriteriaTabs = React.createClass({
         this.listenTo(a.loans.load.completed, this.loansReady)
         this.listenTo(a.criteria.lenderLoansEvent, this.lenderLoansEvent)
         this.listenTo(a.criteria.reload, this.reloadCriteria)
+        this.listenTo(a.loans.filter.completed, this.filteredDone)
         if (kivaloans.isReady()) this.loansReady()
         this.criteriaChanged()
+    },
+    filteredDone(loans){
+        //if we are in a selection box and that box is matching all (themes, tags, social perf), then rebuild the graphs
+        if (this.last_select && this.last_select.key && this.options[this.last_select.key].match == 'all') {
+            this.genHelperGraphs(this.last_select.group, this.last_select.key, loans)
+        }
     },
     reloadCriteria(criteria = {}){
         this.setState({criteria: $.extend(true, {}, s.criteria.syncBlankCriteria(), criteria)})
@@ -206,10 +213,7 @@ const CriteriaTabs = React.createClass({
             //otherwise it only renders one knob which is locked in position.
         }
     },
-    focusSelect(group, key){
-        if ('lg' != findBootstrapEnv()) return //if we're not on a desktop
-        console.log('focusSelect', group, key)
-        var loans = this.performSearchWithout(group, key)
+    genHelperGraphs(group, key, loans){
         var data
         switch (key){
             case 'country_code':
@@ -232,7 +236,6 @@ const CriteriaTabs = React.createClass({
                 data = [].concat.apply([], loans.select(l => kivaloans.getPartner(l.partner_id).social_performance_strengths)).where(sp => sp != undefined).select(sp => sp.name).groupBy(t => t).map(g=>{return {name: g[0], count: g.length}})
                 break
             case 'region':
-                //data = [].concat.apply([], loans.select(l => kivaloans.getPartner(l.partner_id).social_performance_strengths)).where(sp => sp != undefined).select(sp => sp.name).groupBy(t => t).map(g=>{return {name: g[0], count: g.length}})
                 data = [].concat.apply([], loans.select(l => kivaloans.getPartner(l.partner_id).countries)).select(c => c.region).groupBy(t => t).map(g=>{return {name: g[0], count: g.length}})
                 break
             default:
@@ -247,7 +250,7 @@ const CriteriaTabs = React.createClass({
 
         data = data.orderBy(d => d.count, basicReverseOrder)
 
-        console.log('focusSelect', data)
+        //console.log('focusSelect', data)
         var config = {
             chart: {type: 'bar',
                 animation: false ,
@@ -280,12 +283,22 @@ const CriteriaTabs = React.createClass({
             }]
         }
         //console.log(config)
-        var newState = {chart_without_config: {}}
-        newState.chart_without_config[group] = config
+        var newState = {helper_charts: {}}
+        newState.helper_charts[group] = config
         this.setState(newState)
     },
+    focusSelect(group, key){
+        if ('lg' != findBootstrapEnv()) return //if we're not on a desktop
+
+        this.last_select = {group: group, key: key}
+        console.log('focusSelect', group, key)
+
+        var loans = (this.options[key].match == 'any') ? this.performSearchWithout(group, key) : s.loans.syncFilterLoansLast()
+        this.genHelperGraphs(group,key,loans)
+    },
     removeGraphs(){
-        this.setState({chart_without_config: {}})
+        this.last_select = {}
+        this.setState({helper_charts: {}})
     },
     render: function() {
         var cursor = Cursor.build(this);
@@ -313,8 +326,8 @@ const CriteriaTabs = React.createClass({
                     </Col>
 
                     <Col lg={4} className='visible-lg-block' id='loan_options_graph'>
-                        <If condition={this.state.chart_without_config.loan}>
-                            <Highcharts style={{height: '800px'}} config={this.state.chart_without_config.loan}/>
+                        <If condition={this.state.helper_charts.loan}>
+                            <Highcharts style={{height: '800px'}} config={this.state.helper_charts.loan}/>
                         </If>
                     </Col>
                 </Tab>
@@ -332,8 +345,8 @@ const CriteriaTabs = React.createClass({
                     </Col>
 
                     <Col lg={4} className='visible-lg-block' id='loan_options_graph'>
-                        <If condition={this.state.chart_without_config.partner}>
-                            <Highcharts style={{height: '600px'}} config={this.state.chart_without_config.partner} />
+                        <If condition={this.state.helper_charts.partner}>
+                            <Highcharts style={{height: '600px'}} config={this.state.helper_charts.partner} />
                         </If>
                     </Col>
                 </Tab>
