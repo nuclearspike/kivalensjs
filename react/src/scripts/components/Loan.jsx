@@ -142,7 +142,7 @@ var Loan = React.createClass({
                             <p dangerouslySetInnerHTML={{__html: loan.description.texts.en}} ></p>
 
                         </Col>
-                        <Col style={{height: '500px'}} lg={2} id='graph_container'>
+                        <Col style={{height: '500px'}} lg={4} id='graph_container'>
                             <If condition={this.state.activeTab == 2}>
                                 <Highcharts config={this.produceChart(this.state.loan)} ref='chart' />
                             </If>
