@@ -13,9 +13,9 @@ var basket_loans = []
 var last_filtered = []
 var last_partner_search = {}
 var last_partner_search_count = 0
-var kivaloans = new Loans(15*60*1000) //15*60*100
+var kivaloans = new Loans(10*60*1000)
 
-//bridge the downloading/processing generic API class with the React app.
+//bridge the downloading/processing generic API class with the React app. convert Deferred notify -> Reflux actions
 kivaloans.init().progress(progress => {
     if (progress.background_added)
         a.loans.backgroundResync.added(progress.background_added)
@@ -29,7 +29,6 @@ kivaloans.init().progress(progress => {
         a.loans.load.failed(progress.failed)
     if (progress.lender_loans_event)
         a.criteria.lenderLoansEvent(progress.lender_loans_event)
-
 })
 
 //a.loans.load.failed
@@ -204,7 +203,7 @@ var loanStore = Reflux.createStore({
         return partner_ids
     },
     syncFilterLoans: function(c){
-        if (!kivaloans.hasLoans()) return []
+        if (!kivaloans.isReady()) return []
         if (!c){ c = criteriaStore.syncGetLast() }
         $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
         console.log("$$$$$$$ syncFilterLoans",c)
@@ -227,6 +226,7 @@ var loanStore = Reflux.createStore({
         var rgPercentFemale = makeRangeTester(c.loan, 'percent_female')
         var rgStillNeeded = makeRangeTester(c.loan, 'still_needed')
         var rgExpiringInDays = makeRangeTester(c.loan, 'expiring_in_days')
+        var rgDisbursalInDays = makeRangeTester(c.loan, 'disbursal_in_days')
 
         var partner_ids = this.syncFilterPartners(c)
 
@@ -247,6 +247,7 @@ var loanStore = Reflux.createStore({
                 rgPercentFemale.range(loan.kl_percent_women) &&
                 rgStillNeeded.range(loan.loan_amount - loan.basket_amount - loan.funded_amount) &&
                 rgExpiringInDays.range(loan.kl_expiring_in_days) &&
+                rgDisbursalInDays.range(loan.kl_disbursal_in_days) &&
                 stName.contains(loan.name) &&
                 !lender_loan_ids.contains(loan.id) && //find a better way?
                 stUse.terms_arr.all(search_term => loan.kl_use_or_descr_arr.any(w => w.startsWith(search_term) ) )

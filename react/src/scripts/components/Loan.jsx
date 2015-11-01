@@ -129,14 +129,15 @@ var Loan = React.createClass({
                                 <dt>Themes</dt><dd>{(loan.themes && loan.themes.length)? loan.themes.join(', '): '(none)'}</dd>
                                 <dt>Borrowers</dt><dd>{loan.borrowers.length} ({Math.round(loan.kl_percent_women)}% Female) </dd>
                                 <dt>Posted</dt><dd>{loan.kl_posted_date.toString('MMM d, yyyy @ h:mm:ss tt')} (<TimeAgo date={loan.posted_date} />)</dd>
-                                <dt>Expires</dt><dd>{Date.from_iso(loan.planned_expiration_date).toString('MMM d, yyyy @ h:mm:ss tt')} (<TimeAgo date={loan.planned_expiration_date} />) </dd>
+                                <dt>Expires</dt><dd>{new Date(loan.planned_expiration_date).toString('MMM d, yyyy @ h:mm:ss tt')} (<TimeAgo date={loan.planned_expiration_date} />) </dd>
+                                <dt>Disbursed</dt><dd>{new Date(loan.terms.disbursal_date).toString('MMM d, yyyy')} (<TimeAgo date={loan.terms.disbursal_date} />) </dd>
                             </dl>
                             <dl className="dl-horizontal">
                                 <dt>$/Hour</dt><dd>${numeral(loan.kl_dollars_per_hour).format('0.00')}</dd>
                                 <dt>Loan Amount</dt><dd>${loan.loan_amount}</dd>
                                 <dt>Funded Amount</dt><dd>${loan.funded_amount}</dd>
                                 <dt>Basket Amount</dt><dd>${loan.basket_amount}</dd>
-                                <dt>Still Needed</dt><dd>${loan.loan_amount - loan.funded_amount - loan.basket_amount}</dd>
+                                <dt>Still Needed</dt><dd>${loan.kl_still_needed}</dd>
                             </dl>
                             <p dangerouslySetInnerHTML={{__html: loan.description.texts.en}} ></p>
 

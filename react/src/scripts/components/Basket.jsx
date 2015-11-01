@@ -38,6 +38,7 @@ const Basket = React.createClass({
     clear(e){
         e.preventDefault()
         a.loans.basket.clear()
+        this.setState({selected_item_id: null})
     },
     showGoodbye(){
         if (this.state.basket_count > 0) {

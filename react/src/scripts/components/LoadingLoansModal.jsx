@@ -12,7 +12,7 @@ var LoadingLoansModal = React.createClass({
     componentDidMount: function() {
         window.rga.modalview('/loading');
         this.listenTo(a.loans.load.progressed, progress => {
-            var new_state = {show: !kivaloans.hasLoans()}
+            var new_state = {show: !kivaloans.isReady()}
             if (progress.done) new_state[`${progress.task}_progress`] = (progress.done * 100) / progress.total * (progress.task == 'ids'? .33 : .67)
             if (progress.label) new_state.progress_label = progress.label
             if (progress.complete) new_state.show = false

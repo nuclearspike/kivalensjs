@@ -3,7 +3,8 @@
  * it's important to note that some stores have 'init' functions that make requests on app start up.
  * EX: the partnerStore will fetch all partners at start up.
  *
- * import s from '../stores
+ * import s from '../stores'
+ *
  * s.loans (ex: s.loans.syncGetBasket())
  *
 **/

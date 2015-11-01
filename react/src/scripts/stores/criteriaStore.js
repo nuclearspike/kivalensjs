@@ -8,6 +8,7 @@ var criteriaStore = Reflux.createStore({
         this.last_known = JSON.parse(localStorage.getItem('last_criteria'))
         this.all = JSON.parse(localStorage.getItem('all_criteria'))
         if (!this.all) {
+            //default lists.
             this.all = {
                 "Expiring Soon": {
                     "loan": {
@@ -67,7 +68,7 @@ var criteriaStore = Reflux.createStore({
         return $.extend(true, {}, this.syncBlankCriteria(), this.last_known)
     },
     syncBlankCriteria(){
-        return {loan: {still_needed_min: 25}, partner: {}, portfolio: {exclude_portfolio_loans: true}}
+        return {loan: {}, partner: {}, portfolio: {exclude_portfolio_loans: true}}
     },
 
     stripNullValues(crit){

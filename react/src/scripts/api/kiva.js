@@ -1,7 +1,7 @@
 var sem_one = require('semaphore')(8);
 var sem_two = require('semaphore')(8);
 
-//this unit was designed to be able to be pulled from here without any requirements on any stores/actions/etc.
+//this unit was designed to be able to be pulled from this project without any requirements on any stores/actions/etc.
 
 //turns {json: 'object', app_id: 'com.me'} into ?json=object&app_id=com.me
 function serialize(obj, prefix) {
@@ -84,7 +84,7 @@ class Request {
             } else {
                 $def.fail(()=> this.state = sFAILED)
                 Request.get(`${this.collection}/${ids.join(',')}.json`, {})
-                    .always(() => sem_two.leave(1)) //cannot pass the func itself since it takes params.
+                    .always(() => sem_two.leave(1))
                     .done($def.resolve)
                     .fail($def.reject) //does this really fire properly? no one is listening for this
                     .progress($def.notify)
@@ -126,7 +126,7 @@ var common_use = ["PURCHASE", "FOR", "AND", "BUY", "OTHER", "HER", "BUSINESS", "
 class ResultProcessors {
     static processLoans(loans){
         //this alters the loans in the array. no need to return the array ?
-        loans.where(loan => loan.kl_downloaded == undefined).forEach(ResultProcessors.processLoan)
+        loans.forEach(ResultProcessors.processLoan) //where(loan => loan.kl_downloaded == undefined) ??
         return loans
     }
 
@@ -150,8 +150,9 @@ class ResultProcessors {
         addIt.kl_posted_date = new Date(loan.posted_date)
         addIt.kl_newest_sort = Math.round(new Date() - addIt.kl_posted_date)
         addIt.kl_posted_hours_ago = (new Date() - addIt.kl_posted_date) / (60*60*1000)
+        if (!loan.basket_amount) loan.basket_amount = 0
         addIt.kl_dollars_per_hour = (loan.funded_amount + loan.basket_amount) / addIt.kl_posted_hours_ago
-
+        addIt.kl_still_needed = loan.loan_amount - loan.funded_amount - loan.basket_amount
         if (loan.description.texts) { //the presence implies this is a detail result
             var descr_arr
             var use_arr
@@ -164,30 +165,32 @@ class ResultProcessors {
             }
 
             use_arr = processText(loan.use, common_use)
-            addIt.kl_tags = loan.tags.select(tag => tag.name) //??
+            addIt.kl_tags = loan.tags.select(tag => tag.name) //standardize to just an array without a hash.
             addIt.kl_use_or_descr_arr = use_arr.concat(descr_arr).distinct(),
             addIt.kl_final_repayment = (loan.terms.scheduled_payments && loan.terms.scheduled_payments.length > 0) ? Date.from_iso(loan.terms.scheduled_payments.last().due_date) : null
 
             addIt.kl_repaid_in = (addIt.kl_final_repayment - new Date()) / (30 * 24 * 60 * 60 * 1000)
-            addIt.kl_expiring_in_days = (Date.from_iso(loan.planned_expiration_date) - new Date()) / (24 * 60 * 60 * 1000)
+            addIt.kl_expiring_in_days = (new Date(loan.planned_expiration_date) - new Date()) / (24 * 60 * 60 * 1000)
+            addIt.kl_disbursal_in_days = (new Date(loan.terms.disbursal_date) - new Date()) / (24 * 60 * 60 * 1000)
 
             addIt.kl_percent_women = loan.borrowers.where(b => b.gender == "F").length * 100 / loan.borrowers.length
 
             var amount_50 = loan.loan_amount  * 0.5
             var amount_75 = loan.loan_amount * 0.75
             var running_total = 0
+
             loan.terms.scheduled_payments.some(payment => {
                 running_total += payment.amount
                 if (!addIt.kl_half_back && running_total >= amount_50) {
-                    addIt.kl_half_back = Date.from_iso(payment.due_date)
+                    addIt.kl_half_back = new Date(payment.due_date)
                 }
                 if (running_total >= amount_75){
-                    addIt.kl_75_back = Date.from_iso(payment.due_date)
+                    addIt.kl_75_back = new Date(payment.due_date)
                     return true //quit
                 }
             })
 
-            //memory clean up
+            //memory clean up, delete all non-english descriptions.
             loan.description.languages.where(lang => lang != 'en').forEach(lang => delete loan.description.texts[lang])
             delete loan.terms.local_payments //we don't care
 
@@ -206,7 +209,7 @@ class ResultProcessors {
     }
 }
 
-//generic class for handling any of kiva's paged responses in a data-type agnostic way. create subclasses to specialize see LoanSearch below
+//generic class for handling any of kiva's paged responses in a data-type agnostic way. create subclasses to specialize, see LoanSearch below
 class PagedKiva {
     constructor(url, params, collection){
         this.url = url
@@ -270,6 +273,7 @@ class PagedKiva {
         }
     }
 
+    //overridden in subclasses
     continuePaging(response){
         return true
     }
@@ -325,8 +329,9 @@ class LoansSearch extends PagedKiva {
     }
 
     start(){
-        //this seems problematic
+        //this seems problematic, break this into a "post process" function, support it in the base class?
         return super.start().then(loans => {
+            //after the download process is complete, if a max final payment date was specified, then remove all that don't match.
             if (this.max_repayment_date)
                 loans = loans.where(loan => loan.kl_final_repayment.isBefore(this.max_repayment_date))
             return loans
@@ -341,10 +346,11 @@ class LenderLoans extends PagedKiva {
     }
 
     continuePaging(loans) {
-        //only do this stuff if we are only wanting fundraising which is what we want now. but if open-sourced other projects may want it for different reasons.
+        //only do this stuff if we are only wanting fundraising which is what we want now. but if open-sourced other
+        //projects may want it for different reasons.
         if (this.fundraising_only && !loans.any(loan => loan.status == 'fundraising')){
-            //if all loans on the page were posted at least 30 days ago, stop looking. //todo: instead: look at planned expiration
-            if (loans.all(loan => Date.from_iso(loan.posted_date).isBefore((35).days().ago())))
+            //if all loans on the page would have expired. this could miss some mega-mega lenders in corner cases.
+            if (loans.all(loan => new Date(loan.planned_expiration_date).isBefore(Date.today())))
                 return false
         }
         return true
@@ -356,7 +362,7 @@ class LenderLoans extends PagedKiva {
             if (this.fundraising_only)
                 loans = loans.where(loan => loan.status == 'fundraising')
             return loans.select(loan => loan.id)
-        }).fail(this.promise.reject) //? is this right?
+        }).fail(this.promise.reject) //? is this fail() correct?
     }
 }
 
@@ -378,10 +384,12 @@ class LoanBatch {
             $def.notify({task: 'details', done: 0, total: 1, label: 'Preparing to download...'})
             Request.sem_get(`loans/${chunks[i].join(',')}.json`, {}, 'loans', false)
                 .done(loans => {
-                    $def.notify({task: 'details', done: r_loans.length , total: this.ids.length,
-                        label: `${r_loans.length}/${this.ids.length} downloaded`})
                     ResultProcessors.processLoans(loans)
                     r_loans = r_loans.concat(loans)
+
+                    $def.notify({task: 'details', done: r_loans.length , total: this.ids.length,
+                        label: `${r_loans.length}/${this.ids.length} downloaded`})
+
                     if (r_loans.length >= this.ids.length) {
                         $def.notify({done: true})
                         $def.resolve(r_loans)
@@ -390,7 +398,7 @@ class LoanBatch {
         }
         if (chunks.length == 0){
             $def.notify({done: true})
-            $def.resolve([])
+            $def.reject() //prevent done() processing on an empty set.
         }
 
         return $def
@@ -400,12 +408,15 @@ class LoanBatch {
 const llUnknown = 0, llDownloading = 1, llComplete = 2
 
 //rename this. This is the interface to Kiva functions where it keeps the background resync going, indexes the results,
+//processes
 class Loans {
     constructor(update_interval = 0){
         this.loans_from_kiva = []
         this.partner_ids_from_loans = []
         this.partners_from_kiva = []
         this.lender_loans = []
+        this.activities = []
+        this.is_ready = false
         this.lender_loans_message = 'Lender ID not set'
         this.lender_loans_state = llUnknown
         this.indexed_loans = {}
@@ -434,20 +445,18 @@ class Loans {
             //if (crit && crit.loan && crit.loan.repaid_in_max)
             //    max_repayment_date = (crit.loan.repaid_in_max).months().fromNow()
             this.searchKiva(this.convertCriteriaToKivaParams(crit), max_repayment_date).progress(progress => this.notify_promise.notify({loan_load_progress: progress})).done(()=> this.notify_promise.notify({loans_loaded: true}))
-        }).fail((xhr)=>{
-            this.notify_promise.notify({failed: xhr.responseJSON.message})
-        })
+        }).fail((xhr)=>{this.notify_promise.notify({failed: xhr.responseJSON.message})})
         //used saved partner filter
         return this.notify_promise
     }
-    convertCriteriaToKivaParams(crit) {
+    convertCriteriaToKivaParams(crit) { //started to implement this on the criteriaStore
         //filter partners //todo: this needs to mesh the options.
         return null
     }
     setBaseKivaParams(base_kiva_params){
         this.base_kiva_params = base_kiva_params
     }
-    setKivaLoans(loans, reset=true){
+    setKivaLoans(loans, reset = true){
         if (reset) {
             this.loans_from_kiva = []
             this.indexed_loans = {}
@@ -455,10 +464,12 @@ class Loans {
         //loans added through this method will always be distinct and properly sorted.
         this.loans_from_kiva = this.loans_from_kiva.concat(loans).distinct((a,b)=> a.id == b.id)
         this.partner_ids_from_loans = this.loans_from_kiva.select(loan => loan.partner_id).distinct()
+        this.activities = this.loans_from_kiva.select(loan => loan.activity).distinct().orderBy(name => name)
         loans.forEach(loan => this.indexed_loans[loan.id] = loan)
+        this.is_ready = true
     }
-    hasLoans(){
-        return this.loans_from_kiva.length > 0
+    isReady(){
+        return this.is_ready
     }
     searchKiva(kiva_params, max_repayment_date){
         if (!kiva_params) kiva_params = this.base_kiva_params
@@ -539,20 +550,20 @@ class Loans {
             console.log("############### LOANS UPDATED:", loans_updated)
             if (loans_updated > 0) this.notify_promise.notify({background_updated: loans_updated})
 
-            //find the loans that weren't found during the last update and return them. Possibly due to being funded. But not always. They don't seem to be funded loans... ?
-            var mia_loans = this.loans_from_kiva.where(loan => loan.status == 'fundraising' &&
-                        loan.kl_background_resync != this.background_resync).select(loan => loan.id)
-            new LoanBatch(mia_loans).start().done(loans => { //this is ok when there aren't any??
-                console.log("############### MIA LOANS:", mia_loans.length, loans)
+            //find the loans that weren't found during the last update and return them. Possibly due to being funded.
+            //But not always. They don't seem to be funded loans... ?
+            var mia_loans = kl.loans_from_kiva.where(loan => loan.status == 'fundraising' &&
+                        loan.kl_background_resync != kl.background_resync).select(loan => loan.id)
+            new LoanBatch(mia_loans).start().done(loans => { //this is ok when there aren't any
                 loans.forEach(loan => {
                     var existing = kl.indexed_loans[loan.id]
-                    if (existing)  //it should always exist since it was already in our loans_from_kiva array
-                        $.extend(true, existing, loan)
+                    $.extend(true, existing, loan)
                 })
+                console.log("############### MIA LOANS:", mia_loans.length, loans)
             })
 
             //get all loans that were added since the last update and add their details to the loans.
-            new LoanBatch(loans_added).start().done(loans => { //this is ok when there aren't any??
+            new LoanBatch(loans_added).start().done(loans => { //this is ok when there aren't any
                 console.log("############### NEW LOANS FOUND:", loans_added.length, loans)
                 this.setKivaLoans(loans, false)
             })
