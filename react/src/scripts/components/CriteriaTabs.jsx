@@ -6,6 +6,7 @@ import a from '../actions'
 import s from '../stores/'
 import {Grid,Row,Col,Input,Button,Tabs,Tab} from 'react-bootstrap';
 import {Cursor, ImmutableOptimizations} from 'react-cursor'
+var Highcharts = require('react-highcharts/dist/bundle/highcharts')
 
 var timeoutHandle=0
 
@@ -23,7 +24,7 @@ const InputRow = React.createClass({
     },
     render(){
         return (<Row>
-            <Input type='text' label={this.props.label} labelClassName='col-md-2' wrapperClassName='col-md-6' ref='input' defaultValue={this.props.group.refine(this.props.name).value} onKeyUp={this.inputChange} />
+            <Input type='text' label={this.props.label} labelClassName='col-md-3' wrapperClassName='col-md-9' ref='input' defaultValue={this.props.group.refine(this.props.name).value} onKeyUp={this.inputChange} />
         </Row>)
     }
 })
@@ -34,7 +35,8 @@ const SelectRow = React.createClass({
         options: React.PropTypes.instanceOf(Object).isRequired,
         group: React.PropTypes.instanceOf(Cursor).isRequired,
         name: React.PropTypes.string.isRequired,
-        onChange: React.PropTypes.func.isRequired
+        onChange: React.PropTypes.func.isRequired,
+        onFocus: React.PropTypes.func
     },
     propertyCursor(){
         return this.props.group.refine(this.props.name)
@@ -46,11 +48,11 @@ const SelectRow = React.createClass({
     render(){
         var options = this.props.options
         return <Row>
-            <Col md={2}>
+            <Col md={3}>
                 <label className="control-label">{options.label}</label>
             </Col>
-            <Col md={6}>
-                <Select multi={options.multi} ref='select' value={this.propertyCursor().value} options={options.select_options} clearable={options.multi} placeholder={(options.match)? `Match ${options.match} selected ${options.label}` : ''} onChange={this.selectChange} />
+            <Col md={9}>
+                <Select multi={options.multi} ref='select' value={this.propertyCursor().value} options={options.select_options} clearable={options.multi} placeholder={(options.match)? `Match ${options.match} selected ${options.label}` : ''} onChange={this.selectChange} onFocus={this.props.onFocus} onBlur={this.props.onBlur} />
             </Col>
         </Row>
     }
@@ -92,11 +94,11 @@ const SliderRow = React.createClass({
         var defaults = [min, max]
         var step = options.step || 1
         return (<Row>
-            <Col md={2}>
+            <Col md={3}>
                 <label className="control-label">{options.label}</label>
                 <p>{display_min}-{display_max}</p>
             </Col>
-            <Col md={6}>
+            <Col md={9}>
                 <Slider ref='slider' className='horizontal-slider' min={options.min} max={options.max} defaultValue={defaults} step={step} withBars onChange={this.sliderChange} />
             </Col>
         </Row>)
@@ -196,7 +198,7 @@ const CriteriaTabs = React.createClass({
     performSearchWithout(group, key){
         var crit = this.buildCriteriaWithout(group, key)
         var loans = s.loans.syncFilterLoans(crit)
-
+        return loans
     },
     tabSelect: function(selectedKey){
         if (this.state.activeTab != selectedKey) {
@@ -205,6 +207,71 @@ const CriteriaTabs = React.createClass({
             //todo: tab_flips is a hack. it is used in the key of the sliders to force a re-mounting when flipping tabs
             //otherwise it only renders one knob which is locked in position.
         }
+    },
+    focusSelect(group, key){
+        if ('lg' != findBootstrapEnv()) return
+        console.log('focusSelect', group, key)
+        var loans = this.performSearchWithout(group, key)
+        var data
+        switch (key){
+            case 'country_code':
+                data = loans.groupBy(l=>l.location.country).map(g=>{return {name: g[0].location.country, count: g.length}})
+                break
+            case 'sector':
+                data = loans.groupBy(l=>l.sector).map(g=>{ return {name: g[0].sector, count: g.length}})
+                break
+            case 'activity':
+                data = loans.groupBy(l=>l.activity).map(g=>{return {name: g[0].activity, count: g.length}})
+                break
+            default:
+                return
+        }
+
+        var basicReverseOrder = (a,b) => { //this is a hack. OrderBy has issues! Not sure what the conditions are.
+            if (a > b) return -1
+            if (a < b) return 1
+            return 0
+        }
+
+        data = data.orderBy(d => d.count, basicReverseOrder)
+
+        console.log('focusSelect', data)
+        var config = {
+            chart: {type: 'bar',
+                animation: false ,
+                renderTo: 'loan_options_graph'
+            },
+            title: {text: this.options[key].label},
+            xAxis: {
+                categories: data.select(d => d.name),
+                title: {text: null}
+            },
+            yAxis: {
+                min: 0,
+                dataLabels: {enabled: false},
+                labels: {overflow: 'justify'}
+            },
+            plotOptions: {
+                bar: {
+                    dataLabels: {
+                        enabled: true,
+                        format: '{y:.0f}'
+                    }
+                }
+            },
+            legend: {enabled: false},
+            credits: {enabled: false},
+            series: [{
+                animation: false,
+                //name: 'Options',
+                data: data.select(d => d.count)
+            }]
+        }
+        console.log(config)
+        this.setState({chart_without_config: config})
+    },
+    removeGraphs(){
+        this.setState({chart_without_config: null})
     },
     render: function() {
         var cursor = Cursor.build(this);
@@ -219,15 +286,23 @@ const CriteriaTabs = React.createClass({
                 </If>
 
                 <Tab eventKey={1} title="Borrower" className="ample-padding-top">
-                    <InputRow label='Use or Description' group={cLoan} name='use' onChange={this.criteriaChanged}/>
-                    <InputRow label='Name' group={cLoan} name='name' onChange={this.criteriaChanged}/>
+                    <Col lg={8}>
+                        <InputRow label='Use or Description' group={cLoan} name='use' onChange={this.criteriaChanged}/>
+                        <InputRow label='Name' group={cLoan} name='name' onChange={this.criteriaChanged}/>
 
-                    <For each='name' index='i' of={['country_code','sector','activity','themes','tags','sort']}>
-                        <SelectRow key={i} group={cLoan} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
-                    </For>
-                    <For each='name' index='i' of={['repaid_in','borrower_count','percent_female','still_needed','expiring_in_days', 'disbursal_in_days']}>
-                        <SliderRow key={`${this.state.tab_flips}_${i}`} group={cLoan} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
-                    </For>
+                        <For each='name' index='i' of={['country_code','sector','activity','themes','tags','sort']}>
+                            <SelectRow key={i} group={cLoan} name={name} options={this.options[name]} onChange={this.criteriaChanged} onFocus={this.focusSelect.bind(this, 'loan', name)} onBlur={this.removeGraphs}/>
+                        </For>
+                        <For each='name' index='i' of={['repaid_in','borrower_count','percent_female','still_needed','expiring_in_days', 'disbursal_in_days']}>
+                            <SliderRow key={`${this.state.tab_flips}_${i}`} group={cLoan} name={name} options={this.options[name]} onChange={this.criteriaChanged}/>
+                        </For>
+                    </Col>
+
+                    <Col lg={4} className='visible-lg-block' style={{height: '500px'}} id='loan_options_graph'>
+                        <If condition={this.state.chart_without_config}>
+                            <Highcharts config={this.state.chart_without_config} ref='loan_options' />
+                        </If>
+                    </Col>
                 </Tab>
 
 
