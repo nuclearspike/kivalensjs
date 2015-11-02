@@ -5,8 +5,8 @@ import {Loans} from '../api/kiva'
 import a from '../actions'
 import criteriaStore from './criteriaStore'
 //var linq = require('lazy-linq');
-import * as linq from '../../../node_modules/lazy-linq/linq'
-linq.installAsEnumerable()
+//import * as linq from '../../../node_modules/lazy-linq/linq'
+//linq.installAsEnumerable()
 
 //array of api loan objects that are sorted in the order they were returned.
 var basket_loans = []

@@ -89,7 +89,7 @@ var Loan = React.createClass({
     calcRepaymentsGraph: function(loan){
         if (loan.kl_repay_categories || !loan.terms.scheduled_payments) return
         var payments = loan.terms.scheduled_payments.select(payment => {
-            return {due_date: Date.from_iso(payment.due_date).toString("MMM-yyyy"), amount: payment.amount}
+            return {due_date: new Date(payment.due_date).toString("MMM-yyyy"), amount: payment.amount}
         })
         var grouped_payments  = payments.groupBy(p => p.due_date).map(g => { return {due_date: g[0].due_date, amount: g.sum(r => r.amount)} })
         loan.kl_repay_categories = grouped_payments.select(payment => payment.due_date)
