@@ -143,7 +143,7 @@ const CriteriaTabs = React.createClass({
     },
     loansReady: function(){
         this.options.activity.select_options = kivaloans.activities.select(a => {return {value: a, label: a}})
-        this.options.country_code.select_options = kivaloans.countries.select(c => {return {label: c.name, value: c.iso_code}})
+        //this.options.country_code.select_options = kivaloans.countries.select(c => {return {label: c.name, value: c.iso_code}})
         this.setState({loansReady : true})
         this.criteriaChanged()
     },

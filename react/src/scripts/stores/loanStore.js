@@ -36,7 +36,7 @@ window.kivaloans = kivaloans //todo: not just for debugging. ?
 
 var makeSearchTester = function(text){
     var result =  (text && text.length > 0) ? text.match(/(\w+)/g).distinct().select(word => word.toUpperCase() ) : []
-    console.log('makeSearchTester',result)
+    //console.log('makeSearchTester',result)
     return {
         startsWith: function(loan_attr){
             return result.length == 0 ? true : result.any( search_text => sStartsWith(loan_attr, search_text)  )
@@ -63,7 +63,7 @@ var makeExactTester = function(value){
     var terms_arr = []
     if (value && value.length > 0)
         terms_arr = (Array.isArray(value)) ? value : value.split(',')
-    console.log('makeExactTester',terms_arr)
+    //console.log('makeExactTester',terms_arr)
     return {
         exact: function(loan_attr){
             return terms_arr.length == 0 ? true: terms_arr.contains(loan_attr)
@@ -80,7 +80,7 @@ var makeExactTester = function(value){
 var loanStore = Reflux.createStore({
     listenables: [a.loans],
     init:function(){
-        console.log("loanStore:init")
+        //console.log("loanStore:init")
         basket_loans = JSON.parse(localStorage.getItem('basket'))
         if (!Array.isArray(basket_loans)) basket_loans = []
         if (basket_loans.length > 0 && !basket_loans[0].loan_id) basket_loans = []
@@ -122,7 +122,7 @@ var loanStore = Reflux.createStore({
 
     //LENDER LOANS
     onLender: function(lender_id){
-        console.log("onLENDER:", lender_id)
+        //console.log("onLENDER:", lender_id)
         kivaloans.setLender(lender_id).done((loan_ids)=>{
             //remove from basket
         })
@@ -198,7 +198,7 @@ var loanStore = Reflux.createStore({
             }).select(p => p.id)
 
             last_partner_search[partner_criteria_json] = partner_ids
-            console.log("partner_ids, length: ", partner_ids, partner_ids.length)
+            //console.log("partner_ids, length: ", partner_ids, partner_ids.length)
         }
         return partner_ids
     },
@@ -206,7 +206,7 @@ var loanStore = Reflux.createStore({
         if (!kivaloans.isReady()) return []
         if (!c){ c = criteriaStore.syncGetLast() }
         $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
-        console.log("$$$$$$$ syncFilterLoans",c)
+        //console.log("$$$$$$$ syncFilterLoans",c)
         console.time("syncFilterLoans")
 
         //break this into another unit --store? LoansAPI.filter(loans, criteria)
@@ -230,7 +230,7 @@ var loanStore = Reflux.createStore({
 
         var partner_ids = this.syncFilterPartners(c)
 
-        console.log('criteria', c)
+        //console.log('criteria', c)
 
         var lender_loan_ids = c.portfolio.exclude_portfolio_loans ? kivaloans.lender_loans : []
 

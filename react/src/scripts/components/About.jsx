@@ -53,9 +53,9 @@ var About = React.createClass({
                 <li>
                     Auto-complete drop-downs for Sector, Activity, Country, Region (new), Social Performance
                     Badges (new), Themes (new), Tags (new). Options marked as "new" were not possible before
-                    on KivaLens and Tags cannot currently be used for filtering on Kiva...{'&'} some are really
-                    great (Inspiring Story, Interesting Photo, Volunteer Like, and a bunch more) and can help you
-                    reduce the list even more if you still have too many to look through.
+                    on KivaLens ...{'&'} some are really great (Inspiring Story, Interesting Photo, Volunteer Like,
+                    and a bunch more) and can help you reduce the list even more if you still have too many to look
+                    through.
                 </li>
 
                 <li>

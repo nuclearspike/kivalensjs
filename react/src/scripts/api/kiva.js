@@ -97,9 +97,9 @@ class Request {
     //fetch data from kiva right now. use sparingly. sem_get makes sure the browser never goes above a certain number of active requests.
     static get(path, params){
         params = $.extend({}, params, {app_id: api_options.app_id})
-        console.log('get():', path, params)
+        //console.log('get():', path, params)
         return $.getJSON(`http://api.kivaws.org/v1/${path}?${serialize(params)}`)
-            .done(result => console.log(result) )
+            //.done(result => console.log(result) )
             .fail((xhr, status, err) => console.log(status, err, xhr, err.toString()) )
     }
 

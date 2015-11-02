@@ -47,7 +47,7 @@ var Search = React.createClass({
         this.setState({showBulkAdd: false})
     },
     render: function()  {
-        console.log("Search:render()")
+        //console.log("Search:render()")
         var style = {height:'100%', width: '100%'};
         return (
             <div style={style} >
