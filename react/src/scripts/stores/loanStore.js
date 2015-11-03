@@ -4,9 +4,6 @@ import Reflux from 'reflux'
 import {Loans, LoanBatch} from '../api/kiva'
 import a from '../actions'
 import criteriaStore from './criteriaStore'
-//var linq = require('lazy-linq');
-//import * as linq from '../../../node_modules/lazy-linq/linq'
-//linq.installAsEnumerable()
 
 //array of api loan objects that are sorted in the order they were returned.
 var basket_loans = []
@@ -128,6 +125,16 @@ var loanStore = Reflux.createStore({
         window.rga.event({category: 'basket', action: 'basket:batchRemove'})
         this._basketSave()
     },
+    syncAdjustBasketAmountsToWhatsLeft(){
+        this.syncGetBasket().forEach(bi => bi.amount = Math.min(bi.amount, bi.loan.kl_still_needed))
+        basket_loans.removeAll(bi => bi.amount == 0)
+        this._basketSave()
+    },
+    syncRefreshBasket(){
+        return new LoanBatch(basket_loans.select(bi => bi.loan_id)).start().done(loans => {
+            this.syncAdjustBasketAmountsToWhatsLeft()
+        })
+    },
 
     //LOANS
     onDetail: function(id){
@@ -143,8 +150,12 @@ var loanStore = Reflux.createStore({
         var checkThese = basket_loans.where(bi => !kivaloans.hasLoan(bi.loan_id)).select(bi => bi.loan_id)
         //fetch them to find out what they are. when no longer fundraising, remove from basket.
         new LoanBatch(checkThese).start().done(loans => {
+            //add fundraising loans in basket back to all loans
+            kivaloans.setKivaLoans(loans.where(loan => loan.status == 'fundraising'), false)
             //for all non-fundraising loans that were in the basket, remove them.
             this.onBasketBatchRemove(loans.where(loan => loan.status != 'fundraising').select(loan => loan.id))
+            this.syncAdjustBasketAmountsToWhatsLeft()
+            this._basketSave() //the basketSave in BatchRemove may not fire if there are none to remove.
         })
         //loans that are left in the basket which are not in kivaloans.loans_from_kiva may not fit base criteria.
     },

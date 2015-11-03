@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Reflux from 'reflux'
-import {Grid,Row,Col,Input,ButtonGroup,Button,Modal,ProgressBar,Panel} from 'react-bootstrap';
+import {Grid,Row,Col,Input,ButtonGroup,Button,Modal,ProgressBar,Panel,Alert} from 'react-bootstrap';
 import {BasketListItem} from '.';
 import a from '../actions'
 import s from '../stores'
@@ -11,12 +11,13 @@ import InfiniteList from 'react-infinite-list'
 const Basket = React.createClass({
     mixins: [Reflux.ListenerMixin],
     getInitialState() {
-        return $.extend(true, this.generateState(), {showGoodbye: false})
+        return $.extend(true, this.generateState(), {showGoodbye: false, refreshing: false})
     },
     componentDidMount(){
         this.listenTo(a.loans.load.completed,()=>{ this.setState(this.generateState()) })
         this.listenTo(a.loans.basket.changed,()=>{ this.setState(this.generateState()) })
         this.listenTo(a.loans.basket.select, id => this.setState({selected_item_id: id}))
+        if (kivaloans.isReady()) this.refresh()
     },
     generateState(){
         var basket_items = s.loans.syncGetBasket()
@@ -24,7 +25,8 @@ const Basket = React.createClass({
             basket_count: basket_items.length,
             basket_items: basket_items,
             loans: basket_items.select(bi => bi.loan),
-            amount_sum: basket_items.sum(bi => bi.amount)
+            amount_sum: basket_items.sum(bi => bi.amount),
+            raw_basket_count: s.loans.syncBasketCount()
         }
     },
     makeBasket: function(){
@@ -47,6 +49,11 @@ const Basket = React.createClass({
             this.setState({showGoodbye: true})
         }
     },
+    refresh(e){
+        if (e) e.preventDefault()
+        this.setState({refreshing: true})
+        s.loans.syncRefreshBasket().always(()=> this.setState({refreshing: false}))
+    },
     render() {
         var style = {height:'100%', width: '100%'};
         return (
@@ -54,7 +61,8 @@ const Basket = React.createClass({
                 <Col md={4}>
                     <ButtonGroup justified>
                         <Button href="#" key={1} disabled={this.state.basket_count == 0} onClick={this.clear}>Empty Basket</Button>
-                        <Button href="#" key={2} disabled={!this.state.selected_item_id} onClick={this.remove}>Remove Selected</Button>
+                        <Button href="#" key={2} disabled={this.state.basket_count == 0 || this.state.refreshing} onClick={this.refresh}>Refresh</Button>
+                        <Button href="#" key={3} disabled={!this.state.selected_item_id} onClick={this.remove}>Remove Selected</Button>
                     </ButtonGroup>
                     <InfiniteList
                         className="loan_list_container"
@@ -75,6 +83,11 @@ const Basket = React.createClass({
                             <input type="submit" disabled={this.state.basket_count == 0} className="btn btn-primary" value="Checkout at Kiva"/>
                         </form>
                     </Panel>
+                    <If condition={this.state.refreshing}>
+                        <Alert bsStyle="info">
+                            Loans in your basket are being refreshed to get the latest funded and basket amounts from Kiva.
+                        </Alert>
+                    </If>
                 </Col>
                 <div className="static-modal">
                     <Modal show={this.state.showGoodbye} onHide={()=>{}}>

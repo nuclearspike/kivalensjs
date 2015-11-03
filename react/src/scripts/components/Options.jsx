@@ -33,19 +33,19 @@ const Options = React.createClass({
                         final repayment date criteria option.
                     </Panel>
                     <Panel header='Who are you?'>
-                            <Input
+                        <Input
                             type='text'
                             label='Kiva Lender ID'
                             labelClassName='col-lg-2'
-                            wrapperClassName='col-lg-4'
+                            wrapperClassName='col-lg-10'
                             valueLink={this.linkState('kiva_lender_id')} />
-                            <Col md={6}><a href="http://www.kiva.org/myLenderId" target="_blank">Click here if you don't know yours</a></Col>
-                        <Row>
-                            <p className="pad-sides ample-padding-top">
-                                This is used when filtering loans to be able to hide loans you've already loaned to. Also, expect more in the future
-                                to help balance your portfolio.
-                            </p>
-                        </Row>
+                        <a href="http://www.kiva.org/myLenderId" target="_blank">Click here if you don't know yours</a>
+
+                        <p className="ample-padding-top">
+                            This is used when filtering loans to hide loans you've already loaned to and to automatically
+                            prune your basket when you come back to KivaLens after making loan purchases.
+                            Also, expect more in the future to help balance your portfolio.
+                        </p>
                     </Panel>
                     <Panel header='External Research'>
                         <Input

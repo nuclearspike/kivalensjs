@@ -4,7 +4,7 @@ import Slider from 'react-slider' // 'multi-slider' is incompatible with .14 pre
 import Reflux from 'reflux'
 import a from '../actions'
 import s from '../stores/'
-import {Grid,Row,Col,Input,Button,Tabs,Tab,Panel} from 'react-bootstrap';
+import {Grid,Row,Col,Input,Button,Tabs,Tab,Panel,OverlayTrigger,Popover} from 'react-bootstrap';
 import {Cursor, ImmutableOptimizations} from 'react-cursor'
 var Highcharts = require('react-highcharts/dist/bundle/highcharts')
 
@@ -95,7 +95,11 @@ const SliderRow = React.createClass({
         var step = options.step || 1
         return (<Row>
             <Col md={3}>
-                <label className="control-label">{options.label}</label>
+                <OverlayTrigger trigger={options.helpText ? "hover" : "none"} placement="top" overlay={<Popover title={options.label}>{options.helpText}
+                    </Popover>}>
+                    <label className="control-label">{options.label}</label>
+                </OverlayTrigger>
+
                 <p>{display_min}-{display_max}</p>
             </Col>
             <Col md={9}>
@@ -162,24 +166,24 @@ const CriteriaTabs = React.createClass({
         this.options.region = {ref: 'region', label: 'Region', match: 'any', multi: true, select_options: [{"value":"na","label":"North America"},{"value":"ca","label":"Central America"},{"value":"sa","label":"South America"},{"value":"af","label":"Africa"},{"value":"as","label":"Asia"},{"value":"me","label":"Middle East"},{"value":"ee","label":"Eastern Europe"},{"value":"oc","label":"Oceania"},{"value":"we","label":"Western Europe"}]} //{"value":"an","label":"Antarctica"},
 
         //loan sliders
-        this.options.repaid_in = {min: 2, max: 120, label: 'Repaid In (months)'}
-        this.options.borrower_count = {min: 1, max: 20, label: 'Borrower Count'}
-        this.options.percent_female = {min: 0, max: 100, label: 'Percent Female'}
-        this.options.still_needed = {min: 0, max: 1000, step: 25, label: 'Still Needed ($)'} //min: 25? otherwise it bounces back to 25 if set to min
-        this.options.expiring_in_days = {min: 0, max: 35, label: 'Expiring In (days)'}
-        this.options.disbursal_in_days = {min: -90, max: 90, label: 'Disbursal (days)'}
+        this.options.repaid_in = {min: 2, max: 120, label: 'Repaid In (months)', helpText: "The number of months between today and the final scheduled repayment"}
+        this.options.borrower_count = {min: 1, max: 20, label: 'Borrower Count', helpText: "The number of borrowers included in the loan. To see only individual loans, set the max to 1. To see only group loans, set the min to 2 and the max at the far right."}
+        this.options.percent_female = {min: 0, max: 100, label: 'Percent Female', helpText: "What percentage of the borrowers are female. For individual borrowers, this will either be 0% or 100%"}
+        this.options.still_needed = {min: 0, max: 1000, step: 25, label: 'Still Needed ($)', helpText: "How much is still needed to fully fund the loan. Loan Amount - Funded Amount - Basket Amount"} //min: 25? otherwise it bounces back to 25 if set to min
+        this.options.expiring_in_days = {min: 0, max: 35, label: 'Expiring In (days)', helpText: "The number of days left before the loan expires if not funded"}
+        this.options.disbursal_in_days = {min: -90, max: 90, label: 'Disbursal (days)', helpText: "When does the borrower get the money? Negative days mean the borrower already has the money and the Kiva loan is used to back-fill the loan from the MFI rather than making the borrower wait for fundraising. Positive days mean the borrower does not yet have the money."}
 
         //partner sliders
-        this.options.partner_risk_rating = {min: 0, max: 5, step: 0.5, label: 'Risk Rating (stars)'}
-        this.options.partner_arrears = {min: 0, max: 50, label: 'Delinq Rate (%)'}
-        this.options.partner_default = {min: 0, max: 30, label: 'Default Rate (%)'}
-        this.options.portfolio_yield = {min: 0, max: 100, label: 'Portfolio Yield (%)'}
-        this.options.profit = {min: -100, max: 100, label: 'Profit (%)'}
-        this.options.loans_at_risk_rate = {min: 0, max: 100, label: 'Loans at Risk (%)'}
-        this.options.currency_exchange_loss_rate = {min: 0, max: 10, label: 'Currency Exchange Loss (%)'}
-        this.options.average_loan_size_percent_per_capita_income = {min: 0, max: 300, label: 'Average Loan/Capita Income'}
-        this.options.secular_rating = {min: 1, max: 4, label: 'Secular Score (Atheist List)'}
-        this.options.social_rating = {min: 1, max: 4, label: 'Social Score (Atheist List)'}
+        this.options.partner_risk_rating = {min: 0, max: 5, step: 0.5, label: 'Risk Rating (stars)', helpText: "5 star means that Kiva has estimated that the institution servicing the loan has very low probability of collapse. 1 star means they may be new and untested. To include unrated partners, have the left-most slider all the way at left."}
+        this.options.partner_arrears = {min: 0, max: 50, label: 'Delinq Rate (%)', helpText: "Kiva defines the Delinquency (Arrears) Rate as the amount of late payments divided by the total outstanding principal balance Kiva has with the Field Partner. Arrears can result from late repayments from Kiva borrowers as well as delayed payments from the Field Partner.  How this is calculated: Delinquency (Arrears) Rate = Amount of Paying Back Loans Delinquent / Amount Outstanding"}
+        this.options.partner_default = {min: 0, max: 30, label: 'Default Rate (%)', helpText: "The default rate is the percentage of ended loans (no longer paying back) which have failed to repay (measured in dollar volume, not units). How this is calculated: Default Rate = Amount of Ended Loans Defaulted / Amount of Ended Loans. For more information, please refer to Kiva's Help Center. "}
+        this.options.portfolio_yield = {min: 0, max: 100, label: 'Portfolio Yield (%)', helpText: "Although Kiva and its lenders don't charge interest or fees to borrowers, many of Kiva's Field Partners do charge borrowers in some form in order to make possible the long-term sustainability of their operations, reach and impact. See Kiva for more information on Portfolio Yield."}
+        this.options.profit = {min: -100, max: 100, label: 'Profit (%)', helpText: "'Return on Assets' is an indication of a Field Partner's profitability. It can also be an indicator of the long-term sustainability of an organization, as organizations consistently operating at a loss (those that have a negative return on assets) may not be able to sustain their operations over time."}
+        this.options.loans_at_risk_rate = {min: 0, max: 100, label: 'Loans at Risk (%)', helpText: "The loans at risk rate refers to the percentage of Kiva loans being paid back by this Field Partner that are past due in repayment by at least 1 day. This delinquency can be due to either non-payment by Kiva borrowers or non-payment by the Field Partner itself. Loans at Risk Rate = Amount of paying back loans that are past due / Total amount of Kiva loans outstanding"}
+        this.options.currency_exchange_loss_rate = {min: 0, max: 10, label: 'Currency Exchange Loss (%)', helpText: "Kiva calculates the Currency Exchange Loss Rate for its Field Partners as: Amount of Currency Exchange Loss / Total Loans."}
+        this.options.average_loan_size_percent_per_capita_income = {min: 0, max: 300, label: 'Average Loan/Capita Income', helpText: "The Field Partner's average loan size is expressed as a percentage of the country's gross national annual income per capita. Loans that are smaller (that is, as a lower percentage of gross national income per capita) are generally made to more economically disadvantaged populations. However, these same loans are generally more costly for the Field Partner to originate, disburse and collect."}
+        this.options.secular_rating = {min: 1, max: 4, label: 'Secular Score (Atheist List)', helpText: "A score of 1 means the MFI is a religious institution. 4 means purely secular."}
+        this.options.social_rating = {min: 1, max: 4, label: 'Social Score (Atheist List)', helpText: "1 means they only really give loans, 4 means they are very socially conscious."}
         this.external_partner_sliders = []
     },
     criteriaChanged(){
