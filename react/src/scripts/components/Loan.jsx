@@ -98,6 +98,7 @@ var Loan = React.createClass({
     render: function() {
         var loan = this.state.loan
         var partner = this.state.partner
+        var atheistScore = partner.atheistScore
         if (!partner.social_performance_strengths) partner.social_performance_strengths = [] //happens other than old partners? todo: do a partner processor?
         return (
             <div>
@@ -153,6 +154,8 @@ var Loan = React.createClass({
                             </dl>
                         </Col>
                     </Tab>
+
+
                     <Tab eventKey={3} title="Partner" className="ample-padding-top">
                             <h2>{partner.name}</h2>
                             <Col lg={5}>
@@ -179,18 +182,37 @@ var Loan = React.createClass({
                                     <span><dt>Website</dt><dd><a href={partner.url} target='_blank'>{partner.url}</a></dd></span>
                                 </If>
                             </dl>
+
                             </Col>
                         <Col lg={5}>
                             <KivaImage className="float_left" type="width" loan={partner} image_width={800} width="100%"/>
                             <a href={`http://www.kiva.org/partners/${partner.id}?default_team=kivalens`} target="_blank">View Partner on Kiva.org</a>
                         </Col>
                         <Col lg={10}>
-                            <h3>Social Performance Strengths</h3>
-                            <ul>
-                                <For each="sp" index="i" of={partner.social_performance_strengths}>
-                                    <li key={i}><b>{sp.name}</b>: {sp.description}</li>
-                                </For>
-                            </ul>
+                            <If condition={partner.kl_sp.length}>
+                                <div>
+                                    <h3>Social Performance Strengths</h3>
+                                    <ul>
+                                        <For each="sp" index="i" of={partner.social_performance_strengths}>
+                                            <li key={i}><b>{sp.name}</b>: {sp.description}</li>
+                                        </For>
+                                    </ul>
+                                </div>
+                            </If>
+
+                            <If condition={atheistScore}>
+                                <div>
+                                    <h3>Atheist Team Research</h3>
+                                    <dl className="dl-horizontal">
+                                        <dt>Secular Rating</dt><dd>{atheistScore.secularRating}</dd>
+                                        <dt>Religious Affiliation</dt><dd>{atheistScore.religiousAffiliation}</dd>
+                                        <dt>Comments on Rating</dt><dd>{atheistScore.commentsOnSecularRating}</dd>
+                                        <dt>Social Rating</dt><dd>{atheistScore.socialRating}</dd>
+                                        <dt>Comments on Rating</dt><dd>{atheistScore.commentsOnSocialRating}</dd>
+                                        <dt>Review Comments</dt><dd>{atheistScore.reviewComments}</dd>
+                                    </dl>
+                                </div>
+                            </If>
                         </Col>
                     </Tab>
                 </Tabs>

@@ -132,6 +132,7 @@ gulp.task('d', [], function() {
         });
 
         var globs = [
+            'data/atheist_fetch.php',
             'css/**',
             'javascript/**',
             'index.html'

@@ -30,6 +30,11 @@ var About = React.createClass({
                 include as many details about what loan/partner and information you can so that I can reproduce the
                 problem.
             </p>
+            <p>
+                Any questions about the <a href="http://www.kiva.org/team/atheists" target="_blank">Atheist Team</a>'s
+                MFI research should be directed to that team. I only pull, display and filter using the data,
+                I do not verify it.
+            </p>
 
             <h3>Features</h3>
             <ul>
@@ -99,6 +104,13 @@ var About = React.createClass({
 
                 <li>
                     Saved Searches: Save your favorite searches to quickly jump back to them.
+                </li>
+
+                <li>
+                    Filter on the Atheist Team's MFI research with sliders for Secular and Social scoring. When you
+                    click on a loan, the Partner tab will show a new section displaying data pulled from their
+                    spreadsheet. This feature is off by default, simply turn it on in the Options tab and reload the
+                    page.
                 </li>
             </ul>
 
@@ -183,6 +195,14 @@ var About = React.createClass({
                 as well. There are still some things that Kiva does not do that are handy. I have been working to
                 re-implement KivaLens as a React app (pure HTML output, so it will work on all browsers with no plugin
                 install, tablets and phones too).
+            </p>
+            <p>
+                If you were using the RSS feed option from KivaLens, you are going to need to find an alternative.
+                At this time, I have no plans to implement anything on the server so RSS won't be an option. However,
+                Kiva has added quite a few more risk-related filters to their API and have an RSS feed
+                available. <a href="http://build.kiva.org/api#GET*|loans|search" target="_blank">Here is Kiva's documentation</a> for
+                building a query then just use the ".rss" extension. Here's <a href="http://api.kivaws.org/v1/loans/search.rss" target="_blank">unfiltered output</a>. Then
+                just add query parameters like "{'?'}theme=Green{'&'}sort_by=repayment_term".
             </p>
 
             <h3>Kiva Lender Assistant Chrome Extension</h3>

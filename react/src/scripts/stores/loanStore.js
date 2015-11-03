@@ -1,7 +1,7 @@
 'use strict';
 
 import Reflux from 'reflux'
-import {Loans} from '../api/kiva'
+import {Loans, LoanBatch} from '../api/kiva'
 import a from '../actions'
 import criteriaStore from './criteriaStore'
 //var linq = require('lazy-linq');
@@ -15,8 +15,10 @@ var last_partner_search = {}
 var last_partner_search_count = 0
 var kivaloans = new Loans(10*60*1000)
 
+var options = JSON.parse(localStorage.Options)
+
 //bridge the downloading/processing generic API class with the React app. convert Deferred notify -> Reflux actions
-kivaloans.init().progress(progress => {
+kivaloans.init(null, options).progress(progress => {
     if (progress.background_added)
         a.loans.backgroundResync.added(progress.background_added)
     if (progress.background_updated)
@@ -27,8 +29,10 @@ kivaloans.init().progress(progress => {
         a.loans.load.progressed(progress.loan_load_progress)
     if (progress.failed)
         a.loans.load.failed(progress.failed)
-    if (progress.lender_loans_event)
+    if (progress.lender_loans_event) {
         a.criteria.lenderLoansEvent(progress.lender_loans_event)
+        loanStore.onBasketBatchRemove(kivaloans.lender_loans) //todo: is this best here? this isn't just standard relay
+    }
 })
 
 //a.loans.load.failed
@@ -80,7 +84,6 @@ var makeExactTester = function(value){
 var loanStore = Reflux.createStore({
     listenables: [a.loans],
     init:function(){
-        //console.log("loanStore:init")
         basket_loans = JSON.parse(localStorage.getItem('basket'))
         if (!Array.isArray(basket_loans)) basket_loans = []
         if (basket_loans.length > 0 && !basket_loans[0].loan_id) basket_loans = []
@@ -119,13 +122,11 @@ var loanStore = Reflux.createStore({
         window.rga.event({category: 'basket', action: 'basket:remove'})
         this._basketSave()
     },
-
-    //LENDER LOANS
-    onLender: function(lender_id){
-        //console.log("onLENDER:", lender_id)
-        kivaloans.setLender(lender_id).done((loan_ids)=>{
-            //remove from basket
-        })
+    onBasketBatchRemove: function(loan_ids){
+        if (!loan_ids.length) return
+        basket_loans.removeAll(bi => loan_ids.contains(bi.loan_id))
+        window.rga.event({category: 'basket', action: 'basket:batchRemove'})
+        this._basketSave()
     },
 
     //LOANS
@@ -134,8 +135,18 @@ var loanStore = Reflux.createStore({
         a.loans.detail.completed(loan) //return immediately with the last one we got (typically at start up)
         kivaloans.refreshLoan(loan).done(loan => a.loans.detail.completed(loan)) //kick off a process to get an updated version
     },
-    onFilter: function(c){ //why would I ever call this async??
+    onFilter: function(c){
         a.loans.filter.completed(this.syncFilterLoans(c))
+    },
+    onLoadCompleted: function(loans){
+        //find loans in the basket where they are not in the listing from kiva.
+        var checkThese = basket_loans.where(bi => !kivaloans.hasLoan(bi.loan_id)).select(bi => bi.loan_id)
+        //fetch them to find out what they are. when no longer fundraising, remove from basket.
+        new LoanBatch(checkThese).start().done(loans => {
+            //for all non-fundraising loans that were in the basket, remove them.
+            this.onBasketBatchRemove(loans.where(loan => loan.status != 'fundraising').select(loan => loan.id))
+        })
+        //loans that are left in the basket which are not in kivaloans.loans_from_kiva may not fit base criteria.
     },
     syncHasLoadedLoans: function(){
         return kivaloans.loans_from_kiva.length > 0
@@ -179,6 +190,8 @@ var loanStore = Reflux.createStore({
             var rgPY         = makeRangeTester(c.partner, 'portfolio_yield')
             var rgProfit     = makeRangeTester(c.partner, 'profit')
             var rgAtRisk     = makeRangeTester(c.partner, 'loans_at_risk_rate')
+            var rgSecular    = makeRangeTester(c.partner, 'secular_rating')
+            var rgSocial     = makeRangeTester(c.partner, 'social_rating')
             var rgCEX        = makeRangeTester(c.partner, 'currency_exchange_loss_rate')
             var rgPCP        = makeRangeTester(c.partner, 'average_loan_size_percent_per_capita_income')
 
@@ -193,6 +206,8 @@ var loanStore = Reflux.createStore({
                     && rgAtRisk.range(p.loans_at_risk_rate)
                     && rgCEX.range(p.currency_exchange_loss_rate)
                     && rgPCP.range(p.average_loan_size_percent_per_capita_income)
+                    && (p.atheistScore ? rgSecular.range(p.atheistScore.secularRating) : true)
+                    && (p.atheistScore ? rgSocial.range(p.atheistScore.socialRating) : true)
                     && (isNaN(parseFloat(p.rating)) ? c.partner.rating_min == null : rgRisk.range(parseFloat(p.rating)))
                     //&& rgRisk.range(parseFloat(p.rating))
             }).select(p => p.id)
@@ -205,6 +220,7 @@ var loanStore = Reflux.createStore({
     syncFilterLoans: function(c){
         if (!kivaloans.isReady()) return []
         if (!c){ c = criteriaStore.syncGetLast() }
+        //needs a copy of it and to guarantee the groups are there.
         $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
         //console.log("$$$$$$$ syncFilterLoans",c)
         console.time("syncFilterLoans")
@@ -213,6 +229,8 @@ var loanStore = Reflux.createStore({
 
         //for each search term for sector, break it into an array, ignoring spaces and commas
         //for each loan, test the sector against each search term.
+
+        //if (c.loan.repaid_in_max) c.loan.repaid_in_max += .2
 
         var stSector = makeExactTester(c.loan.sector)
         var stActivity = makeExactTester(c.loan.activity)

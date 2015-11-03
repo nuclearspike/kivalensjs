@@ -9,7 +9,6 @@ a.loans = Reflux.createActions({
     "filter": {children: ["completed"]},
     "detail": {children: ["completed"]},
     "basket": {children: ["add", "remove","select","changed","batchAdd","clear"]},
-    "lender": {children: ["completed"]},
     "backgroundResync":{ children: ["removed", "added", "updated"]}
 })
 
