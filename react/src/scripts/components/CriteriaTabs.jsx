@@ -7,6 +7,7 @@ import s from '../stores/'
 import {Grid,Row,Col,Input,Button,Tabs,Tab,Panel,OverlayTrigger,Popover} from 'react-bootstrap';
 import {Cursor, ImmutableOptimizations} from 'react-cursor'
 var Highcharts = require('react-highcharts/dist/bundle/highcharts')
+import ReactCSSTransitionGroup from 'react-addons-css-transition-group'
 
 var timeoutHandle=0
 
@@ -95,9 +96,8 @@ const SliderRow = React.createClass({
         var step = options.step || 1
         return (<Row>
             <Col md={3}>
-                <OverlayTrigger trigger={options.helpText ? "hover" : "none"} placement="top" overlay={<Popover title={options.label}>{options.helpText}
-                    </Popover>}>
-                    <label className="control-label">{options.label}</label>
+                <OverlayTrigger rootClose={true} trigger={options.helpText ? ["hover","focus","click"] : "none"} placement="top" overlay={<Popover title={options.label}>{options.helpText}</Popover>}>
+                    <label style={{'borderBottom': '#333 1px dotted'}} className="control-label">{options.label}</label>
                 </OverlayTrigger>
 
                 <p>{display_min}-{display_max}</p>
@@ -162,16 +162,19 @@ const CriteriaTabs = React.createClass({
         this.options.sort = {label: 'Sort', match: '', multi: false, select_options: [{"value": null, label: "Date half is paid back, then 75%, then full (default)"},{value: "final_repayment", label: "Final repayment date"},{value:'newest',label:'Newest'},{value:'expiring',label:'Expiring'},{value:'popularity',label:'Popularity ($/hour)'}]}
 
         //partner selects
-        this.options.social_performance = {ref: 'social_performance', label: 'Social Performance', match: 'all', multi: true, select_options: [{"value":1,"label":"Anti-Poverty Focus"},{"value":3,"label":"Client Voice"},{"value":5,"label":"Entrepreneurial Support"},{"value":6,"label":"Facilitation of Savings"},{"value":4,"label":"Family and Community Empowerment"},{"value":7,"label":"Innovation"},{"value":2,"label":"Vulnerable Group Focus"}]}
-        this.options.region = {ref: 'region', label: 'Region', match: 'any', multi: true, select_options: [{"value":"na","label":"North America"},{"value":"ca","label":"Central America"},{"value":"sa","label":"South America"},{"value":"af","label":"Africa"},{"value":"as","label":"Asia"},{"value":"me","label":"Middle East"},{"value":"ee","label":"Eastern Europe"},{"value":"oc","label":"Oceania"},{"value":"we","label":"Western Europe"}]} //{"value":"an","label":"Antarctica"},
+        this.options.social_performance = {label: 'Social Performance', match: 'all', multi: true, select_options: [{"value":1,"label":"Anti-Poverty Focus"},{"value":3,"label":"Client Voice"},{"value":5,"label":"Entrepreneurial Support"},{"value":6,"label":"Facilitation of Savings"},{"value":4,"label":"Family and Community Empowerment"},{"value":7,"label":"Innovation"},{"value":2,"label":"Vulnerable Group Focus"}]}
+        this.options.region = {label: 'Region', match: 'any', multi: true, select_options: [{"value":"na","label":"North America"},{"value":"ca","label":"Central America"},{"value":"sa","label":"South America"},{"value":"af","label":"Africa"},{"value":"as","label":"Asia"},{"value":"me","label":"Middle East"},{"value":"ee","label":"Eastern Europe"},{"value":"oc","label":"Oceania"},{"value":"we","label":"Western Europe"}]} //{"value":"an","label":"Antarctica"},
+
+        //portfolio selects
+        this.options.exclude_portfolio_loans = {label: "Exclude My Loans", match: '', multi: false, select_options:[{value:'true', label:"Yes, Exclude Loans I've Made"},{value:'false', label:"No, Include Loans I've Made"}]} //,{value:"only", label:"Only Show My Fundraising Loans"}
 
         //loan sliders
-        this.options.repaid_in = {min: 2, max: 120, label: 'Repaid In (months)', helpText: "The number of months between today and the final scheduled repayment"}
+        this.options.repaid_in = {min: 2, max: 120, label: 'Repaid In (months)', helpText: "The number of months between today and the final scheduled repayment."}
         this.options.borrower_count = {min: 1, max: 20, label: 'Borrower Count', helpText: "The number of borrowers included in the loan. To see only individual loans, set the max to 1. To see only group loans, set the min to 2 and the max at the far right."}
-        this.options.percent_female = {min: 0, max: 100, label: 'Percent Female', helpText: "What percentage of the borrowers are female. For individual borrowers, this will either be 0% or 100%"}
-        this.options.still_needed = {min: 0, max: 1000, step: 25, label: 'Still Needed ($)', helpText: "How much is still needed to fully fund the loan. Loan Amount - Funded Amount - Basket Amount"} //min: 25? otherwise it bounces back to 25 if set to min
+        this.options.percent_female = {min: 0, max: 100, label: 'Percent Female', helpText: "What percentage of the borrowers are female. For individual borrowers, the loan will either be 0% or 100%. On Kiva, a group is considered 'Female' if more than half of the members are women. So you can set the lower bound to 50% and the upper to 100% to mimic that behavior. Additionally, you could look for groups that are 100% female, or set the lower to 40% and upper to 60% to find groups that are about evenly mixed."}
+        this.options.still_needed = {min: 0, max: 1000, step: 25, label: 'Still Needed ($)', helpText: "How much is still needed to fully fund the loan. Loan Amount - Funded Amount - Basket Amount. Set the lower bound to $25 to exclude loans that are fully funded with basket amounts. Set both the lower and upper bound to $25 to find loans where they just need one more lender."} //min: 25? otherwise it bounces back to 25 if set to min
         this.options.expiring_in_days = {min: 0, max: 35, label: 'Expiring In (days)', helpText: "The number of days left before the loan expires if not funded"}
-        this.options.disbursal_in_days = {min: -90, max: 90, label: 'Disbursal (days)', helpText: "When does the borrower get the money? Negative days mean the borrower already has the money and the Kiva loan is used to back-fill the loan from the MFI rather than making the borrower wait for fundraising. Positive days mean the borrower does not yet have the money."}
+        this.options.disbursal_in_days = {min: -90, max: 90, label: 'Disbursal (days)', helpText: "Relative to today, when does the borrower get the money? Negative days mean the borrower already has the money and the Kiva loan is used to back-fill the loan from the MFI rather than making the borrower wait for fundraising. Positive days mean the borrower does not yet have the money."}
 
         //partner sliders
         this.options.partner_risk_rating = {min: 0, max: 5, step: 0.5, label: 'Risk Rating (stars)', helpText: "5 star means that Kiva has estimated that the institution servicing the loan has very low probability of collapse. 1 star means they may be new and untested. To include unrated partners, have the left-most slider all the way at left."}
@@ -182,8 +185,8 @@ const CriteriaTabs = React.createClass({
         this.options.loans_at_risk_rate = {min: 0, max: 100, label: 'Loans at Risk (%)', helpText: "The loans at risk rate refers to the percentage of Kiva loans being paid back by this Field Partner that are past due in repayment by at least 1 day. This delinquency can be due to either non-payment by Kiva borrowers or non-payment by the Field Partner itself. Loans at Risk Rate = Amount of paying back loans that are past due / Total amount of Kiva loans outstanding"}
         this.options.currency_exchange_loss_rate = {min: 0, max: 10, label: 'Currency Exchange Loss (%)', helpText: "Kiva calculates the Currency Exchange Loss Rate for its Field Partners as: Amount of Currency Exchange Loss / Total Loans."}
         this.options.average_loan_size_percent_per_capita_income = {min: 0, max: 300, label: 'Average Loan/Capita Income', helpText: "The Field Partner's average loan size is expressed as a percentage of the country's gross national annual income per capita. Loans that are smaller (that is, as a lower percentage of gross national income per capita) are generally made to more economically disadvantaged populations. However, these same loans are generally more costly for the Field Partner to originate, disburse and collect."}
-        this.options.secular_rating = {min: 1, max: 4, label: 'Secular Score (Atheist List)', helpText: "A score of 1 means the MFI is a religious institution. 4 means purely secular."}
-        this.options.social_rating = {min: 1, max: 4, label: 'Social Score (Atheist List)', helpText: "1 means they only really give loans, 4 means they are very socially conscious."}
+        this.options.secular_rating = {min: 1, max: 4, label: 'Secular Score (Atheist List)', helpText: "4 Completely secular, 3 Secular but with some religious influence (e.g. a secular MFI that partners with someone like World Vision), or it appears secular but with some uncertainty, 2 Nonsecular but loans without regard to borrower’s beliefs, 1 Nonsecular with a religious agenda."}
+        this.options.social_rating = {min: 1, max: 4, label: 'Social Score (Atheist List)', helpText: "4 Excellent social initiatives - proactive social programs and efforts outside of lending. Truly outstanding social activities. 3 Good social initiatives in most areas. MFI has some formal and structured social programs. 2 Social goals but no/few initiatives (may have savings, business counseling). 1 No attention to social goals or initiatives. Typically the MFI only focuses on their own business issues (profitability etc.). They might mention social goals but it seems to be there just because it’s the right thing to say (politically correct)."}
         this.external_partner_sliders = []
     },
     criteriaChanged(){
@@ -198,11 +201,7 @@ const CriteriaTabs = React.createClass({
         a.criteria.change(criteria)
     },
     buildCriteria: function(){
-        var criteria = s.criteria.syncBlankCriteria()
-        //the only one right now that needs to be manually pulled.
-        criteria.portfolio = { exclude_portfolio_loans: this.refs.exclude_portfolio_loans.getChecked() }
-        criteria = s.criteria.stripNullValues($.extend(true, criteria, this.state.criteria))
-        return criteria
+        return s.criteria.stripNullValues($.extend(true, {}, s.criteria.syncBlankCriteria(), this.state.criteria))
     },
     buildCriteriaWithout(group, key){
         var crit = this.buildCriteria()
@@ -210,7 +209,7 @@ const CriteriaTabs = React.createClass({
         return crit
     },
     performSearchWithout(group, key){
-        return s.loans.syncFilterLoans(this.buildCriteriaWithout(group, key))
+        return s.loans.syncFilterLoans(this.buildCriteriaWithout(group, key), false)
     },
     tabSelect: function(selectedKey){
         if (this.state.activeTab != selectedKey) {
@@ -257,7 +256,6 @@ const CriteriaTabs = React.createClass({
 
         data = data.orderBy(d => d.count, basicReverseOrder)
 
-        //console.log('focusSelect', data)
         var config = {
             chart: {type: 'bar',
                 animation: false ,
@@ -311,11 +309,12 @@ const CriteriaTabs = React.createClass({
         var cursor = Cursor.build(this);
         var cLoan = cursor.refine('criteria').refine('loan')
         var cPartner = cursor.refine('criteria').refine('partner')
+        var cPorfolio = cursor.refine('criteria').refine('portfolio')
         var lender_loans_message = kivaloans.lender_loans_message
 
         return (<div>
             <Tabs animation={false} activeKey={this.state.activeTab} onSelect={this.tabSelect}>
-                <If condition={location.hostname == 'localhost!!'}>
+                <If condition={location.hostname == '~~localhost'}>
                     <pre>{JSON.stringify(this.state, null, 2)}</pre>
                 </If>
 
@@ -366,7 +365,10 @@ const CriteriaTabs = React.createClass({
                 <Tab eventKey={3} title={`Your Portfolio${this.state.portfolioTab}`} className="ample-padding-top">
                     <Row>
                         <Col md={9}>
-                            <Input type="checkbox" ref='exclude_portfolio_loans' label={`Hide loans in my portfolio (${lender_loans_message})`} defaultChecked={this.state.criteria.portfolio.exclude_portfolio_loans} onClick={this.criteriaChanged} onChange={this.criteriaChanged} />
+                            <For each='name' index='i' of={['exclude_portfolio_loans']}>
+                                <SelectRow key={i} group={cPorfolio} name={name} options={this.options[name]} onChange={this.criteriaChanged} onFocus={this.focusSelect.bind(this, 'portfolio', name)} onBlur={this.removeGraphs}/>
+                            </For>
+                            {`(${lender_loans_message})`}
                             <Panel header='Portfolio Balancing'>
                                 Coming Soon!
                             </Panel>

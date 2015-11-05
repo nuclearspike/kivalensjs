@@ -10,7 +10,7 @@ const PromptModal = React.createClass({
     componentDidMount() {
         this.listenTo(a.utils.prompt, this.showPrompt)
     },
-    showPrompt(options){
+    showPrompt(options){ //options of "title" and "label"
         this.callback = options.callback
         this.setState($.extend({}, options, {callback: null, show: true, return_value: ''}))
     },
@@ -32,7 +32,9 @@ const PromptModal = React.createClass({
                     </If>
 
                     <Modal.Body style={{height: '80px'}}>
-                        <Input type='text' autoFocus label={this.state.label} labelClassName='col-md-2' ref="return_value" wrapperClassName='col-md-6' valueLink={this.linkState('return_value')}  />
+                        <Input type='text' autoFocus label={this.state.label}
+                            labelClassName='col-md-2' ref="return_value"
+                            wrapperClassName='col-md-10' valueLink={this.linkState('return_value')}  />
                     </Modal.Body>
 
                     <Modal.Footer>

@@ -19,7 +19,7 @@ var LoadingLoansModal = React.createClass({
             this.setState(new_state)
         })
         this.listenTo(a.loans.load.completed, ()=>{this.setState({show: false})})
-        this.listenTo(a.loans.load.failed, (status)=>{
+        this.listenTo(a.loans.load.failed, status => {
             this.setState({progress_label: 'Download Failed! Error Message from Kiva:', error_message: status })
         })
     },
@@ -37,16 +37,17 @@ var LoadingLoansModal = React.createClass({
                             <ProgressBar active label={this.state.details_progress > 10 ? 'details': ''} now={this.state.details_progress} />
                         </ProgressBar>
                         <CycleChild name='didYouKnow_loading'>
-                            <p>To greatly reduce load time, check out the "Options" tab to if you never consider longer term loans.</p>
+                            <p>To greatly reduce load time, check out the "Options" tab if you never consider longer term loans.</p>
                             <p>Have you told your Kiva Lending Teams about your favorite KivaLens features yet{'?'}</p>
                             <p>Did you know that KivaLens now works on smart-phones and tablets (iPad, Kindle, etc), too{'?'}</p>
-                            <p>Do you know any software developers{'?'} KivaLens is open-source and will accept quality contributions (check out the About page for more information)</p>
+                            <p>Do you know any software developers{'?'} KivaLens is open-source and will accept quality contributions (check out the About page for more information).</p>
                             <p>You can hide loans you've already loaned to by adding your Lender ID in the Options tab, then checking the Criteria Portfolio option to hide them.</p>
                             <p>Use the "Saved Search" button when you have your search exactly like you want it, give it a name and be able to return to it whenever you want.</p>
                             <p>There's also a "Kiva Lender Assistant" Chrome Browser plugin that will talk to you and show graphs and final repayment information on the Lend Tab. See the About page for more information.</p>
                             <p>You can click anywhere in one of the drop-down boxes to bring up the selection (you don't need to click the little arrow) or just start typing.</p>
-                            <p>Kiva's site does not allow you to search by "Tags" but they are a great way to search! You can look for Interesting Photos, Inspiring Stories, Repeat Borrowers and many more!</p>
+                            <p>Kiva's site does not allow you to search for multiple "Tags" (where the loan must be tagged with both) but they are a great way to narrow your search. You can look for Interesting Photos, Inspiring Stories, Repeat Borrowers and many more!</p>
                             <p>Did you know that the "Posted" and "Expires" Dates on the Loan Detail have already been adjusted to your timezone{'?'}</p>
+                            <p>Do you find KivaLens useful and want to help offset server and other expenses{'?'} You can <a href="http://www.kiva.org/gifts/kiva-cards?handle=nuclearspike#/lender" target="_blank">send a Kiva Gift Card</a> (opens in a new window).</p>
                         </CycleChild>
                     </Modal.Body>
 

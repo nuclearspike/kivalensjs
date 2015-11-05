@@ -25,7 +25,7 @@ var criteriaStore = Reflux.createStore({
                         "still_needed_min": 25
                     },
                     "partner": {},
-                    "portfolio": {"exclude_portfolio_loans": true}
+                    "portfolio": {"exclude_portfolio_loans": 'true'}
                 },
                 "Popular": {
                     "loan": {
@@ -33,7 +33,25 @@ var criteriaStore = Reflux.createStore({
                         "still_needed_min": 25
                     },
                     "partner": {},
-                    "portfolio": {"exclude_portfolio_loans": true}
+                    "portfolio": {"exclude_portfolio_loans": 'true'}
+                },
+                "Only one more lender needed": {
+                    "loan": {
+                        "still_needed_min": 25,
+                        "still_needed_max": 25
+                    },
+                    "partner": {},
+                    "portfolio": {"exclude_portfolio_loans": 'true'}
+                },
+                "Large Groups: Evenly Men & Women":{
+                    "loan":{
+                        "sort":"popularity",
+                        "percent_female_min":40,
+                        "percent_female_max":60,
+                        "borrower_count_min":12,
+                        "still_needed_min":25},
+                    "partner":{},
+                    "portfolio":{"exclude_portfolio_loans": 'true'}
                 },
                 "Interesting Photo": {
                     "loan": {
@@ -41,7 +59,7 @@ var criteriaStore = Reflux.createStore({
                         "still_needed_min": 25
                     },
                     "partner": {},
-                    "portfolio": {"exclude_portfolio_loans": true}
+                    "portfolio": {"exclude_portfolio_loans": 'true'}
                 },
                 "Inspiring Story": {
                     "loan": {
@@ -49,13 +67,13 @@ var criteriaStore = Reflux.createStore({
                         "still_needed_min": 25
                     },
                     "partner": {},
-                    "portfolio": {"exclude_portfolio_loans": true}
+                    "portfolio": {"exclude_portfolio_loans": 'true'}
                 }
             }
             this.syncSavedAll()
         }
         console.log("loaded from localStorage:",this.last_known)
-        if (!this.last_known) this.last_known = {loan:{},partner:{},porfolio:{}}
+        if (!this.last_known) this.last_known = {loan:{},partner:{},portfolio:{}}
     },
     onChange(criteria){
         console.log("criteriaStore:onChange", criteria)
@@ -68,7 +86,7 @@ var criteriaStore = Reflux.createStore({
         return $.extend(true, {}, this.syncBlankCriteria(), this.last_known)
     },
     syncBlankCriteria(){
-        return {loan: {}, partner: {}, portfolio: {exclude_portfolio_loans: true}}
+        return {loan: {}, partner: {}, portfolio: {}}
     },
 
     stripNullValues(crit){
@@ -86,6 +104,13 @@ var criteriaStore = Reflux.createStore({
         if (crit.partner && crit.partner.social_performance && Array.isArray(crit.partner.social_performance)){
             crit.partner.social_performance = crit.partner.social_performance.join(',')
         }
+        if (crit.portfolio.exclude_portfolio_loans === true) {
+            crit.portfolio.exclude_portfolio_loans = 'true'
+        }
+        if (crit.portfolio.exclude_portfolio_loans === false){
+            crit.portfolio.exclude_portfolio_loans = 'false'
+        }
+
         return crit
     },
 
@@ -103,6 +128,7 @@ var criteriaStore = Reflux.createStore({
     },
     onStartFresh(){
         var new_c = this.syncBlankCriteria()
+        new_c.portfolio.exclude_portfolio_loans = 'true'
         this.last_switch = null
         a.criteria.reload(new_c)
         this.onChange(new_c)

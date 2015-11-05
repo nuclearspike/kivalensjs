@@ -387,7 +387,7 @@ div.notification-bar {
 }
 
 .bar.bar-1 {
-  background: #cfcfcf;
+  background: #93C54B;
 }
 
 .bar.bar-2 {
@@ -414,4 +414,24 @@ div.notification-bar {
 
 #horizontal-2 .bar.bar-2 {
   background: #ddd;
+}
+
+//transitions
+
+.simpleFade-enter {
+  opacity: 0.01;
+}
+
+.simpleFade-enter.simpleFade-enter-active {
+  opacity: 1;
+  transition: opacity 200ms ease-in;
+}
+
+.simpleFade-leave {
+  opacity: 1;
+}
+
+.simpleFade-leave.simpleFade-leave-active {
+  opacity: 0.01;
+  transition: opacity 100ms ease-in;
 }

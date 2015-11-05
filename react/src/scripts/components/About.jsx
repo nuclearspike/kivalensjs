@@ -12,7 +12,7 @@ var About = React.createClass({
                 and rather than fix it, I decided to re-invent it using different tools that weren't available when KivaLens
                 was first written. Please <a href="mailto:liquidmonkey@gmail.com?subject=KivaLens" target="_blank">let me know</a> your
                 favorite missing features and I'll implement those first. You can also join
-                the <a href="http://www.kiva.org/team/kivalens" target="_blank">KivaLens Team</a> to discuss.
+                the <a href="http://www.kiva.org/team/kivalens?default_team=kivalens" target="_blank">KivaLens Team</a> to discuss.
             </p>
 
             <h3>Questions{'?'}</h3>

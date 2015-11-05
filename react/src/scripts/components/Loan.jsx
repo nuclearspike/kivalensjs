@@ -2,8 +2,9 @@
 import React from 'react'
 import Reflux from 'reflux'
 var Highcharts = require('react-highcharts/dist/bundle/highcharts')
+import ReactCSSTransitionGroup from 'react-addons-css-transition-group'
 import {History} from 'react-router'
-import {Tabs,Tab,Col,Row,ProgressBar,Button} from 'react-bootstrap'
+import {Tabs,Tab,Grid,Col,Row,ProgressBar,Button} from 'react-bootstrap'
 import TimeAgo from 'react-timeago'
 import {KivaImage} from '.'
 import a from '../actions'
@@ -19,6 +20,7 @@ var Loan = React.createClass({
         return {loan: loan, partner: partner, activeTab: active_tab, inBasket: s.loans.syncInBasket(this.props.params.id)}
     },
     componentWillMount: function(){
+        clearInterval(this.refreshInterval)
         if (!s.loans.syncHasLoadedLoans()){
             //todo: switch this to be in the router onEnter and redirect there!
             this.history.pushState(null, `/search`);
@@ -33,24 +35,29 @@ var Loan = React.createClass({
         if (!partner || loan.partner_id != partner.id)
             partner = kivaloans.getPartner(loan.partner_id)
         this.setState({loan: loan, basket_perc: basket_perc, funded_perc: funded_perc, inBasket: s.loans.syncInBasket(loan.id), partner: partner})
+        this.graphHack()
     },
     componentDidMount: function(){
         this.listenTo(a.loans.detail.completed, this.switchToLoan)
         this.listenTo(a.loans.basket.changed, ()=>{ this.setState({inBasket: s.loans.syncInBasket(this.state.loan.id)}) })
-        if (s.loans.syncHasLoadedLoans()){ this.switchToLoan(s.loans.syncGet(this.props.params.id)) }
+        if (s.loans.syncHasLoadedLoans()){ this.switchToLoan(s.loans.syncGet(this.state.loan.id)) }
+        //this.refreshInterval = setInterval(()=>{a.loans.detail(this.state.loan.id)},30000)
     },
     shouldComponentUpdate: function(nextProps, nextState){
         return (this.state.loan) ? true : false //DOESN'T WORK?
     },
     tabSelect: function(selectedKey){
-        this.setState({activeTab: selectedKey});
+        this.setState({activeTab: selectedKey, showGraphs: false})
         localStorage.loan_active_tab = selectedKey
-        setTimeout(()=> this.forceUpdate(), 500) //hacky! if this doesn't happen, the graphs paint wrong. :(
+        this.graphHack()
+    },
+    graphHack(){
+        setTimeout(()=> this.setState({showGraphs: true}), 600) //hacky! if this doesn't happen, the graphs paint wrong. :(
     },
     produceChart: function(loan){
         var result = {
             chart: {type: 'bar',
-                animation: false,
+                animation: true,
                 renderTo: 'graph_container'
             },
             title: {text: 'Repayments'},
@@ -106,7 +113,7 @@ var Loan = React.createClass({
                     <If condition={this.state.inBasket}>
                         <Button className="float_right" onClick={a.loans.basket.remove.bind(this, this.state.loan.id)}>Remove from Basket</Button>
                     <Else/>
-                        <Button className="float_right"  onClick={a.loans.basket.add.bind(this, this.state.loan.id, 25)}>Add to Basket</Button>
+                        <Button className="float_right" onClick={a.loans.basket.add.bind(this, this.state.loan.id, 25)}>Add to Basket</Button>
                     </If>
                 </h1>
                 <Tabs activeKey={this.state.activeTab} onSelect={this.tabSelect}>
@@ -123,7 +130,7 @@ var Loan = React.createClass({
                             <b>{loan.location.country} | {loan.sector} | {loan.activity} | {loan.use}</b>
                         </Row>
                         <Row>
-                            <a href={`http://www.kiva.org/lend/${loan.id}?default_team=kivalens`} target="_blank">View on Kiva.org</a>
+                            <a href={`http://www.kiva.org/lend/${loan.id}`} target="_blank">View on Kiva.org</a>
                         </Row>
                             <dl className="dl-horizontal">
                                 <dt>Tags</dt><dd>{(loan.kl_tags.length)? loan.kl_tags.join(', '): '(none)'}</dd>
@@ -143,22 +150,24 @@ var Loan = React.createClass({
                             <p dangerouslySetInnerHTML={{__html: loan.description.texts.en}} ></p>
 
                         </Col>
-                        <Col style={{height: '500px'}} lg={4} id='graph_container'>
-                            <If condition={this.state.activeTab == 2}>
-                                <Highcharts config={this.produceChart(this.state.loan)} ref='chart' />
+                        <ReactCSSTransitionGroup transitionName="simpleFade" transitionEnterTimeout={500} transitionLeaveTimeout={300} >
+                            <If condition={this.state.activeTab == 2 && this.state.showGraphs}>
+                                <Col lg={4} style={{height: '500px'}} id='graph_container'>
+                                    <Highcharts config={this.produceChart(this.state.loan)} />
+                                    <dl className="dl-horizontal">
+                                        <dt>50% back by</dt><dd>{loan.kl_half_back.toString("MMM d, yyyy")}</dd>
+                                        <dt>75% back by</dt><dd>{loan.kl_75_back.toString("MMM d, yyyy")}</dd>
+                                        <dt>Final repayment</dt><dd>{loan.kl_final_repayment.toString("MMM d, yyyy")}</dd>
+                                    </dl>
+                                </Col>
                             </If>
-                            <dl className="dl-horizontal">
-                                <dt>50% back by</dt><dd>{loan.kl_half_back.toString("MMM d, yyyy")}</dd>
-                                <dt>75% back by</dt><dd>{loan.kl_75_back.toString("MMM d, yyyy")}</dd>
-                                <dt>Final repayment</dt><dd>{loan.kl_final_repayment.toString("MMM d, yyyy")}</dd>
-                            </dl>
-                        </Col>
+                        </ReactCSSTransitionGroup>
                     </Tab>
 
 
                     <Tab eventKey={3} title="Partner" className="ample-padding-top">
                             <h2>{partner.name}</h2>
-                            <Col lg={5}>
+                            <Col lg={6}>
                             <dl className="dl-horizontal">
                                 <dt>Rating</dt><dd>{partner.rating}</dd>
                                 <dt>Start Date</dt><dd>{new Date(partner.start_date).toString("MMM d, yyyy")}</dd>
@@ -184,11 +193,11 @@ var Loan = React.createClass({
                             </dl>
 
                             </Col>
-                        <Col lg={5}>
+                        <Col lg={6}>
                             <KivaImage className="float_left" type="width" loan={partner} image_width={800} width="100%"/>
-                            <a href={`http://www.kiva.org/partners/${partner.id}?default_team=kivalens`} target="_blank">View Partner on Kiva.org</a>
+                            <a href={`http://www.kiva.org/partners/${partner.id}`} target="_blank">View Partner on Kiva.org</a>
                         </Col>
-                        <Col lg={10}>
+                        <Col lg={12}>
                             <If condition={partner.kl_sp.length}>
                                 <div>
                                     <h3>Social Performance Strengths</h3>
@@ -217,7 +226,7 @@ var Loan = React.createClass({
                     </Tab>
                 </Tabs>
             </div>
-        );
+        )
     }
 })
 

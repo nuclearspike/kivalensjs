@@ -49,8 +49,7 @@ const Basket = React.createClass({
             this.setState({showGoodbye: true})
         }
     },
-    refresh(e){
-        if (e) e.preventDefault()
+    refresh(){
         this.setState({refreshing: true})
         s.loans.syncRefreshBasket().always(()=> this.setState({refreshing: false}))
     },
@@ -61,7 +60,6 @@ const Basket = React.createClass({
                 <Col md={4}>
                     <ButtonGroup justified>
                         <Button href="#" key={1} disabled={this.state.basket_count == 0} onClick={this.clear}>Empty Basket</Button>
-                        <Button href="#" key={2} disabled={this.state.basket_count == 0 || this.state.refreshing} onClick={this.refresh}>Refresh</Button>
                         <Button href="#" key={3} disabled={!this.state.selected_item_id} onClick={this.remove}>Remove Selected</Button>
                     </ButtonGroup>
                     <InfiniteList
@@ -74,7 +72,7 @@ const Basket = React.createClass({
                 <Col md={8}>
                     <Panel>
                         <h1>Basket: {this.state.basket_count} loans ${this.state.amount_sum}</h1>
-                        <form method="POST" onSubmit={this.showGoodbye} action="http://www.kiva.org/basket/set?default_team=kivalens">
+                        <form method="POST" onSubmit={this.showGoodbye} action="http://www.kiva.org/basket/set">
                             <p>Note: Checking out will replace your current basket on Kiva.</p>
                             <input name="callback_url" value={`${location.protocol}//${location.host}${location.pathname}#clear-basket`} type="hidden" />
                             <input name="loans" value={this.makeBasket()} type="hidden" ref="basket_array" />
@@ -96,7 +94,17 @@ const Basket = React.createClass({
                         </Modal.Header>
 
                         <Modal.Body>
-                            Depending upon the number of loans in your basket, transferring your selection to Kiva could take some time... Please wait.
+                            <p>
+                                Depending upon the number of loans in your basket, transferring your selection to Kiva
+                                could take some time... Please wait.
+                            </p>
+                            <If condition={this.state.amount_sum > 500}>
+                                <p>
+                                    Do you find KivaLens useful and want to offset server and development costs{'?'} You
+                                    can <a href="http://www.kiva.org/gifts/kiva-cards?handle=nuclearspike#/lender" target="_blank">send a Kiva Gift Card</a>.
+                                    (opens in a new window)
+                                </p>
+                            </If>
                         </Modal.Body>
 
                         <Modal.Footer>

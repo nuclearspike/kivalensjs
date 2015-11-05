@@ -11,8 +11,10 @@ const BulkAddModal = React.createClass({
     componentDidMount: function () {
         window.rga.modalview('/bulkadd');
         this.loans = s.loans.syncFilterLoansLast()
-        var basket_space = 10000 - s.loans.syncGetBasket().sum(bi => bi.amount)
-        this.setState({basket_space: basket_space})
+        var newState = {}
+        newState.basket_space = 10000 - s.loans.syncGetBasket().sum(bi => bi.amount)
+        if (this.state.maxBasket > newState.basket_space) newState.maxBasket = newState.basket_space
+        this.setState(newState)
     },
     close: function(){
         this.setState({ show: false });

@@ -437,7 +437,7 @@ class Loans {
         this.getAllPartners().done(partners => {
             var max_repayment_date = null
 
-            if (options.mergeAtheistList) this.getAtheistList()
+            if (options && options.mergeAtheistList) this.getAtheistList()
 
             var base_options = JSON.parse(localStorage.getItem('Options')) //todo: this is app-specific!
             base_options = $.extend({}, {maxRepaymentTerms: 120, maxRepaymentTerms_on: false}, base_options)
@@ -455,10 +455,8 @@ class Loans {
         return this.notify_promise
     }
     getAtheistList(){
-        var CSVToArray = function(strData, strDelimiter) {
-            // Check to see if the delimiter is defined. If not,
-            // then default to comma.
-            strDelimiter = (strDelimiter || ",");
+        var CSVToArray = function(strData) {
+            var strDelimiter = ","
             // Create a regular expression to parse the CSV values.
             var objPattern = new RegExp((
                 // Delimiters.
@@ -467,50 +465,28 @@ class Loans {
             "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
                 // Standard fields.
             "([^\"\\" + strDelimiter + "\\r\\n]*))"), "gi");
-            // Create an array to hold our data. Give the array
-            // a default empty first row.
             var arrData = [[]];
-            // Create an array to hold our individual pattern
-            // matching groups.
             var arrMatches = null;
-            // Keep looping over the regular expression matches
-            // until we can no longer find a match.
             while (arrMatches = objPattern.exec(strData)) {
-                // Get the delimiter that was found.
                 var strMatchedDelimiter = arrMatches[1];
-                // Check to see if the given delimiter has a length
-                // (is not the start of string) and if it matches
-                // field delimiter. If id does not, then we know
-                // that this delimiter is a row delimiter.
                 if (strMatchedDelimiter.length && (strMatchedDelimiter != strDelimiter)) {
-                    // Since we have reached a new row of data,
-                    // add an empty row to our data array.
                     arrData.push([]);
                 }
-                // Now that we have our delimiter out of the way,
-                // let's check to see which kind of value we
-                // captured (quoted or unquoted).
                 if (arrMatches[2]) {
-                    // We found a quoted value. When we capture
-                    // this value, unescape any double quotes.
                     var strMatchedValue = arrMatches[2].replace(
                         new RegExp("\"\"", "g"), "\"");
                 } else {
-                    // We found a non-quoted value.
                     var strMatchedValue = arrMatches[3];
                 }
-                // Now that we have our value string, let's add
-                // it to the data array.
                 arrData[arrData.length - 1].push(strMatchedValue);
             }
-            // Return the parsed data.
             return (arrData);
         }
         var CSV2JSON = function (csv) {
             var array = CSVToArray(csv);
             var objArray = [];
             if (array.length >= 1){
-                //console.log(array[0])
+                //rename the fields to what I want them to be. I could rename all unused fields to be "ignore" for less memory... but
                 array[0] = ["id", "X", "Name", "Link", "Country", "Kiva Status", "Kiva Risk Rating (5 best)", "secularRating", "religiousAffiliation", "commentsOnSecularRating", "socialRating", "commentsOnSocialRating", "MFI Link", "By", "Date", "reviewComments", "P", "J", "MFI Name", "Timestamp", "MFI Name Check"]
             }
             for (var i = 1; i < array.length; i++) {
@@ -523,15 +499,21 @@ class Loans {
             return objArray
         }
         $.get('data/atheist_data.csv') //todo: this is bad. shouldn't hard reference location
+            .fail(()=>{console.log("failed to retrieve Atheist list")})
             .then(CSV2JSON).done(mfis => {
                 mfis.forEach(mfi => {
                     var kivaMFI = this.getPartner(parseInt(mfi['id']))
                     if (kivaMFI){
-                        kivaMFI.atheistScore = {"secularRating": parseInt(mfi.secularRating), "religiousAffiliation": mfi.religiousAffiliation, "commentsOnSecularRating": mfi.commentsOnSecularRating, "socialRating": parseInt(mfi.socialRating), "commentsOnSocialRating": mfi.commentsOnSocialRating, "reviewComments": mfi.reviewComments}
+                        kivaMFI.atheistScore = {"secularRating": parseInt(mfi.secularRating),
+                            "religiousAffiliation": mfi.religiousAffiliation,
+                            "commentsOnSecularRating": mfi.commentsOnSecularRating,
+                            "socialRating": parseInt(mfi.socialRating),
+                            "commentsOnSocialRating": mfi.commentsOnSocialRating,
+                            "reviewComments": mfi.reviewComments}
                     }
                 })
                 this.atheist_list_processed = true //need this?
-            }).fail(()=>{console.log("failed to retrieve Atheist list")})
+            })
     }
     convertCriteriaToKivaParams(crit) { //started to implement this on the criteriaStore
         //filter partners //todo: this needs to mesh the options.
@@ -545,7 +527,7 @@ class Loans {
             this.loans_from_kiva = []
             this.indexed_loans = {}
         }
-        //loans added through this method will always be distinct and properly sorted.
+        //loans added through this method will always be distinct
         this.loans_from_kiva = this.loans_from_kiva.concat(loans).distinct((a,b)=> a.id == b.id)
         this.partner_ids_from_loans = this.loans_from_kiva.select(loan => loan.partner_id).distinct()
         //this.activities = this.loans_from_kiva.select(loan => loan.activity).distinct().orderBy(name => name) todo: merge and order them with the full list in case Kiva adds some.
@@ -584,14 +566,15 @@ class Loans {
         })
     }
     getPartner(id){
+        //todo: slightly slower than an indexed reference.
         return this.partners_from_kiva.first(p => p.id == id)
     }
-    setLender(lender_id){  //todo: call this only when loans are loaded.
+    setLender(lender_id){
         if (lender_id) {
             this.lender_id = lender_id
         } else { return }
         this.lender_loans = []
-        if (this.lender_loans_state == llDownloading) return null ///not the right pattern.
+        if (this.lender_loans_state == llDownloading) return null ///not the right pattern. UI code in the API
         this.lender_loans_message = `Loading fundraising loans for ${this.lender_id} (Please wait...)`
         this.lender_loans_state = llDownloading
         this.notify_promise.notify({lender_loans_event: 'started'})
@@ -604,11 +587,11 @@ class Loans {
             console.log('LENDER LOAN IDS:', ids)
         })
     }
-    refreshLoan(loan){
-        //if this object was what was already in our arrays and index, then it will just update
-        return this.getLoan(loan.id).then(k_loan => $.extend(true, loan, k_loan))
+    refreshLoan(loan){ //returns a promise
+        //since this object was what was already in our arrays and index, then it will just update, return can be ignored.
+        return this.getLoanFromKiva(loan.id).then(k_loan => $.extend(true, loan, k_loan))
     }
-    getLoan(id){
+    getLoanFromKiva(id){
         return Request.sem_get(`loans/${id}.json`, {}, 'loans', true).then(ResultProcessors.processLoan)
     }
     backgroundResync(){

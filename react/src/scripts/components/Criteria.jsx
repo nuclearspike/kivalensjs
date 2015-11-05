@@ -47,7 +47,7 @@ const Criteria = React.createClass({
                                 <MenuItem divider />
                             </If>
                             <If condition={this.state.lastSaved}>
-                                <MenuItem eventKey={1001} key='save_current' onClick={s.criteria.syncSaveLastByName.bind(this, this.state.lastSaved)}>Re-save Current Criteria '{this.state.lastSaved}'</MenuItem>
+                                <MenuItem eventKey={1001} key='save_current' onClick={s.criteria.syncSaveLastByName.bind(this, this.state.lastSaved)}>Re-save '{this.state.lastSaved}'</MenuItem>
                             </If>
                             <If condition={this.state.lastSaved}>
                                 <MenuItem eventKey={1002} key='delete_saved' onClick={s.criteria.syncDelete.bind(this, this.state.lastSaved)}>Delete '{this.state.lastSaved}'</MenuItem>

@@ -1,5 +1,9 @@
 'use strict'
 
+if (window.location.hostname != 'localhost'){
+    process.env.NODE_ENV = 'production';
+}
+
 require('linqjs')
 require('datejs')
 require('numeral')
@@ -48,13 +52,12 @@ window.findBootstrapEnv = function() {
 }
 
 const App = React.createClass({
-    getInitialState(){
-        return { }
-    },
+    getInitialState(){ return { } },
     componentDidMount(){
         ga.initialize('UA-10202885-1');
         //this only happens during startup of the app. don't allow #/ but
         if (location.href.indexOf('#/?') > -1) location.replace(`http://${location.host}${location.pathname}#/search`)
+        if (location.hostname != 'localhost' && location.pathname != "/react/") location.pathname = "/react/" //corrects for kivalens_org/react
     },
     logPageChange(){
         var r_page = window.location.hash.replace('#','')

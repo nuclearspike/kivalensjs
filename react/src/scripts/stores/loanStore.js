@@ -12,7 +12,8 @@ var last_partner_search = {}
 var last_partner_search_count = 0
 var kivaloans = new Loans(10*60*1000)
 
-var options = JSON.parse(localStorage.Options)
+var options = JSON.parse(localStorage.getItem('Options'))
+options =  $.extend(true, {}, options)
 
 //bridge the downloading/processing generic API class with the React app. convert Deferred notify -> Reflux actions
 kivaloans.init(null, options).progress(progress => {
@@ -171,7 +172,7 @@ var loanStore = Reflux.createStore({
     },
     syncFilterLoansLast(){
         if (last_filtered.length == 0)
-            a.loans.filter()
+            a.loans.filter() //todo this seems bad. is it needed?
         return last_filtered
     },
     syncFilterPartners: function(c){
@@ -228,13 +229,15 @@ var loanStore = Reflux.createStore({
         }
         return partner_ids
     },
-    syncFilterLoans: function(c){
+    syncFilterLoans: function(c, cacheResults = true){
         if (!kivaloans.isReady()) return []
         if (!c){ c = criteriaStore.syncGetLast() }
         //needs a copy of it and to guarantee the groups are there.
         $.extend(true, c, {loan: {}, partner: {}, portfolio: {}}) //modifies the criteria object. must be after get last
         //console.log("$$$$$$$ syncFilterLoans",c)
         console.time("syncFilterLoans")
+
+        c = criteriaStore.fixUpgrades(c)
 
         //break this into another unit --store? LoansAPI.filter(loans, criteria)
 
@@ -261,7 +264,7 @@ var loanStore = Reflux.createStore({
 
         //console.log('criteria', c)
 
-        var lender_loan_ids = c.portfolio.exclude_portfolio_loans ? kivaloans.lender_loans : []
+        var lender_loan_ids = c.portfolio.exclude_portfolio_loans == 'true' ? kivaloans.lender_loans : []
 
         var linq_loans = kivaloans.loans_from_kiva.where(loan => { //asEnumerable()
             return loan.status == 'fundraising' &&
@@ -311,9 +314,10 @@ var loanStore = Reflux.createStore({
             default:
                 linq_loans = linq_loans.orderBy(loan => loan.kl_half_back).thenBy(loan => loan.kl_75_back).thenBy(loan => loan.kl_final_repayment)
         }
-        last_filtered = linq_loans //.toArray()
+        if (cacheResults)
+            last_filtered = linq_loans //.toArray()
         console.timeEnd("syncFilterLoans")
-        return last_filtered
+        return linq_loans
     }
 });
 
