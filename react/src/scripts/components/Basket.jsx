@@ -98,13 +98,6 @@ const Basket = React.createClass({
                                 Depending upon the number of loans in your basket, transferring your selection to Kiva
                                 could take some time... Please wait.
                             </p>
-                            <If condition={this.state.amount_sum > 500}>
-                                <p>
-                                    Do you find KivaLens useful and want to offset server and development costs{'?'} You
-                                    can <a href="http://www.kiva.org/gifts/kiva-cards?handle=nuclearspike#/lender" target="_blank">send a Kiva Gift Card</a>.
-                                    (opens in a new window)
-                                </p>
-                            </If>
                         </Modal.Body>
 
                         <Modal.Footer>
