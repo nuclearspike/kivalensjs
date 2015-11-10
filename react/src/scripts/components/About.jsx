@@ -116,40 +116,43 @@ var About = React.createClass({
 
             <h3>Reducing Risk</h3>
             <p>
-                None of this guarantees you anything. These are just learnings I've had from being both a power lender
-                and while I was employed at Kiva.
+                None of this guarantees you anything. Use your own discretion, research, thoughts, team
+                message boards, exchanges with Kiva's Customer Service, etc to help inform your lending habits.
             </p>
             <ul>
                 <li>
                     Institutional Risk: The "Risk Rating" for a partner is based on Kiva's assessment on whether or not
-                    a partner will fail based on a huge formula as well as some good old fashioned gut feelings. The higher
-                    the star rating, the less likely it is for the partner to fail. This is not any indication on whether
-                    or not the borrower is risky or not.
+                    a partner will fail (institutional default based on a huge formula as well as some good old fashioned
+                    gut feelings. The higher the star rating, the less likely it is for the partner to fail.
+                    This is not any indication on whether or not the borrower is risky and is no guarantee.
                 </li>
                 <li>
                     Currency Exchange Risk: Even if a borrower pays back in full, if they are paying back in a currency
                     other than USD, there is a risk that you can lose some money due to the exchange rate. Using the
-                    Currency Exchange Loss % Partner slider, you can use history as your best indicator of the future for
-                    how much you may lose. Some partners cover more of the currency loss than others.
+                    Currency Exchange Loss % Partner slider, you can use history as an indicator of the future for
+                    how much you may lose (but there's no guarantee). Some partners cover more of the currency loss
+                    than others. If enough people are interested, I can also add options to filter out non-USD
+                    disbursal currencies as well as the currency risk details for the loans (whether shared by
+                    the partner and by how much or if it is all on the lender).
                 </li>
                 <li>
                     Default Rates: All partners will have defaults, some partners choose to cover the losses of defaulted
-                    borrowers in order to pay back Kiva lenders as a part of doing business to receive 0% financing from
-                    Kiva and to keep higher in the rankings. Choosing partners with 0% default means you are most likely
-                    choosing a partner that is covering losses, which if you have large amounts of money in, may be
-                    exactly what you're looking for.
+                    borrowers in order to pay back Kiva lenders as a part of doing business. Choosing partners with 0%
+                    default means you are most likely choosing a partner that is covering losses, which if you have
+                    large amounts of money in, may be exactly what you're looking for.
                 </li>
                 <li>
                     Portfolio Yield: Reducing organizations down to a number and then making assumptions based off
                     that number can actually unintentionally exclude the very partners you would actually most like
                     if you knew more about them. One of the most significant learnings I had when I worked at Kiva was
-                    regarding Portfolio Yield. PY values are based on costs charged to the borrower versus the amount
+                    regarding Portfolio Yield. PY values are based on costs charged to the borrower over the amount
                     of the loan. So, consider this... a partner that specializes in rural loans to agricultural
-                    borrowers where the loan amount is low, the expense to the partner to service the loan
-                    (travelling hours to collect monthly) is actually quite high, relative to a more urban partner that
-                    only does high value loans where their cost to service the loan is very low since the borrowers
-                    come in to their office. So, don't judge high PY values too harshly or you may just be excluding
-                    partners that are servicing the most needy borrowers.
+                    borrowers where the expense to the partner to service the loan (travelling hours to collect
+                    weekly/monthly from one or only a few borrowers) is actually quite high and the loan amount is low,
+                    it will have a higher PY% relative to a more urban partner that only does high value loans where
+                    their cost to service the loan is very low since the borrowers come in to their office. So,
+                    don't judge high PY values too harshly or you may just be excluding partners that are servicing
+                    the most needy borrowers.
                 </li>
                 <li>
                     Profitability: When I initially wrote KivaLens (prior to working at Kiva), I incorrectly assumed
@@ -159,13 +162,18 @@ var About = React.createClass({
                     the losses that appear on their books from either private or government bodies. So,
                     don't think that just because your borrower is getting a loan from a partner
                     that has a large negative profit, that it means they're necessarily more likely to collapse
-                    and you'll lose your money. It's not that simple.
+                    and you'll lose your money. It's not that simple. If they are not receiving money from outside
+                    sources and are operating a loss for extended periods, they may be at higher risk of institutional
+                    default. You may want to lend through partners that have low to average profitability.
                 </li>
                 <li>
-                    Group Loans: Many times, with group loans if one borrower fails to pay, the other members of the
-                    group have agreed to pay for the defaulted borrower. To a lender who is focused on minimizing risk
-                    of loss, this means group loans generally are expected to have a higher probability of repayment
-                    than individual.
+                    Group Loans: Due to the high variability with how group loans are organized by partner, you cannot
+                    necessarily make assumptions about group loans versus individual. Some partners group riskier
+                    borrowers together so they can prove themselves and graduate to individual loans and the grouping
+                    is arbitrary just to make repayment collections simpler to lower the cost of servicing the loan.
+                    Some groups are "solidarity" groups where group members have committed to pay for individuals who
+                    default and while you can search for "solidarity" in the name field, many solidarity loans do not
+                    have that in their name and they are not tagged in Kiva's system as being a solidarity loan.
                 </li>
                 <li>
                     Repeat Borrowers: Just because a borrower is coming back for a second or third loan does NOT mean
@@ -174,7 +182,24 @@ var About = React.createClass({
                     they are more likely to repay. Repeat borrowers does not necessarily mean they are in a cycle
                     of debt, but instead that they've shown that their previous loan was so successful in improving
                     their business that another loan can help them to continue to grow their business. Use
-                    the {'#'}RepeatBorrower tag search to help find them.
+                    the {'#'}RepeatBorrower tag search to help find them. If you know of any research regarding the
+                    repayment rates of loans tagged with {'#'}RepeatBorrower to those tagged {'#'}FirstLoan (and untagged)
+                    that can corroberate this assumption, please let me know!
+                </li>
+                <li>
+                    Diversify! When using KivaLens, your criteria may keep bringing up loans from the same partners
+                    over and over again. Having too much money with a handful partner means that if those partners have
+                    institutional default, you could lose all of your outstanding balance. Also diversity among countries
+                    can also be beneficial because it protects you from your portfolio being as impacted by natural
+                    disasters, wars, etc.
+                </li>
+                <li>
+                    Something to consider: Ultimately, you shouldn't be considering Kiva as a "bank" (which is why I
+                    changed the name from kivabank to kivalens many years ago). Over time, even the most cautious lenders
+                    are very likely to lose money to default or currency exchange unless you are extremely lucky.
+                    You should lend with that expectation and be happy when it everything goes perfectly.
+                    You are lending to help people, not for any return on your money (obviously) or even with any
+                    assumptions of total repayment. Happy lending!
                 </li>
             </ul>
 
