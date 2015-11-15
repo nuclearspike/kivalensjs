@@ -129,6 +129,7 @@ var loanStore = Reflux.createStore({
     syncAdjustBasketAmountsToWhatsLeft(){
         this.syncGetBasket().forEach(bi => bi.amount = Math.min(bi.amount, bi.loan.kl_still_needed))
         basket_loans.removeAll(bi => bi.amount == 0)
+        this.onBasketBatchRemove(this.syncGetBasket().where(bi => bi.loan.status != 'fundraising').select(bi => bi.loan.id))
         this._basketSave()
     },
     syncRefreshBasket(){
@@ -220,7 +221,7 @@ var loanStore = Reflux.createStore({
                     && rgPCP.range(p.average_loan_size_percent_per_capita_income)
                     && (p.atheistScore ? rgSecular.range(p.atheistScore.secularRating) : true)
                     && (p.atheistScore ? rgSocial.range(p.atheistScore.socialRating) : true)
-                    && (isNaN(parseFloat(p.rating)) ? c.partner.rating_min == null : rgRisk.range(parseFloat(p.rating)))
+                    && (isNaN(parseFloat(p.rating)) ? c.partner.partner_risk_rating_min == null : rgRisk.range(parseFloat(p.rating)))
                     //&& rgRisk.range(parseFloat(p.rating))
             }).select(p => p.id)
 

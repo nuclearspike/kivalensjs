@@ -18,10 +18,11 @@ var About = React.createClass({
             <h3>Questions{'?'}</h3>
             <p>
                 All of the data that KivaLens displays is either a direct presentation of or computation from data that
-                is pulled from <a href="http://build.kiva.org/api" target="_blank">Kiva.org's Public API</a>. If you have
-                any questions about why a loan is showing certain data (where you have confirmed that it's the
-                same on Kiva's own site) or if you have questions about what that data means, please check
-                out <a href="http://www.kiva.org/help" target="_blank">Kiva's Help Center or contact Kiva Customer Service</a>.
+                is pulled from <a href="http://build.kiva.org/api" target="_blank">Kiva.org's Public API</a> with the exception
+                of data from the Atheist Team's research. If you have any questions about why a loan is showing
+                certain data (where you have confirmed that it's the same on Kiva's own site) or if you have questions
+                about what that data means, please check out <a href="http://www.kiva.org/help" target="_blank">Kiva's
+                Help Center or contact Kiva Customer Service</a>.
             </p>
             <p>
                 If you find a discrepancy between Kiva's site and what KivaLens' displays for loans or partners or if
