@@ -194,7 +194,9 @@ var Loan = React.createClass({
 
                             </Col>
                         <Col lg={6}>
-                            <KivaImage className="float_left" type="width" loan={partner} image_width={800} width="100%"/>
+                            <If condition={partner.image}>
+                                <KivaImage className="float_left" type="width" loan={partner} image_width={800} width="100%"/>
+                            </If>
                             <a href={`http://www.kiva.org/partners/${partner.id}`} target="_blank">View Partner on Kiva.org</a>
                         </Col>
                         <Col lg={12}>
