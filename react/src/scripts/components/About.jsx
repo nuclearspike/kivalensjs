@@ -139,7 +139,7 @@ var About = React.createClass({
             <ul>
                 <li>
                     Institutional Risk: The "Risk Rating" for a partner is based on Kiva's assessment on whether or not
-                    a partner will fail (institutional default based on a huge formula as well as some good old fashioned
+                    a partner will fail (institutional default) based on a huge formula as well as some good old fashioned
                     gut feelings. The higher the star rating, the less likely it is for the partner to fail.
                     This is not any indication on whether or not the borrower is risky and is no guarantee.
                 </li>
@@ -176,7 +176,7 @@ var About = React.createClass({
                     that a partner with a negative profitability naturally meant they were at greater risk for
                     institutional collapse and thus causing all outstanding loans to fail. This is not always true!
                     There are a number of partners that receive money from outside sources to compensate for
-                    the losses that appear on their books from either private or government bodies. So,
+                    the losses from either private or government bodies that appear on their books. So,
                     don't think that just because your borrower is getting a loan from a partner
                     that has a large negative profit, that it means they're necessarily more likely to collapse
                     and you'll lose your money. It's not that simple. If they are not receiving money from outside
@@ -214,7 +214,7 @@ var About = React.createClass({
                     Something to consider: Ultimately, you shouldn't be considering Kiva as a "bank" (which is why I
                     changed the name from kivabank to kivalens many years ago). Over time, even the most cautious lenders
                     are very likely to lose money to default or currency exchange unless you are extremely lucky.
-                    You should lend with that expectation and be happy when it everything goes perfectly.
+                    You should lend with the expectation of some loss and be happy when it everything goes perfectly.
                     You are lending to help people, not for any return on your money (obviously) or even with any
                     assumptions of total repayment. Happy lending!
                 </li>

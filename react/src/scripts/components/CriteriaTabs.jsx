@@ -237,7 +237,6 @@ const CriteriaTabs = React.createClass({
             case 'themes':
                 data = [].concat.apply([], loans.select(l => l.themes)).where(t => t != undefined).groupBy(t => t).map(g=>{return {name: g[0], count: g.length}})
                 break
-
             case 'social_performance':
                 data = [].concat.apply([], loans.select(l => kivaloans.getPartner(l.partner_id).social_performance_strengths)).where(sp => sp != undefined).select(sp => sp.name).groupBy(t => t).map(g=>{return {name: g[0], count: g.length}})
                 break

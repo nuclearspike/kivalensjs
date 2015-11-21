@@ -44,10 +44,10 @@ const Basket = React.createClass({
     },
     transferToKiva(){
         if (this.state.basket_count > 0) {
-            this.setState({showGoodbye: true})
-
-            window.rga.modalview('/baskettransfer');
             window.rga.event({category: 'basket', action: 'basket:transfer', value: this.state.amount_sum})
+
+            this.setState({showGoodbye: true})
+            window.rga.modalview('/baskettransfer');
 
             //ECOMMERCE!!!
             window.ga('require', 'ecommerce');
