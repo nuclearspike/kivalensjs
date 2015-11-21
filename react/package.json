@@ -60,6 +60,7 @@
     "react-router": "^1.0.0",
     "react-select": "^0.7.0",
     "react-timeago": "^2.2.1",
+    "reactify": "^1.1.1",
     "reflux": "^0.2.12",
     "semaphore": "^1.0.3"
   }
