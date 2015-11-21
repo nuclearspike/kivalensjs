@@ -96,7 +96,7 @@ const SliderRow = React.createClass({
         var step = options.step || 1
         return (<Row>
             <Col md={3}>
-                <OverlayTrigger rootClose={true} trigger={options.helpText ? ["hover","focus","click"] : "none"} placement="top" overlay={<Popover title={options.label}>{options.helpText}</Popover>}>
+                <OverlayTrigger rootClose={true} trigger={options.helpText ? ["hover","focus","click"] : "none"} placement="top" overlay={<Popover id={options.label} title={options.label}>{options.helpText}</Popover>}>
                     <label style={{'borderBottom': '#333 1px dotted'}} className="control-label">{options.label}</label>
                 </OverlayTrigger>
 

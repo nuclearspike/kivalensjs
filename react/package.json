@@ -12,7 +12,7 @@
   "devDependencies": {
     "babel": "^5.8.34",
     "babelify": "^6.3.0",
-    "browser-sync": "^2.10.0",
+    "browser-sync": "^2.6.5",
     "browserify": ">= 5",
     "gulp": "^3.9.0",
     "gulp-autoprefixer": "^3.1.0",
@@ -59,7 +59,7 @@
     "react-localstorage": "^0.2.8",
     "react-notification": "^3.0.3",
     "react-router": "^1.0.0-rc3",
-    "react-select": "^1.0.0-beta5",
+    "react-select": "^0.7.0",
     "react-slider": "^0.6.0",
     "react-timeago": "^2.2.1",
     "reflux": "^0.3.0",
