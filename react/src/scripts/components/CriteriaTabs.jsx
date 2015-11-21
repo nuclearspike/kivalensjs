@@ -96,7 +96,7 @@ const SliderRow = React.createClass({
         var step = options.step || 1
         return (<Row>
             <Col md={3}>
-                <OverlayTrigger rootClose={true} trigger={options.helpText ? ["hover","focus","click"] : "none"} placement="top" overlay={<Popover title={options.label}>{options.helpText}</Popover>}>
+                <OverlayTrigger rootClose={true} trigger={options.helpText ? ["hover","focus","click"] : "none"} placement="top" overlay={<Popover id={options.label} title={options.label}>{options.helpText}</Popover>}>
                     <label style={{'borderBottom': '#333 1px dotted'}} className="control-label">{options.label}</label>
                 </OverlayTrigger>
 
@@ -237,7 +237,6 @@ const CriteriaTabs = React.createClass({
             case 'themes':
                 data = [].concat.apply([], loans.select(l => l.themes)).where(t => t != undefined).groupBy(t => t).map(g=>{return {name: g[0], count: g.length}})
                 break
-
             case 'social_performance':
                 data = [].concat.apply([], loans.select(l => kivaloans.getPartner(l.partner_id).social_performance_strengths)).where(sp => sp != undefined).select(sp => sp.name).groupBy(t => t).map(g=>{return {name: g[0], count: g.length}})
                 break

@@ -3,10 +3,7 @@ var gulp = require('gulp'),
     plumber = require('gulp-plumber'),
     rename = require('gulp-rename');
 var autoprefixer = require('gulp-autoprefixer');
-var concat = require('gulp-concat');
-//var jshint = require('gulp-jshint');
 var uglify = require('gulp-uglify');
-//var minifyify = require('minifyify')
 var minifycss = require('gulp-minify-css');
 var sass = require('gulp-sass');
 var browserSync = require('browser-sync');
@@ -17,12 +14,10 @@ var babelify = require('babelify');
 var sourcemaps = require('gulp-sourcemaps');
 var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
-var literalify = require('literalify');
 var gutil = require( 'gulp-util' );
 var ftp = require( 'vinyl-ftp' );
 var argv = require('yargs').argv,
     gulpif = require('gulp-if');
-var open = require('gulp-open');
 
 var production = false; //todo: find what node production environment settings do.
 

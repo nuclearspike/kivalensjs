@@ -18,6 +18,8 @@ import a from './actions'
 
 window.rga = ga //react google analytics, ga is already defined
 
+//if you want to change the page title, you will also need to change the GA rule or you'll lose all data after the change.
+
 KivaAPI.setAPIOptions({app_id: 'org.kiva.kivalens', max_concurrent: 8})
 
 //turns var a = [1,2,3,4,5,6,7,8,9,10,11]; a.chunk(5); into => [[1,2,3,4,5],[6,7,8,9,10],[11]]
