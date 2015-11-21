@@ -47,7 +47,7 @@ const Basket = React.createClass({
             this.setState({showGoodbye: true})
 
             window.rga.modalview('/baskettransfer');
-            window.rga.event({category: 'basket', action: 'basket:transfer', value: this.state.basket_count})
+            window.rga.event({category: 'basket', action: 'basket:transfer', value: this.state.amount_sum})
 
             //ECOMMERCE!!!
             window.ga('require', 'ecommerce');
@@ -71,7 +71,6 @@ const Basket = React.createClass({
                 })
             })
             window.ga('ecommerce:send')
-            //return false
         }
     },
     refresh(){
