@@ -17,6 +17,7 @@ import ga from 'react-ga';
 import a from './actions'
 
 window.rga = ga //react google analytics, ga is already defined
+
 KivaAPI.setAPIOptions({app_id: 'org.kiva.kivalens', max_concurrent: 8})
 
 //turns var a = [1,2,3,4,5,6,7,8,9,10,11]; a.chunk(5); into => [[1,2,3,4,5],[6,7,8,9,10],[11]]

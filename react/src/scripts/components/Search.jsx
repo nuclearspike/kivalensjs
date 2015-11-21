@@ -2,9 +2,9 @@
 
 import React from 'react'
 import Reflux from 'reflux'
-import Notification from "react-notification"
-import {Grid,Row,Col,Input,ButtonGroup,Button} from 'react-bootstrap';
-import {LoanListItem, LoadingLoansModal, BulkAddModal} from '.';
+import Notification from 'react-notification'
+import {Grid,Row,Col,Input,ButtonGroup,Button} from 'react-bootstrap'
+import {LoanListItem, LoadingLoansModal, BulkAddModal} from '.'
 import a from '../actions'
 import s from '../stores'
 import InfiniteList from 'react-infinite-list'

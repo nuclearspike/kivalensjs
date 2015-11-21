@@ -42,11 +42,36 @@ const Basket = React.createClass({
         a.loans.basket.clear()
         this.setState({selected_item_id: null})
     },
-    showGoodbye(){
+    transferToKiva(){
         if (this.state.basket_count > 0) {
+            this.setState({showGoodbye: true})
+
             window.rga.modalview('/baskettransfer');
             window.rga.event({category: 'basket', action: 'basket:transfer', value: this.state.basket_count})
-            this.setState({showGoodbye: true})
+
+            //ECOMMERCE!!!
+            window.ga('require', 'ecommerce');
+            var d = new Date()
+            var transaction = d.getTime().toString()
+            window.ga('ecommerce:addTransaction', {
+                'id': transaction,                     // Transaction ID. Required.
+                'affiliation': 'Kiva Lens',            // Affiliation or store name.
+                'revenue': this.state.amount_sum.toString(), // Grand Total.
+                'shipping': '',              // Shipping.
+                'tax': ''                    // Tax.
+            });
+            this.state.basket_items.forEach(bi => {
+                window.ga('ecommerce:addItem', {
+                    'id': transaction,                // Transaction ID. Required.
+                    'name': bi.loan.name,             // Product name. Required.
+                    'sku': bi.loan.id.toString(),     // SKU/code.
+                    'category': bi.loan.sector,       // Category or variation.
+                    'price': bi.amount.toString(),    // Unit price.
+                    'quantity': '1'                   // Quantity.
+                })
+            })
+            window.ga('ecommerce:send')
+            //return false
         }
     },
     refresh(){
@@ -72,7 +97,7 @@ const Basket = React.createClass({
                 <Col md={8}>
                     <Panel>
                         <h1>Basket: {this.state.basket_count} loans ${this.state.amount_sum}</h1>
-                        <form method="POST" onSubmit={this.showGoodbye} action="http://www.kiva.org/basket/set">
+                        <form method="POST" onSubmit={this.transferToKiva} action="http://www.kiva.org/basket/set">
                             <p>Note: Checking out will replace your current basket on Kiva.</p>
                             <input name="callback_url" value={`${location.protocol}//${location.host}${location.pathname}#clear-basket`} type="hidden" />
                             <input name="loans" value={this.makeBasket()} type="hidden" ref="basket_array" />
