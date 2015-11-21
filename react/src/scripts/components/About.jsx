@@ -15,7 +15,7 @@ var About = React.createClass({
                 the <a href="http://www.kiva.org/team/kivalens?default_team=kivalens" target="_blank">KivaLens Team</a> to discuss.
             </p>
 
-            <h3>Questions{'?'}</h3>
+            <h3>Questions/Problems{'?'}</h3>
             <p>
                 All of the data that KivaLens displays is either a direct presentation of or computation from data that
                 is pulled from <a href="http://build.kiva.org/api" target="_blank">Kiva.org's Public API</a> with the exception
@@ -40,20 +40,34 @@ var About = React.createClass({
             <h3>Features</h3>
             <ul>
                 <li>
-                    Filtering by Final Repayment Date vs Repayment Terms. While Kiva allows you to sort by repayments,
-                    it still shows you all loans. KivaLens lets you remove loans that don't match your selection for
-                    final repayment. Also, KivaLens doesn't sort by the term for the borrower, but for the lender and
-                    since different loans have different post and disbursal dates, this can make a big difference.
+                    Sorting/Filtering by Final Repayment Date vs Repayment Terms. While Kiva allows you to sort by repayment
+                    terms, there are a few issues with this method from the perspective of the lender. Since different
+                    loans have different dates they posted to Kiva and the disbursal dates can have wide-ranges as well,
+                    an "8 month" repayment term on a pre-disbursed loan that posted almost a month ago repayments could
+                    already be underway. While the same repayment terms on a post-disbursed loan that just posted today
+                    could end up with a final repayment date months different from the first, yet Kiva will sort them
+                    together because they have the same repayment terms. Also, since Kiva only allows you to sort by
+                    repayment terms, it still shows you all loans. KivaLens lets you remove loans that don't match
+                    your selection for final repayment. Also, KivaLens doesn't sort by the term for the borrower, but
+                    the final repayment date relative to today, erasing the issues created by pre/post disbursed loans
+                    and different post dates. In Kiva's system, all repayment dates are shown at the first of the month,
+                    while many/most partners will settle the payments on the 17th of the prior month. So, you can still
+                    get your repayments about 2 weeks sooner than what KivaLens reports assuming the partners settle
+                    early (as is common) and the borrower and partner are not delinquent.
                 </li>
 
                 <li>
                     New Sort! You still have the ability to sort by final repayment date, but I've added a new sort
-                    that will sort by when the loan is scheduled by percentages. Let's say you have 3 loans, all
-                    with a final repayment date 3 months away. The new sort will prioritize which one pays more
-                    quickly. Let's say loan {'#'}1 has a set amount you get back each month. {'#'}2 has a larger amount
-                    on the first repayment then by the final it's very little and {'#'}3 doesn't get repaid at all
-                    until the final repayment. The new sorts will prioritize by how quickly you get 50%, then
+                    that will sort by when the loan is scheduled -- by percentages. Let's say you have 3 loans, all
+                    with a final repayment date 3 months away. The new sort will prioritize which pays more
+                    sooner. Let's say loan {'#'}1 has a equal amount you get back each month. {'#'}2 has a larger amount
+                    on the first repayment then by the final it's very little and {'#'}3 only has one repayment at the
+                    very end. The new sorts will prioritize by how quickly you get 50%, then
                     75% then 100% back. So for the loans above, {'#'}2 would be the first, then {'#'}1, then {'#'}3.
+                    With pre-disbursed loans that start paying back right away, the first repayment to the lender
+                    can actually be a combination of multiple repayments made by the borrower. Using this sort will
+                    help find the loans that will allow the quickest turnaround for your money, if that's what your
+                    goal is.
                 </li>
 
                 <li>
@@ -61,7 +75,9 @@ var About = React.createClass({
                     Badges (new), Themes (new), Tags (new). Options marked as "new" were not possible before
                     on KivaLens ...{'&'} some are really great (Inspiring Story, Interesting Photo, Volunteer Like,
                     and a bunch more) and can help you reduce the list even more if you still have too many to look
-                    through.
+                    through. Kiva can filter by these, but you cannot combine them. Kiva Lens will also show you
+                    graphs along the side (when on a large enough device) indicating what options you have for that
+                    criteria so you don't have to guess and what will narrow your options for you.
                 </li>
 
                 <li>
@@ -71,9 +87,9 @@ var About = React.createClass({
                 </li>
 
                 <li>
-                    Bulk Add! This is a favorite feature for previous KivaLens users and what I hear about the
-                    most from mega-lenders that they are missing since the previous version of KivaLens bit the
-                    dust in July of this year. Add tons of loans to your basket all at once.
+                    Bulk Add! This is a favorite feature for previous KivaLens users and what I heard about the
+                    most from mega-lenders that they were missing after the previous version of KivaLens bit the
+                    dust in July of this year. Add tons of loans to your basket all at once!
                 </li>
 
                 <li>
