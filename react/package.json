@@ -7,6 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "gulp": "gulp"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nuclearspike/kivalensjs.git"
+  },
   "author": "Paul Ericksen",
   "license": "ISC",
   "devDependencies": {
