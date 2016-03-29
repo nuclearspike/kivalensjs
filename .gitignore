@@ -7,3 +7,4 @@ react/javascript/build.js.map
 react/css/application.css
 react/css/application.min.css
 node_modules/
+public/index.html
