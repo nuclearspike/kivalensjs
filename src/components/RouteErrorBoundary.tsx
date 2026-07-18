@@ -40,10 +40,10 @@ export default function RouteErrorBoundary() {
           <Alert.Heading>{title}</Alert.Heading>
           <p className="mb-3">{detail}</p>
           <div className="d-flex gap-2 flex-wrap">
-            <Button variant="primary" href="#/search">
+            <Button variant="light" href="#/search">
                {t('Back to Search')}
             </Button>
-            <Button variant="outline-secondary" onClick={() => window.location.reload()}>
+            <Button variant="outline-light" onClick={() => window.location.reload()}>
                {t('Reload Page')}
             </Button>
           </div>

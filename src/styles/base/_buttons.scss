@@ -99,6 +99,24 @@
 .btn-outline-success { @include btn-outline-variant($kiva-green); }
 .btn-outline-danger { @include btn-outline-variant($flatly-danger); }
 
+// White outline for use on colored (e.g. danger) surfaces. Not from the mixin
+// because its hover fills with the outline colour + white text (white-on-white
+// here); instead hover fills white and flips the label to dark for contrast.
+.btn-outline-light {
+  color: #fff;
+  background-color: transparent;
+  border-color: #fff;
+
+  &:hover,
+  &:focus,
+  &:active,
+  &.active {
+    color: $kiva-text;
+    background-color: #fff;
+    border-color: #fff;
+  }
+}
+
 .btn-link {
   color: $kiva-green;
   font-weight: 400;
