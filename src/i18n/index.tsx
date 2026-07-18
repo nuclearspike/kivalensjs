@@ -209,6 +209,9 @@ export function translate(
   params: Params = {},
   generatedCatalog: Catalog = {},
 ): string {
+  // Null-safe: callers sometimes pass a nullable data field (e.g. t(loan.activity),
+  // which is null on some backends' loans); never throw on missing keys.
+  if (key == null) return ''
   const template = locale === 'en'
     ? key
     : catalogs[locale][key] ?? extraCatalogs[locale][key] ?? generatedCatalog[key] ?? key
