@@ -38,6 +38,7 @@ const KL_PAGE_SPLITS = 4
 // every 5 min and re-packaged every 60s). One combined cycle is plenty.
 export const REFRESH_INTERVAL_MS = 10 * 60_000
 const RETAINED_BATCHES = 2
+const RSS_READY_TIMEOUT_MS = 25_000
 const KIVA_API = 'https://api.kivaws.org/v1'
 const APP_ID = 'org.kiva.kivalens'
 
@@ -478,8 +479,19 @@ async function loadAplusCsv(log) {
 // ---------------------------------------------------------------------------
 
 export function createState() {
+  let resolveRssReady
+  const rssReadyPromise = new Promise((resolve) => {
+    resolveRssReady = resolve
+  })
+
   return {
     ready: false,
+    // RSS needs the full live loan + partner objects. The Redis warm start only
+    // restores compressed API pages and per-loan details, so general API
+    // readiness must not be treated as RSS filtering readiness.
+    rssReady: false,
+    rssReadyPromise,
+    resolveRssReady,
     batch: 0,
     klStart: null,
     batches: new Map(), // retained batches (latest RETAINED_BATCHES)
@@ -624,6 +636,10 @@ export async function prepareData(state, log = console.log) {
     state.batch = batch
     state.klStart = klStart
     state.ready = true
+    if (!state.rssReady) {
+      state.rssReady = true
+      state.resolveRssReady()
+    }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
     // `processed` is deliberately released above to lower the refresh peak; use
@@ -845,6 +861,30 @@ export function handleRss(state, req, res) {
   return true
 }
 
+async function waitForRssData(state) {
+  if (state.rssReady) return true
+
+  let timeout
+  try {
+    return await Promise.race([
+      state.rssReadyPromise.then(() => true),
+      new Promise((resolve) => {
+        timeout = setTimeout(() => resolve(false), RSS_READY_TIMEOUT_MS)
+      }),
+    ])
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+function sendRssUnavailable(res, message) {
+  res.statusCode = 503
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-store')
+  res.setHeader('Retry-After', '30')
+  res.end(message)
+}
+
 async function serveRssFeed(state, req, res) {
   const url = req.url || ''
   const m = url.match(/^\/rss\/(.+)$/)
@@ -869,20 +909,34 @@ async function serveRssFeed(state, req, res) {
     portfolio: { ...(crit.portfolio || {}) },
   }
 
+  // Portfolio features (exclude-my-loans + balancing) require the lender's data.
+  // Reject an incomplete artifact instead of silently omitting those filters.
+  const lenderId = feed.lender_id ? String(feed.lender_id) : null
+  const needsLenderData =
+    criteria.portfolio.exclude_portfolio_loans === 'true' ||
+    BALANCER_SLICES.some((s) => criteria.portfolio[`pb_${s}`]?.enabled)
+  if (needsLenderData && !lenderId) {
+    res.statusCode = 400
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    res.setHeader('Cache-Control', 'no-store')
+    res.end('RSS portfolio filters require a lender id')
+    return
+  }
+
+  // General API readiness may come from the compressed Redis warm start. RSS
+  // filtering needs the separately-published live loan and partner objects.
+  if (!state.rssReady && !(await waitForRssData(state))) {
+    sendRssUnavailable(res, 'RSS filter data is still loading; retry shortly')
+    return
+  }
+
   const ctx = {
     loans: state.allLoans,
     activePartners: state.activePartners,
     atheistListProcessed: state.atheistListProcessed,
   }
 
-  // Portfolio features (exclude-my-loans + balancing) require the lender's data,
-  // which we fetch + disk-cache per lender. The lender id rides in feed.lender_id.
-  const lenderId = feed.lender_id ? String(feed.lender_id) : null
-  const wantsLender =
-    lenderId &&
-    (criteria.portfolio.exclude_portfolio_loans === 'true' ||
-      BALANCER_SLICES.some((s) => criteria.portfolio[`pb_${s}`]?.enabled))
-  if (wantsLender) {
+  if (needsLenderData) {
     try {
       const lender = await loadLenderRssData(lenderId, criteria.portfolio, console.log)
       criteria.portfolio = lender.portfolio // pb_<slice>.values now resolved
@@ -891,7 +945,9 @@ async function serveRssFeed(state, req, res) {
         ctx.lenderLoans = { [lenderId]: lender.loanIds }
       }
     } catch (e) {
-      console.error(`RSS lender data failed (serving feed without portfolio): ${e}`)
+      console.error(`RSS required lender data failed: ${e}`)
+      sendRssUnavailable(res, 'RSS portfolio filter data is unavailable; retry shortly')
+      return
     }
   }
 

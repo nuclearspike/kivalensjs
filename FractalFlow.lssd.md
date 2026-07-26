@@ -247,6 +247,16 @@ truth search.filter_readiness {
   summary: "Tracks pending lender-loan, description-keyword, and enabled portfolio-balancer data only when it can still change the current filtered result list."
 }
 
+truth rss.filter_readiness {
+  label: "RSS filter data readiness"
+  lifetime: request
+  authority: { mode: derived, ref: @kivalens.node_server }
+  visibility: [rss_recipient, system]
+  status: observed
+  confidence: 0.95
+  summary: "A successful RSS response waits for the fully published live server filtering dataset and every lender-loan or portfolio-balancer download required by its active criteria; missing or unavailable prerequisites fail closed without a partial feed."
+}
+
 truth lender.basket {
   label: "Current local basket"
   lifetime: device

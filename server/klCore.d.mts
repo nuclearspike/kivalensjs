@@ -3,6 +3,9 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 /** Mutable server state holding the prepared, batched loan dataset. */
 export interface KLState {
   ready: boolean
+  rssReady: boolean
+  rssReadyPromise: Promise<void>
+  resolveRssReady: () => void
   batch: number
   klStart: unknown
   batches: Map<number, unknown>

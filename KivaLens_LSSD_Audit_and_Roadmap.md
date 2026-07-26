@@ -47,7 +47,7 @@ audit_counts:
     externalized_catalogs_observed: 6
     pseudo_locale_gate_observed: false
   verification:
-    unit_tests: "128 passed in 15 files"
+    unit_tests: "140 passed in 17 files"
     ai_eval_fixtures: "7 valid in dry mode"
     build: passed
     lint: "new files clean; full legacy gate: 155 errors, 6 warnings"
@@ -66,7 +66,8 @@ Implemented on 2026-07-14:
 - added a seven-case dry/live AI eval harness plus architecture, SSE, storage, and locale tests;
 - added browser-local chatbot memory through the fixed `AskKivaLens:` ApplicationStorage namespace, with safe keys, 32-key/4-KiB limits, and no visibility into unrelated local storage;
 - localized product chrome and displayed sector labels for English, Español, Français, Deutsch, Italiano, and Nederlands while preserving English Kiva sector values for filters/search and keeping loan description/use text in English;
-- implemented on 2026-07-26: centralized active-filter readiness tracking and accessible warnings above loan results and on the Your Portfolio tab for pending lender-loan, description-keyword, and enabled portfolio-balancer data.
+- implemented on 2026-07-26: centralized active-filter readiness tracking and accessible warnings above loan results and on the Your Portfolio tab for pending lender-loan, description-keyword, and enabled portfolio-balancer data;
+- implemented on 2026-07-26: gated successful RSS responses on the fully published live server filtering dataset and every active portfolio dependency; missing lender identity or unavailable required data returns a non-feed 400/503 response instead of a partial RSS artifact.
 
 Explicit product decision: WP-03's universal command proposal/confirmation architecture is declined. Explicitly requested, bounded browser-local actions continue to apply immediately through the existing tool/event path. Existing feature-specific safeguards may remain, but the product will not require confirmation for every chatbot action.
 
@@ -436,7 +437,7 @@ Each answer family needs: allowed actor, data sources, protected exclusions, pro
 | F-03 | accepted decision | Side-effecting browser-local AI tools execute immediately by explicit product choice; no universal registry/preview/confirmation layer is planned. | server/aiChat.mjs + product decision | L21-L23; A4, A16 |
 | F-04 | 1 | The server tells the model a client-side mutation succeeded before the client acknowledges it; abort/SSE failure can split truth. | SSE events + client handlers | L16, L20-L23; S7/S8 |
 | F-05 | 1 | AI abuse/cost controls lack per-client rate/concurrency limits and atomic budget reservation; unknown models use a low fallback price. | aiChat request entry; aiUsage pricing | L23, L39; A16 |
-| F-06 | partially resolved | Seven behavior fixtures and architecture/SSE/storage tests now cover the Responses and ApplicationStorage boundaries; production-derived depth remains future work. | evals/ask-kivalens.json; new tests; 128 tests pass | L42; A16 |
+| F-06 | partially resolved | Seven behavior fixtures and architecture/SSE/storage tests now cover the Responses and ApplicationStorage boundaries; production-derived depth remains future work. | evals/ask-kivalens.json; new tests; 140 tests pass | L42; A16 |
 | F-07 | 1 | Admin secrets are accepted in query strings and a side-effecting digest send uses GET. | server/aiChat.mjs:1355-1400 | L21, L23, L35 |
 | F-08 | scoped resolution | Six locale catalogs now cover core chrome and displayed sectors; descriptions/use intentionally remain English, while pseudo-locale and complete long-form coverage remain deferred. | src/i18n; localized surfaces | L31-L34; G8/A8 |
 | F-09 | resolved | Main is now 333 KB minified / 106 KB gzip; chatbot, charting, and secondary routes are lazy chunks. | npm run build; App.tsx | L2/L3; speed |
@@ -507,6 +508,7 @@ Outcome: first useful results arrive before the entire enrichment corpus.
 - Fetch keyword/description packets in parallel, on idle, or only when full-text features need them.
 - Cache parsed batch data in IndexedDB keyed by batch with explicit staleness.
 - Implemented 2026-07-26: show which active filtering dependencies are still loading, including lender loans, description keywords, and enabled portfolio balancers.
+- Implemented 2026-07-26: hold successful RSS generation until its full live filtering dataset and all criteria-required portfolio data are ready; fail closed rather than publish a partial feed.
 - Remaining: reveal dataset freshness and overall partial completeness; measure first-page usable, full-data ready, main-thread long tasks, and memory.
 
 ### WP-03 — Immediate-action chatbot
@@ -766,10 +768,10 @@ Every slice must include current-locale catalog entries, empty/loading/error/fir
 
 ## 11. Verification evidence
 
-- npm test: 17 files passed, 137 tests passed, including active-filter readiness and portfolio-tab loading notices.
+- npm test: 17 files passed, 140 tests passed, including active-filter UI warnings plus RSS live-dataset waiting, missing-lender rejection, and required-download fail-closed coverage.
 - npm run eval:ai:dry: 7 fixtures valid; no paid API calls.
 - npm run build: passed and generated 39 compressed assets.
-- New filtering-readiness files pass targeted ESLint. Full legacy lint remains tracked separately from this slice.
+- Modified RSS runtime and test files pass targeted ESLint; the declaration file is outside the configured lint match. Full legacy lint remains tracked separately from this slice.
 - Build output:
   - main: 304.66 KB minified / 96.80 KB gzip.
   - eager i18n foundation: 99.43 KB / 35.42 KB gzip.

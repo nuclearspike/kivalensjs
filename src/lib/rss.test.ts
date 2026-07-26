@@ -1,17 +1,25 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 // handleRss is plain JS in klCore; createState gives a baseline server state.
 import { handleRss, createState } from '../../server/klCore.mjs'
 
 function mockRes() {
+  let finish!: () => void
+  const done = new Promise<void>((resolve) => {
+    finish = resolve
+  })
   return {
     statusCode: 0,
     headers: {} as Record<string, string>,
     body: '',
+    ended: false,
+    done,
     setHeader(k: string, v: string) {
       this.headers[k.toLowerCase()] = v
     },
     end(b?: string) {
       this.body = b ?? ''
+      this.ended = true
+      finish()
     },
   }
 }
@@ -39,6 +47,7 @@ const mkLoan = (o: Record<string, unknown>) => ({
 
 const state = {
   ...createState(),
+  rssReady: true,
   allLoans: [
     mkLoan({ id: 1, sector: 'Agriculture', partner_id: 10, name: 'Aisha' }),
     mkLoan({ id: 2, sector: 'Retail', partner_id: 20, name: 'Bao & Co <Ltd>' }),
@@ -56,6 +65,10 @@ const call = (url: string) => {
   return { handled, res }
 }
 const feedUrl = (crit: object) => '/rss/' + encodeURIComponent(JSON.stringify(crit))
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('handleRss feed', () => {
   it('returns valid RSS 2.0 with the right content-type and items', () => {
@@ -82,6 +95,60 @@ describe('handleRss feed', () => {
     expect(res.body).toContain('<title>Aisha</title>')
     expect(res.body).not.toContain('Bao')
     expect(res.body).toContain('rss_click/kivalens/1')
+  })
+
+  it('waits for the full live RSS dataset before ending the response', async () => {
+    let release!: () => void
+    const waitingState = {
+      ...state,
+      rssReady: false,
+      rssReadyPromise: new Promise<void>((resolve) => {
+        release = resolve
+      }),
+    }
+    const res = mockRes()
+
+    expect(
+      handleRss(
+        waitingState,
+        { url: feedUrl({ feed: { name: 'Waiting' } }), headers: { host: 'www.kivalens.org' } },
+        res,
+      ),
+    ).toBe(true)
+    await Promise.resolve()
+    expect(res.ended).toBe(false)
+
+    waitingState.rssReady = true
+    release()
+    await res.done
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toContain('<title>Waiting</title>')
+  })
+
+  it('rejects active portfolio filters without a lender id', () => {
+    const { res } = call(
+      feedUrl({
+        feed: { name: 'Portfolio' },
+        portfolio: { pb_sector: { enabled: true, percent: 10, ltgt: 'lt' } },
+      }),
+    )
+    expect(res.statusCode).toBe(400)
+    expect(res.body).not.toContain('<rss')
+  })
+
+  it('fails closed when a required portfolio download is unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }))
+    const { res } = call(
+      feedUrl({
+        feed: { name: 'Portfolio', lender_id: `rss-readiness-${Date.now()}` },
+        portfolio: { pb_sector: { enabled: true, percent: 10, ltgt: 'lt' } },
+      }),
+    )
+
+    await res.done
+    expect(res.statusCode).toBe(503)
+    expect(res.headers['retry-after']).toBe('30')
+    expect(res.body).not.toContain('<rss')
   })
 
   it('returns 400 on malformed criteria', () => {
