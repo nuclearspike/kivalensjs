@@ -9,6 +9,7 @@ import { setAutoFreeze } from 'immer'
 setAutoFreeze(false)
 import type { BasketItem, Criteria, KivaLoan, ProgressEvent, RunningTotals } from '../types'
 import { lsj } from '../lib/localStorage'
+import { LENDER_LOANS_FILTER_DEPENDENCY } from '../lib/filterReadiness'
 import { getKivaLoans } from '../api/kiva'
 import { useCriteriaStore } from './criteriaStore'
 
@@ -80,6 +81,8 @@ export interface LoanState {
   basketNotice: string | null
   /** True while the lender's funded-loan list is downloading (portfolio exclusion pending) */
   lenderLoansLoading: boolean
+  /** Async dependencies that can still change an active filtering result. */
+  pendingFilterDependencies: string[]
   /** Snapshot of loan ids sent to Kiva at checkout, awaiting outcome confirmation (T1.1) */
   pendingCheckout: { ids: number[]; at: number } | null
 }
@@ -116,6 +119,7 @@ export interface LoanActions {
   setBackgroundResyncState: (state: string | null) => void
   setBasketNotice: (msg: string | null) => void
   setLenderLoansLoading: (loading: boolean) => void
+  setFilterDependencyLoading: (key: string, loading: boolean) => void
   /** Record the loan ids sent to Kiva so the outcome can be reconciled on return */
   beginCheckout: (ids: number[]) => void
   clearPendingCheckout: () => void
@@ -146,6 +150,7 @@ export const useLoanStore = create<LoanState & LoanActions>()(
       backgroundResyncState: null,
       basketNotice: null,
       lenderLoansLoading: false,
+      pendingFilterDependencies: [],
       pendingCheckout: null,
 
       // ---------------------------------------------------------------
@@ -425,6 +430,29 @@ export const useLoanStore = create<LoanState & LoanActions>()(
       setLenderLoansLoading: (loading: boolean) => {
         set((state) => {
           state.lenderLoansLoading = loading
+          if (loading) {
+            if (!state.pendingFilterDependencies.includes(LENDER_LOANS_FILTER_DEPENDENCY)) {
+              state.pendingFilterDependencies.push(LENDER_LOANS_FILTER_DEPENDENCY)
+            }
+          } else {
+            state.pendingFilterDependencies = state.pendingFilterDependencies.filter(
+              (key) => key !== LENDER_LOANS_FILTER_DEPENDENCY,
+            )
+          }
+        })
+      },
+
+      setFilterDependencyLoading: (key: string, loading: boolean) => {
+        set((state) => {
+          if (loading) {
+            if (!state.pendingFilterDependencies.includes(key)) {
+              state.pendingFilterDependencies.push(key)
+            }
+          } else {
+            state.pendingFilterDependencies = state.pendingFilterDependencies.filter(
+              (pendingKey) => pendingKey !== key,
+            )
+          }
         })
       },
 

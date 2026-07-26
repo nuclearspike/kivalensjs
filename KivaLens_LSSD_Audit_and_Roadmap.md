@@ -65,7 +65,8 @@ Implemented on 2026-07-14:
 - migrated Ask KivaLens from Chat Completions to streamed Responses while retaining the current model default;
 - added a seven-case dry/live AI eval harness plus architecture, SSE, storage, and locale tests;
 - added browser-local chatbot memory through the fixed `AskKivaLens:` ApplicationStorage namespace, with safe keys, 32-key/4-KiB limits, and no visibility into unrelated local storage;
-- localized product chrome and displayed sector labels for English, Español, Français, Deutsch, Italiano, and Nederlands while preserving English Kiva sector values for filters/search and keeping loan description/use text in English.
+- localized product chrome and displayed sector labels for English, Español, Français, Deutsch, Italiano, and Nederlands while preserving English Kiva sector values for filters/search and keeping loan description/use text in English;
+- implemented on 2026-07-26: centralized active-filter readiness tracking and accessible warnings above loan results and on the Your Portfolio tab for pending lender-loan, description-keyword, and enabled portfolio-balancer data.
 
 Explicit product decision: WP-03's universal command proposal/confirmation architecture is declined. Explicitly requested, bounded browser-local actions continue to apply immediately through the existing tool/event path. Existing feature-specific safeguards may remain, but the product will not require confirmation for every chatbot action.
 
@@ -505,8 +506,8 @@ Outcome: first useful results arrive before the entire enrichment corpus.
 - Move JSON normalization and large filtering to a Web Worker or chunked scheduler.
 - Fetch keyword/description packets in parallel, on idle, or only when full-text features need them.
 - Cache parsed batch data in IndexedDB keyed by batch with explicit staleness.
-- Show freshness, partial completeness, and what capability is still loading.
-- Measure first-page usable, full-data ready, main-thread long tasks, and memory.
+- Implemented 2026-07-26: show which active filtering dependencies are still loading, including lender loans, description keywords, and enabled portfolio balancers.
+- Remaining: reveal dataset freshness and overall partial completeness; measure first-page usable, full-data ready, main-thread long tasks, and memory.
 
 ### WP-03 — Immediate-action chatbot
 
@@ -765,18 +766,18 @@ Every slice must include current-locale catalog entries, empty/loading/error/fir
 
 ## 11. Verification evidence
 
-- npm test: 16 files passed, 133 tests passed.
+- npm test: 17 files passed, 137 tests passed, including active-filter readiness and portfolio-tab loading notices.
 - npm run eval:ai:dry: 7 fixtures valid; no paid API calls.
-- npm run build: passed and generated 38 compressed assets.
-- Localization/generator targeted ESLint: passed. Full legacy lint remains tracked separately from this slice.
+- npm run build: passed and generated 39 compressed assets.
+- New filtering-readiness files pass targeted ESLint. Full legacy lint remains tracked separately from this slice.
 - Build output:
-  - main: 304.03 KB minified / 96.52 KB gzip.
-  - eager i18n foundation: 71.97 KB / 25.25 KB gzip.
+  - main: 304.66 KB minified / 96.80 KB gzip.
+  - eager i18n foundation: 99.43 KB / 35.42 KB gzip.
   - selected secondary-locale catalog: 52.15–54.85 KB / 20.35–21.38 KB gzip, loaded on demand.
-  - Ask KivaLens lazy chunk: 144.41 KB / 44.21 KB gzip.
-  - chart lazy chunk: 316.50 KB / 93.51 KB gzip.
+  - Ask KivaLens lazy chunk: 143.43 KB / 43.86 KB gzip.
+  - chart lazy chunk: 316.50 KB / 93.52 KB gzip.
   - CSS: 49.00 KB / 10.55 KB gzip.
-  - 38 compressible files: 1,563.0 KiB source / 445.0 KiB Brotli / 511.7 KiB gzip.
+  - 39 compressible files: 1,594.2 KiB source / 454.8 KiB Brotli / 523.2 KiB gzip.
 - Local production-header verification:
   - Brotli, gzip, and identity variants negotiated correctly with Vary: Accept-Encoding.
   - hashed asset cache remains public, max-age=31536000, immutable; JavaScript MIME remains correct.

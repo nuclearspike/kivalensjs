@@ -26,6 +26,7 @@ import { distinct } from '../lib/arrayUtils'
 import { filterLoans, filterPartners as sharedFilterPartners } from '../../server/loanFilter.mjs'
 import { today } from '../lib/dateUtils'
 import { cl, wait } from '../lib/utils'
+import { LOAN_DESCRIPTIONS_FILTER_DEPENDENCY } from '../lib/filterReadiness'
 import { setAPIOptions, getUrl } from './kivajs/kivaBase'
 import { ResultProcessors } from './kivajs/ResultProcessors'
 import { req } from './kivajs/req'
@@ -48,6 +49,7 @@ export type NotifyMessage = {
   loan_updated?: KivaLoan
   running_totals_change?: RunningTotals
   lender_loans_event?: string
+  filter_dependency_event?: { key: string; state: 'started' | 'done' }
   new_loans?: KivaLoan[]
   atheist_list_loaded?: boolean
   backgroundResync?: { state: string }
@@ -545,6 +547,12 @@ export class Loans {
 
       // ---- KL descriptions / keywords ----
       if (!baseOptions.doNotDownloadDescriptions && descrLengths?.length) {
+        this.notify({
+          filter_dependency_event: {
+            key: LOAN_DESCRIPTIONS_FILTER_DEPENDENCY,
+            state: 'started',
+          },
+        })
         try {
           const descrPages = Array.from({ length: pages }, (_, i) => i + 1)
           const allDescr: Array<{ id: number; t: string[] }> = []
@@ -567,6 +575,13 @@ export class Loans {
           this.notify({ all_descriptions_loaded: true })
         } catch (e) {
           cl('KL description download failed (non-fatal)', e)
+        } finally {
+          this.notify({
+            filter_dependency_event: {
+              key: LOAN_DESCRIPTIONS_FILTER_DEPENDENCY,
+              state: 'done',
+            },
+          })
         }
       }
     }
