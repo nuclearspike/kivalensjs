@@ -71,7 +71,7 @@ async function fetchLenderLoansPage(lenderId, page, tries = 5) {
   throw lastErr
 }
 
-export async function fetchLenderFundraisingLoanIds(lenderId, log = () => {}) {
+export async function fetchLenderFundraisingLoanIds(lenderId, log = () => {}, options = {}) {
   const key = `lender-loans-${lenderId}`
   const cached = await readCache(key, LENDER_LOANS_TTL_MS)
   if (cached) {
@@ -106,6 +106,7 @@ export async function fetchLenderFundraisingLoanIds(lenderId, log = () => {}) {
         /* ignore */
       }
     }
+    if (options.required) throw e
     return ids
   }
 }
@@ -154,7 +155,7 @@ export async function fetchLenderProfile(lenderId, log = () => {}) {
   }
 }
 
-export async function fetchSuperGraphSlices(lenderId, sliceBy, include = 'all', log = () => {}) {
+export async function fetchSuperGraphSlices(lenderId, sliceBy, include = 'all', log = () => {}, options = {}) {
   const key = `lender-sg-${lenderId}-${sliceBy}-${include}`
   const cached = await readCache(key, SUPERGRAPH_TTL_MS)
   if (cached) {
@@ -196,6 +197,7 @@ export async function fetchSuperGraphSlices(lenderId, sliceBy, include = 'all', 
         /* ignore */
       }
     }
+    if (options.required) throw e
     return []
   }
 }
@@ -220,14 +222,16 @@ export function resolveBalancerValues(config, slices, sliceBy) {
  *   - portfolio: a copy of the input with each enabled pb_<slice>'s `values`
  *     resolved from the lender's live distribution.
  * Fetches run concurrently; each piece is independently disk-cached, so a static
- * RSS URL stays fresh without re-fetching every request.
+ * RSS URL stays fresh without re-fetching every request. Every requested piece is
+ * strict here: if neither a live response nor stale cache is available, reject so
+ * the caller cannot publish a partially filtered feed.
  */
 export async function loadLenderRssData(lenderId, portfolio, log = () => {}) {
   const result = { lenderId, loanIds: [], portfolio: { ...portfolio } }
   const tasks = []
   if (portfolio.exclude_portfolio_loans === 'true') {
     tasks.push(
-      fetchLenderFundraisingLoanIds(lenderId, log).then((ids) => {
+      fetchLenderFundraisingLoanIds(lenderId, log, { required: true }).then((ids) => {
         result.loanIds = ids
       }),
     )
@@ -236,7 +240,7 @@ export async function loadLenderRssData(lenderId, portfolio, log = () => {}) {
     const cfg = portfolio[`pb_${slice}`]
     if (cfg?.enabled) {
       tasks.push(
-        fetchSuperGraphSlices(lenderId, slice, cfg.allactive ?? 'all', log).then((slices) => {
+        fetchSuperGraphSlices(lenderId, slice, cfg.allactive ?? 'all', log, { required: true }).then((slices) => {
           result.portfolio[`pb_${slice}`] = { ...cfg, values: resolveBalancerValues(cfg, slices, slice) }
         }),
       )
