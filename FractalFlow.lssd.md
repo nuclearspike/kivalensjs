@@ -237,6 +237,16 @@ truth lender.criteria {
   summary: "Browser-local filtering truth sent to the server only when a feature needs it."
 }
 
+truth search.filter_readiness {
+  label: "Active filter data readiness"
+  lifetime: run
+  authority: { mode: derived, ref: @kivalens.web_app }
+  visibility: [lender, system]
+  status: observed
+  confidence: 0.95
+  summary: "Tracks pending lender-loan, description-keyword, and enabled portfolio-balancer data only when it can still change the current filtered result list."
+}
+
 truth lender.basket {
   label: "Current local basket"
   lifetime: device
@@ -518,8 +528,8 @@ view kivalens.search_workspace for @lender {
   label: "Search workspace"
   status: observed
   confidence: 0.95
-  summary: "Criteria, virtualized results, and loan detail arranged as a dense three-column workspace with loading and zero-result repair states."
-  reveals: [@dataset.freshness, @lender.criteria]
+  summary: "Criteria, virtualized results, and loan detail arranged as a dense three-column workspace with initial loading, active-filter readiness, and zero-result repair states."
+  reveals: [@dataset.freshness, @lender.criteria, @search.filter_readiness]
   commands: [set_criteria, reset_criteria, add_to_basket, bulk_add_to_basket]
 }
 

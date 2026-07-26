@@ -12,7 +12,9 @@ import type { BalancerResult } from '../stores/criteriaStore'
 import { getKivaLoans } from '../api/kiva'
 import { lsj } from '../lib/localStorage'
 import { humanize } from '../lib/utils'
+import { PORTFOLIO_BALANCER_FILTER_DEPENDENCY_PREFIX } from '../lib/filterReadiness'
 import { useI18n } from '../i18n'
+import { PortfolioLoansLoadingNotice } from './FilteringProgress'
 
 // ---------------------------------------------------------------------------
 // Custom hook: useDebouncedEffect
@@ -906,6 +908,8 @@ function BalancingRow({
 }) {
   const { t, sector, date } = useI18n()
   const fetchBalancerData = useCriteriaStore((s) => s.fetchBalancerData)
+  const setFilterDependencyLoading = useLoanStore((s) => s.setFilterDependencyLoading)
+  const dependencyKey = `${PORTFOLIO_BALANCER_FILTER_DEPENDENCY_PREFIX}${name}`
 
   const v: BalancerConfig & { values?: unknown[] } = {
     enabled: false,
@@ -923,10 +927,13 @@ function BalancingRow({
   useEffect(() => {
     if (!v.enabled) {
       setSlices([])
+      setLoading(false)
+      setFilterDependencyLoading(dependencyKey, false)
       return
     }
     let cancelled = false
     setLoading(true)
+    setFilterDependencyLoading(dependencyKey, true)
     fetchBalancerData(meta.sliceBy, v)
       .then((result) => {
         if (cancelled) return
@@ -936,21 +943,29 @@ function BalancingRow({
           : result.slices.filter((s) => s.percent < pct)
         setSlices(filtered)
         setLastUpdated(result.last_updated)
-        setLoading(false)
 
-        // Propagate values upward
+        // Propagate values upward before declaring the dependency complete so
+        // the warning and the partial result list disappear in the same update.
         const values = meta.key === 'id'
           ? filtered.map((s) => parseInt(String(s.id))).filter((x) => !isNaN(x))
           : filtered.map((s) => s.name).filter((x): x is string => x != null)
         onChange({ ...v, values })
+        setLoading(false)
+        setFilterDependencyLoading(dependencyKey, false)
       })
       .catch(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+          setFilterDependencyLoading(dependencyKey, false)
+        }
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      setFilterDependencyLoading(dependencyKey, false)
+    }
     // We only want to refetch when these specific config values change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [v.enabled, v.hideshow, v.ltgt, v.percent, v.allactive, meta.sliceBy, fetchBalancerData])
+  }, [v.enabled, v.hideshow, v.ltgt, v.percent, v.allactive, meta.sliceBy, fetchBalancerData, dependencyKey, setFilterDependencyLoading])
 
   return (
     <Row className="mb-3">
@@ -1329,6 +1344,7 @@ function PortfolioCriteriaPanel({
           {t("to use these. Without it, KivaLens doesn't know which loans you've funded, so “Exclude My Loans” and Portfolio Balancing have no effect.")}
         </Alert>
       )}
+      <PortfolioLoansLoadingNotice />
       <SelectRow
         label={t('Exclude My Loans')}
         options={EXCLUDE_PORTFOLIO_OPTIONS}

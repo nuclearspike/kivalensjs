@@ -27,7 +27,12 @@ export function useKivaLensInit() {
     if (!initialized.current) {
       initialized.current = true
       const options = lsj.get<Record<string, any>>('Options')
+      const seededLenderId = useUtilsStore.getState().lenderId
       kl = createKivaLoans(10 * 60_000) // 10 minute resync interval
+      // setLender() announces synchronously during init(), before this hook installs
+      // its event subscriber. Seed the store first so initial portfolio loading is
+      // never missed; the eventual "done" event clears it normally.
+      useLoanStore.getState().setLenderLoansLoading(Boolean(seededLenderId))
       // Source the lender id from the store (single source of truth); the rest of
       // the engine config still comes from the Options blob.
       kl.init(
@@ -41,7 +46,6 @@ export function useKivaLensInit() {
         },
       )
       useUtilsStore.getState().startHeartbeat()
-      const seededLenderId = useUtilsStore.getState().lenderId
       if (seededLenderId) {
         void useUtilsStore.getState().fetchLenderObj(seededLenderId, false)
       }
@@ -141,6 +145,13 @@ export function useKivaLensInit() {
       }
       if (msg.secondary_load_label) {
         store.setSecondaryStatus(msg.secondary_load_label as string)
+      }
+
+      if (msg.filter_dependency_event) {
+        store.setFilterDependencyLoading(
+          msg.filter_dependency_event.key,
+          msg.filter_dependency_event.state === 'started',
+        )
       }
 
       // Portfolio-exclusion (T1.4): track the load so the UI can reveal that

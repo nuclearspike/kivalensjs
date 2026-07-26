@@ -2,12 +2,13 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { Container, Col, Row, Alert, ButtonGroup, Button } from '../ui'
 import numeral from 'numeral'
-import { useLoanStore, useUtilsStore, useCriteriaStore } from '../stores'
+import { useLoanStore, useUtilsStore } from '../stores'
 import { Criteria } from './Criteria'
 import LoanListItem from './LoanListItem'
 import Loan from './Loan'
 import InfiniteList from './InfiniteList'
 import LoadingLoansPanel from './LoadingLoansPanel'
+import FilteringProgress from './FilteringProgress'
 import BulkAddModal from './BulkAddModal'
 import { NoResultsHelp } from './NoResultsHelp'
 import { WELCOME_PROMPT } from '../lib/askKivaLensWelcome'
@@ -32,12 +33,6 @@ export function Search() {
   const hasLenderId = Boolean(useUtilsStore((s) => s.lenderId))
   const aiServerEnabled = useUtilsStore((s) => s.aiServerEnabled)
   const aiWidgetDisabled = useUtilsStore((s) => s.aiWidgetDisabled)
-  // Portfolio-exclusion reveal (T1.4): is "exclude loans I've funded" on, and
-  // is the lender's funded-loan list still loading?
-  const excludePortfolio = useCriteriaStore(
-    (s) => s.lastKnown?.portfolio?.exclude_portfolio_loans === 'true',
-  )
-  const lenderLoansLoading = useLoanStore((s) => s.lenderLoansLoading)
 
   // /search/loan/:id pre-selects the loan; plain /search shows the welcome
   // panel. The URL is the source of truth for the right-hand panel.
@@ -106,6 +101,7 @@ export function Search() {
 
         {/* Loan list */}
         <Col md={listCol} data-aikl="results">
+          <FilteringProgress />
           <ButtonGroup className="top-only d-flex" style={{ marginBottom: 0 }}>
             <Button onClick={toggleCriteria} className="w-50">
               {t(showCriteria ? 'Hide Criteria' : 'Show Criteria')}
@@ -124,12 +120,6 @@ export function Search() {
           {backgroundResyncState === 'started' ? (
             <Alert variant="info" className="not-rounded" style={{ marginBottom: 0 }}>
               {t('Continue using the site while the loans are refreshed…')}
-            </Alert>
-          ) : null}
-
-          {excludePortfolio && lenderLoansLoading ? (
-            <Alert variant="info" className="not-rounded" style={{ marginBottom: 0 }}>
-              {t('Hiding loans you have already funded — still loading your portfolio. Results will update in a moment.')}
             </Alert>
           ) : null}
 
