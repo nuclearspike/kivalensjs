@@ -89,7 +89,7 @@ const COUNTRY_OPTIONS: SelectOption[] = [
   { value: 'TZ', label: 'Tanzania' }, { value: 'TH', label: 'Thailand' },
   { value: 'TL', label: 'Timor-Leste' }, { value: 'TG', label: 'Togo' }, { value: 'TO', label: 'Tonga' },
   { value: 'TR', label: 'Turkey' }, { value: 'UG', label: 'Uganda' }, { value: 'UA', label: 'Ukraine' },
-  { value: 'US', label: 'United States' }, { value: 'VN', label: 'Vietnam' },
+  { value: 'US', label: 'United States' }, { value: 'UZ', label: 'Uzbekistan' }, { value: 'VN', label: 'Vietnam' },
   { value: 'VU', label: 'Vanuatu' }, { value: 'YE', label: 'Yemen' }, { value: 'ZM', label: 'Zambia' },
   { value: 'ZW', label: 'Zimbabwe' },
 ]
@@ -1089,14 +1089,19 @@ function useDiscoveredOptions() {
     const activities = new Set<string>()
     const themes = new Set<string>()
     const tags = new Set<string>()
+    // Countries are value=code / label=name, so they need a code->name map.
+    const countries = new Map<string, string>()
     for (const l of loans) {
       if (l.sector) sectors.add(l.sector)
       if (l.activity) activities.add(l.activity)
       for (const t of l.themes ?? []) if (t) themes.add(t)
       for (const t of l.kls_tags ?? []) if (t) tags.add(t)
+      const cc = l.location?.country_code
+      if (cc && !countries.has(cc)) countries.set(cc, l.location?.country || cc)
     }
     const discovered = (set: Set<string>): SelectOption[] =>
       [...set].map((v) => ({ value: v, label: v }))
+    const discoveredCountries: SelectOption[] = [...countries].map(([code, name]) => ({ value: code, label: name }))
     return {
       // Keep the English `value` as filter authority; localize only the label.
       sector: mergeByValue(serverOptions.sectors ?? [], SECTOR_OPTIONS, discovered(sectors))
@@ -1105,6 +1110,9 @@ function useDiscoveredOptions() {
       activity: mergeByValue(serverOptions.activities ?? [], ACTIVITY_OPTIONS, discovered(activities)),
       themes: mergeByValue(serverOptions.themes ?? [], THEME_OPTIONS, discovered(themes)),
       tags: mergeByValue(serverOptions.tags ?? [], TAG_OPTIONS, discovered(tags)),
+      // Countries behave like sectors: curated COUNTRY_OPTIONS labels win, and any
+      // country present in the loaded loans but missing from the list is auto-added.
+      country: mergeByValue(COUNTRY_OPTIONS, discoveredCountries),
     }
     // loanCount/serverOptions are the triggers; loans are read imperatively.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1142,7 +1150,7 @@ function LoanCriteriaPanel({
     key: string; label: string; options: SelectOption[]; isMulti: boolean
     hasAan?: boolean; canAll?: boolean; helpText?: string; showDistribution?: boolean
   }> = [
-    { key: 'country_code', label: t('Countries'), options: COUNTRY_OPTIONS, isMulti: true, hasAan: true, showDistribution: true },
+    { key: 'country_code', label: t('Countries'), options: discovered.country, isMulti: true, hasAan: true, showDistribution: true },
     { key: 'sector', label: t('Sectors'), options: discovered.sector, isMulti: true, hasAan: true, showDistribution: true },
     { key: 'activity', label: t('Activities'), options: discovered.activity, isMulti: true, hasAan: true, showDistribution: true },
     { key: 'themes', label: t('Themes'), options: discovered.themes, isMulti: true, hasAan: true, canAll: true, showDistribution: true },

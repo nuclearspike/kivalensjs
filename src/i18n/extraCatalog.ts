@@ -5,6 +5,7 @@ type TranslationRow = readonly [english: string, es: string, fr: string, de: str
 // Row-oriented so every new English key must provide every supported translation.
 // This complements the compact, original chrome catalog in index.tsx.
 export const EXTRA_TRANSLATION_ROWS: readonly TranslationRow[] = [
+  ['Uzbekistan', 'Uzbekistán', 'Ouzbékistan', 'Usbekistan', 'Uzbekistan', 'Oezbekistan'],
   ['Ask KivaLens AI assistant conversations', 'Conversaciones con el asistente de IA Ask KivaLens', 'Conversations avec l’assistant IA Ask KivaLens', 'Unterhaltungen mit dem Ask-KivaLens-KI-Assistenten', 'Conversazioni con l’assistente IA Ask KivaLens', 'Gesprekken met de Ask KivaLens-AI-assistent'],
   ['Learn more', 'Más información', 'En savoir plus', 'Mehr erfahren', 'Scopri di più', 'Meer informatie'],
   ['Close alert', 'Cerrar aviso', 'Fermer l’alerte', 'Hinweis schließen', 'Chiudi avviso', 'Melding sluiten'],
