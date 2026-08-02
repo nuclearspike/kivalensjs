@@ -1,0 +1,32 @@
+# Dependabot config. Security alerts are always on; this adds a predictable
+# version-update cadence so patches land in small batches instead of piling up
+# into a big sweep. Grouping keeps the PR count low (one PR per ecosystem/group
+# rather than one per package).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Patch/minor bumps are almost always safe -> one combined PR.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+      # Majors are opt-in and reviewed individually, so keep them separate.
+      major:
+        update-types:
+          - major
+    ignore:
+      # Node is pinned to 24.x by the engines field + Heroku stack; major bumps
+      # here are a deliberate platform decision, not a dependency update.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
