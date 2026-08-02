@@ -969,10 +969,10 @@ function BalancingRow({
 
   return (
     <Row className="mb-3">
-      <Col md={2}>
-        <Form.Label>{t(meta.label)}</Form.Label>
+      <Col md={3}>
+        <Form.Label style={{ whiteSpace: 'nowrap' }}>{t(meta.label)}</Form.Label>
       </Col>
-      <Col md={10}>
+      <Col md={9}>
         <Form.Check
           type="checkbox"
           label={t('Enable filter')}
