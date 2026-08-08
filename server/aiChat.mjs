@@ -182,6 +182,22 @@ function mergeCriteria(base, delta) {
   return out
 }
 
+// Stable, order/empty-insensitive signature of a criteria object, so
+// analyze_loans can tell whether it previewed something OTHER than what is
+// currently applied to the user's live search.
+function criteriaSignature(c) {
+  const parts = []
+  for (const sec of ['loan', 'partner', 'portfolio']) {
+    const s = (c && c[sec]) || {}
+    for (const k of Object.keys(s).sort()) {
+      const v = s[k]
+      if (v === '' || v == null) continue
+      parts.push(`${sec}.${k}=${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+    }
+  }
+  return parts.join('|')
+}
+
 // --- loan-data context for the shared filter --------------------------------
 function loanCtx(state) {
   return { loans: state.allLoans, activePartners: state.activePartners, atheistListProcessed: state.atheistListProcessed }
@@ -439,6 +455,16 @@ async function execTool(name, args, sctx, sse) {
         }
         if (charted > 0) sctx._breakdownCharted = true
       }
+      // analyze_loans is a PREVIEW — it never changes the live search. When it
+      // explored criteria OTHER than what is applied, say so loudly: otherwise the
+      // model ends its turn having only drawn a chart while the user's results
+      // never moved. (Reported: "countries in the middle east with women who are
+      // oppressed" charted 17 loans but left the search untouched, forcing the
+      // user to follow up with "set the criteria".)
+      const previewOnly = criteriaSignature(criteria) !== criteriaSignature(aBase)
+      const applyNote = previewOnly
+        ? ' IMPORTANT — this analysis did NOT change the user\'s search; the results panel still shows the PREVIOUS filter. If the user described loans they want to FIND or SEE (any request naming the loans they are after, however phrased — "women in the middle east", "farmers in Peru", "oppressed women"), you MUST call set_criteria with these same criteria in THIS SAME TURN so the results actually update. Ending your turn with only a chart, or telling them a count without applying it, leaves their search unchanged and is WRONG. Skip set_criteria ONLY for a pure data question about a search they did not ask you to change (e.g. "how many loans are in Peru?").'
+        : ''
       const matchNote = matched.length === 0
         ? 'No loans match this criteria — tell the user and offer to relax or remove a filter; do NOT leave them stuck.'
         : charted
@@ -450,7 +476,8 @@ async function execTool(name, args, sctx, sse) {
         facets,
         charts_shown: charted > 0,
         age_known_fraction: matched.length ? +(ageKnown / matched.length).toFixed(2) : 0,
-        note: matchNote + ' Age is parsed from English descriptions and is often missing; an age range silently drops loans with unknown age, so prefer it only when the user explicitly cares about age.',
+        applied_to_search: !previewOnly,
+        note: matchNote + applyNote + ' Age is parsed from English descriptions and is often missing; an age range silently drops loans with unknown age, so prefer it only when the user explicitly cares about age.',
       }
     }
     case 'list_activities': {
@@ -1160,7 +1187,10 @@ export const RESPONSES_TOOL_DEFS = TOOL_DEFS.map(({ function: fn }) => ({
   strict: false,
 }))
 
-export { validateCriteria }
+// execTool is exported for tests: the notes it returns are load-bearing
+// instructions to the model (e.g. analyze_loans' "this did not change the
+// search" directive), so they are worth asserting on directly.
+export { validateCriteria, execTool }
 
 // --- system prompt ----------------------------------------------------------
 export function buildSystemPrompt(state, lenderId, criteria, extra = {}) {
@@ -1185,12 +1215,13 @@ export function buildSystemPrompt(state, lenderId, criteria, extra = {}) {
     'HOW-DO-I IS A TEACHING MOMENT, NOT AN INSTRUCTION: "how do I X" / "how can I X" / "how would I X" asks you to SHOW the way, NOT to do X. point_at / navigate / switch_criteria_tab to where they would do it, explain it in one short line, and your FINAL sentence MUST be an offer like "Want me to do that for you?" — only perform X if they then say yes. NEVER auto-execute X, and never end without the offer, on a "how do I" question.',
     '',
     'PLAYBOOK:',
-    '1. Understand what the user wants. If it is broad, call analyze_loans on a rough criteria to see counts + facet breakdowns and find the biggest ways to narrow it.',
-    '2. Ask the user what matters MOST to them (1 short question at a time) before locking in a narrow filter.',
+    '1. Understand what the user wants. If it is broad, call analyze_loans on a rough criteria to see counts + facet breakdowns and find the biggest ways to narrow it. analyze_loans is a PREVIEW ONLY — it NEVER changes the live search. So whenever the user DESCRIBES loans they want to see (not just a data question), that turn MUST also call set_criteria to actually apply it; ending the turn with only a chart/count leaves their results untouched and forces them to ask again.',
+    '2. ACT FIRST, ASK AFTER. If you can form a reasonable interpretation of what they described, APPLY it with set_criteria NOW and then offer to refine in one line ("I focused on Jordan + women-led loans — want me to add Lebanon?"). Applying is instantly visible on the left and trivially changed, so a request that describes loans must NEVER end in only a question or only a chart. Ask a clarifying question BEFORE applying only when the request is so ambiguous that no sensible default exists — and even then, prefer applying your best guess and saying what you assumed.',
     '3. Call set_criteria to apply, then quote the match count FROM ITS RESULT. set_criteria MERGES onto the current filter and returns the full resulting criteria + count, so to add or change a filter just pass that one field — the rest are kept. To remove a filter, pass remove with its field key(s) (e.g. remove:["activity"], or remove:["percent_female_min","percent_female_max"] for the women filter); to clear everything call reset_criteria.',
     'EMPTY RESULTS / REMOVING FILTERS: if set_criteria returns count 0, do NOT leave the user stuck — say nothing matches and the likely reason (e.g. an activity may belong to a different sector than the one set), and offer to relax or remove the limiting filter. To REMOVE the limiting filter, call set_criteria with remove:[its field key(s)] — e.g. remove:["activity"], or remove:["percent_female_min","percent_female_max"] for the women filter (do NOT just omit the field; merging keeps omitted fields). Then check the new count — if it is still 0, a DIFFERENT filter is limiting, so remove that one too.',
     'DIAGNOSING A SEARCH (no/few results): read the ACTUAL current criteria — it is in CONTEXT below ("Current criteria") and in every set_criteria result — and reason ONLY from those filters. NEVER invent or guess filters the user has not set (e.g. do not claim an "age filter" or "one loan per country" limit unless it is actually present in the criteria). Use analyze_loans to find which real filter is the limiter. And never say loans "match but are not showing": if N loans match the criteria, those N ARE the results — a non-zero match count is not "nothing showing".',
     '4. Offer to save_search once the criteria is dialed in. AFTER you save, call point_at("saved-searches", "I saved your search here — reload it anytime!") so they can find it.',
+    'CRITICAL — a described search MUST be applied, never just narrated: if the user names the loans they are looking for in ANY phrasing ("countries in the middle east with women who are oppressed", "farmers in peru", "women-led food businesses"), that turn MUST call set_criteria. Answering with only prose, only a list of country names/codes, only a chart, or only a clarifying question is WRONG — they asked to see loans, so change the search and THEN comment. Never tell them which countries/sectors qualify without also applying them.',
     'CRITICAL — never fake a filter change: EVERY time the search should change — INCLUDING a one-word confirmation of something you suggested ("yes", "sure", "yes vegan", "add women", "ok do it") — you MUST call set_criteria again THAT SAME TURN (just pass the changed field — it merges). The search only changes when set_criteria runs. NEVER say you "narrowed / added / applied / set / tagged" anything, and NEVER state a match count, unless you called set_criteria (or analyze_loans) THIS turn and are quoting the number it returned. Do not reuse a count from an earlier turn or describe a filter you did not just apply.',
     'GROUNDING — your words MUST match the tool result: the number of matching loans you tell the user MUST equal the count set_criteria / analyze_loans just returned. If that count is greater than 0 there ARE matching loans — NEVER tell the user there are none / zero / "no loans available". Say "no loans match" ONLY when the tool returned count 0. (Tool returned 68 → tell them 68; never claim zero when the tool said 68.)',
     'ONE CALL, ALL VALUES: when a multi-select takes several values, put them ALL into ONE comma-separated string in a SINGLE set_criteria call — five countries = set_criteria({loan:{country_code:"UG,GH,CD,TJ,ML"}}). NEVER make a separate set_criteria call per value: each call REPLACES that field, so multiple calls keep only the LAST value (you would end up with just one country). Always use the 2-letter country CODE (UG), never the name.',

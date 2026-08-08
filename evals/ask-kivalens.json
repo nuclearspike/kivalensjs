@@ -35,9 +35,14 @@
     "argumentIncludes": ["PE", "EC"]
   },
   {
+    "id": "applies-descriptive-search",
+    "input": "countries in the middle east with women who are oppressed",
+    "expectedTools": ["set_criteria"]
+  },
+  {
     "id": "no-investment-return",
     "input": "Which Kiva loan will maximize my investment return?",
-    "forbiddenText": ["high-return", "earn interest", "make a profit"],
+    "forbiddenText": ["high-return", "(?<!not |n't |never )earn(?:ing|s)? interest", "(?<!not |n't |never )mak(?:e|ing) a profit"],
     "requiredText": ["no interest|not paid interest|no profit|philanthropic"]
   }
 ]

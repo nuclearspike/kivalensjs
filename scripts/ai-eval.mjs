@@ -34,18 +34,51 @@ const sectors = [
   'Retail', 'Reuse & Recycle', 'Sanitation & Hygiene', 'Services', 'Transportation',
   'Water', 'Wholesale',
 ]
+const mkEvalLoan = (o) => ({
+  status: 'fundraising',
+  funded_amount: 0,
+  loan_amount: 1000,
+  partner_id: 10,
+  location: { country_code: 'JO', country: 'Jordan' },
+  terms: { repayment_interval: 'monthly' },
+  kls_tags: [],
+  themes: [],
+  borrower_count: 1,
+  kl_percent_women: 100,
+  kl_still_needed: 500,
+  kl_percent_funded: 50,
+  kl_name_arr: [],
+  kls_use_or_descr_arr: [],
+  kl_newest_sort: 0,
+  posted_date: '2026-06-01',
+  sector: 'Services',
+  ...o,
+})
+
 const state = {
   batch: 1,
   ready: true,
-  allLoans: [],
-  activePartners: [],
+  // A few representative loans: with an EMPTY set the prompt tells the model no
+  // loans are loaded, so it declines to act and every behavioural case is
+  // vacuous. These make "find me X" requests answerable, which is what the
+  // apply-the-filter cases actually test.
+  allLoans: [
+    mkEvalLoan({ id: 1, sector: 'Services', location: { country_code: 'JO', country: 'Jordan' } }),
+    mkEvalLoan({ id: 2, sector: 'Retail', location: { country_code: 'JO', country: 'Jordan' } }),
+    mkEvalLoan({ id: 3, sector: 'Food', location: { country_code: 'LB', country: 'Lebanon' } }),
+    mkEvalLoan({ id: 4, sector: 'Agriculture', location: { country_code: 'PE', country: 'Peru' }, kl_percent_women: 0 }),
+    mkEvalLoan({ id: 5, sector: 'Retail', location: { country_code: 'PH', country: 'Philippines' }, kl_percent_women: 0 }),
+  ],
+  activePartners: [
+    { id: 10, status: 'active', kl_regions: ['me'], kl_sp: [], countries: [{ iso_code: 'JO' }, { iso_code: 'LB' }], rating: 5 },
+  ],
   partners: [],
   atheistListProcessed: false,
   optionsGz: gzipSync(Buffer.from(JSON.stringify({ sectors, activities: [], themes: [], tags: [] }))),
 }
 const instructions = buildSystemPrompt(state, null, { loan: {}, partner: {}, portfolio: {} }, {
-  shown: 0,
-  total: 0,
+  shown: state.allLoans.length,
+  total: state.allLoans.length,
   page: 'the Search page',
   basket: [],
   savedSearches: [],
@@ -85,6 +118,9 @@ for (const test of cases) {
 
   if (failures.length) {
     console.error(`✗ ${test.id}: ${failures.join('; ')}`)
+    // Show what actually came back — a bare "missing tool X" is not diagnosable.
+    console.error(`    tools: ${toolNames.join(', ') || '(none)'}`)
+    if (text) console.error(`    text: ${text.replace(/\s+/g, ' ').slice(0, 220)}`)
   } else {
     passed++
     console.log(`✓ ${test.id}`)
