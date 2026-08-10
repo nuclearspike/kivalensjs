@@ -4,9 +4,6 @@
 [Kiva.org](https://www.kiva.org) micro-lending — rebuilt on a modern stack with
 **zero Bootstrap**.
 
-KivaLens predates this repo — it was previously called **Kiva Bank**, renamed
-while its author was working at Kiva.
-
 The previous version — the 2015 app (React 0.14 + Reflux + Bootstrap 3 /
 Bootswatch Flatly + Browserify) — is preserved on the
 [`legacy`](../../tree/legacy) branch and the `v1-legacy` tag. This rebuild
