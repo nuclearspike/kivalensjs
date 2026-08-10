@@ -4,11 +4,15 @@
 [Kiva.org](https://www.kiva.org) micro-lending — rebuilt on a modern stack with
 **zero Bootstrap**.
 
-The original 2015 app (React 0.14 + Reflux + Bootstrap 3 / Bootswatch Flatly +
-Browserify) is preserved on the [`legacy`](../../tree/legacy) branch and the
-`v1-legacy` tag. This rebuild reproduces its rendered look and behavior using:
+KivaLens predates this repo — it was previously called **Kiva Bank**, renamed
+while its author was working at Kiva.
 
-| Layer            | Original                       | This app                          |
+The previous version — the 2015 app (React 0.14 + Reflux + Bootstrap 3 /
+Bootswatch Flatly + Browserify) — is preserved on the
+[`legacy`](../../tree/legacy) branch and the `v1-legacy` tag. This rebuild
+reproduces its rendered look and behavior using:
+
+| Layer            | 2015 app                       | This app                          |
 | ---------------- | ------------------------------ | --------------------------------- |
 | Build            | Browserify + Babel 5 + gulp    | Vite 8                            |
 | Language         | ES2015 JSX                     | TypeScript 5.9                    |
@@ -32,7 +36,7 @@ Browserify) is preserved on the [`legacy`](../../tree/legacy) branch and the
   modals, badges, progress bars, grid, utilities). Values were lifted from
   `reference/flatly-3.3.5-reference.css` (kept for reference only — never
   imported).
-- `src/styles/main.scss` — the KivaLens green theme, ported from the original
+- `src/styles/main.scss` — the KivaLens green theme, ported from the 2015 app's
   `application.scss`.
 
 ## Run
