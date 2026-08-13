@@ -88,6 +88,14 @@ async function fetchJSON(url) {
 
 async function fetchAllSearchLoans(log) {
   const all = []
+  // Kiva's listing is live and paging is offset-based, so a loan funding out
+  // mid-pull shifts the window and can serve the same loan on two consecutive
+  // pages. Clients trust server batches verbatim (setKivaLoans trustNoDupes),
+  // so a repeat here would surface as a duplicate card. De-dupe by id as we go.
+  // (The mirror case -- a loan pushed ACROSS the seam and missed -- needs no
+  // handling: the next refresh re-pulls the whole listing and picks it up.)
+  const seen = new Set()
+  let duplicates = 0
   let page = 1
   let totalPages = 1
   while (page <= totalPages) {
@@ -96,10 +104,18 @@ async function fetchAllSearchLoans(log) {
       `&per_page=100&app_id=${APP_ID}`
     const data = await fetchJSON(url)
     totalPages = Math.min(data.paging.pages, 100) // safety cap
-    if (data.loans) all.push(...data.loans)
+    if (data.loans) {
+      for (const loan of data.loans) {
+        if (!loan || loan.id == null) continue
+        if (seen.has(loan.id)) { duplicates++; continue }
+        seen.add(loan.id)
+        all.push(loan)
+      }
+    }
     log(`  search loans: page ${page}/${totalPages} (${all.length} loans)`)
     page++
   }
+  if (duplicates) log(`  listing shifted mid-pull: ignored ${duplicates} duplicate loan(s)`)
   return all
 }
 
@@ -781,7 +797,7 @@ function xmlEscape(s) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     // strip control chars that are illegal in XML 1.0
-    .replace(/[ --]/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
 }
 
 function buildRssXml(feedName, linkTo, loans, selfUrl) {
