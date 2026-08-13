@@ -182,6 +182,25 @@ body {
   overflow-y: scroll;
 }
 
+// Desktop 3-column layout only (below md the columns stack and the page scrolls).
+// The results column used to be unbounded while its neighbours were capped to
+// the viewport, so on short windows a fixed-height list pushed it below them and
+// left dead, unscrollable space beside it. Cap it like the others and let the
+// list flex-fill, so the column never exceeds the viewport and there is exactly
+// one scroll area.
+@media (min-width: 768px) {
+  .results-col {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 60px);
+  }
+
+  .results-col .loan_list_container {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+}
+
 .loan_list_item {
   height: 82px;
   width: 100%;

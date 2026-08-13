@@ -100,7 +100,7 @@ export function Search() {
         )}
 
         {/* Loan list */}
-        <Col md={listCol} data-aikl="results">
+        <Col md={listCol} data-aikl="results" className="results-col">
           <FilteringProgress />
           <ButtonGroup className="top-only d-flex" style={{ marginBottom: 0 }}>
             <Button onClick={toggleCriteria} className="w-50">
@@ -135,11 +135,12 @@ export function Search() {
           {hasHadLoans && loanCount === 0 && !downloading ? <NoResultsHelp /> : null}
 
           <LoadingLoansPanel />
+          {/* No fixed height: the list flex-fills the column, which is capped to
+              the viewport like its neighbours (see .results-col). */}
           <InfiniteList
             className="loan_list_container"
             items={filteredLoans}
             itemHeight={82}
-            height={900}
             renderItem={(loan) => <LoanListItem key={loan.id} loan={loan} />}
           />
         </Col>

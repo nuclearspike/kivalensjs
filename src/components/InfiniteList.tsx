@@ -5,7 +5,11 @@ interface InfiniteListProps<T> {
   items: T[]
   renderItem: (item: T, index: number) => ReactNode
   itemHeight: number
-  /** Fixed pixel height for the scroll container (the old app used 900). */
+  /**
+   * Fixed pixel height for the scroll container. Omit it to let CSS size the
+   * list (e.g. flex-fill inside a capped column) — a hard-coded height makes the
+   * list taller than the viewport on short windows.
+   */
   height?: number
   className?: string
   onLoadMore?: () => void
@@ -93,7 +97,7 @@ export default function InfiniteList<T>({
       ref={containerRef}
       className={className}
       onScroll={handleScroll}
-      style={{ overflow: 'auto', position: 'relative', height: height ?? '100%' }}
+      style={{ overflow: 'auto', position: 'relative', ...(height != null ? { height } : null) }}
     >
       <div style={{ height: totalHeight, position: 'relative' }}>
         {visibleItems}
