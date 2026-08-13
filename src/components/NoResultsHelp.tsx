@@ -36,6 +36,24 @@ export function NoResultsHelp() {
       .sort((x, y) => y.count - x.count)
   }, [lastKnown, lenderId])
 
+  // A label may be a parameterized key ("Limit to {count} per {group}"); its
+  // string params are themselves translation keys, so translate those too.
+  const labelOf = (it: { label: string; labelParams?: Record<string, string | number> }) =>
+    t(it.label, it.labelParams
+      ? Object.fromEntries(
+          Object.entries(it.labelParams).map(([k, v]) => [k, typeof v === 'string' ? t(v) : v]),
+        )
+      : undefined)
+
+  // 'none' EXCLUDES the listed values and 'all' requires every one of them — show
+  // that, or an exclude filter reads exactly like an include filter.
+  const valueOf = (it: { value: string; modifier?: 'all' | 'none' }) => {
+    const v = t(it.value)
+    if (it.modifier === 'none') return t('not {value}', { value: v })
+    if (it.modifier === 'all') return t('all of {value}', { value: v })
+    return v
+  }
+
   const chipBase: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
@@ -69,11 +87,11 @@ export function NoResultsHelp() {
                     ...chipBase,
                     borderColor: it.count > 0 ? 'var(--kl-green, #2C8C5E)' : 'rgba(0,0,0,0.15)',
                   }}
-                   title={t('Remove “{label}: {value}” → {count} loans', { label: t(it.label), value: t(it.value), count: it.count })}
+                   title={t('Remove “{label}: {value}” → {count} loans', { label: labelOf(it), value: valueOf(it), count: it.count })}
                   onClick={() => setCriteria(it.without(lastKnown))}
                 >
                   <span>
-                    <strong>{t(it.label)}:</strong> {t(it.value)}
+                    <strong>{labelOf(it)}:</strong> {valueOf(it)}
                   </span>
                   <span
                     style={{

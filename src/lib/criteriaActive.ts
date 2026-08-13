@@ -8,9 +8,27 @@ import { humanize } from './utils'
  */
 export interface ActiveCrit {
   id: string
+  /** Translation key. May be parameterized (see labelParams). */
   label: string
+  /**
+   * Params for a parameterized `label` (e.g. "Limit to {count} per {group}").
+   * String params are themselves translation keys — the renderer translates them.
+   */
+  labelParams?: Record<string, string | number>
   value: string
+  /**
+   * How the listed values combine. Without this the summary cannot tell an
+   * INCLUDE filter from an EXCLUDE one: "Sector: Retail" rendered identically
+   * whether the user was filtering TO Retail or hiding it.
+   */
+  modifier?: 'all' | 'none'
   without: (c: Criteria) => Criteria
+}
+
+/** 'none' (exclude) and 'all' (must have every value) change what the filter MEANS. */
+function modifierOf(raw: unknown): 'all' | 'none' | undefined {
+  const m = String(raw ?? '')
+  return m === 'none' || m === 'all' ? m : undefined
 }
 
 const LOAN_MULTI: Record<string, string> = {
@@ -74,6 +92,7 @@ export function activeCriteria(c: Criteria): ActiveCrit[] {
         id: `loan.${k}`,
         label,
         value: v.split(',').join(', '),
+        modifier: modifierOf(loan[`${k}_all_any_none`]),
         without: (cc) => {
           const n = clone(cc)
           delete n.loan[k]
@@ -117,17 +136,24 @@ export function activeCriteria(c: Criteria): ActiveCrit[] {
     }
   }
 
-  // limit_to (diversification cap)
-  const lt = loan.limit_to as { enabled?: boolean; limit_by?: string } | undefined
+  // limit_to (diversification cap). The cap is user-set — read it, never assume 1.
+  const lt = loan.limit_to as { enabled?: boolean; count?: number; limit_by?: string } | undefined
   if (lt && lt.enabled) {
-    out.push({ id: 'loan.limit_to', label: `Limit to 1 per ${lt.limit_by || 'Partner'}`, value: 'on', without: (cc) => { const n = clone(cc); delete n.loan.limit_to; return n } })
+    const n = Number(lt.count)
+    out.push({
+      id: 'loan.limit_to',
+      label: 'Limit to {count} per {group}',
+      labelParams: { count: Number.isFinite(n) && n > 0 ? n : 1, group: lt.limit_by || 'Partner' },
+      value: 'on',
+      without: (cc) => { const c2 = clone(cc); delete c2.loan.limit_to; return c2 },
+    })
   }
 
   // partner fields
   for (const [k, label] of Object.entries(PARTNER_FIELD)) {
     const v = partner[k]
     if (v != null && v !== '' && !(Array.isArray(v) && v.length === 0)) {
-      out.push({ id: `partner.${k}`, label, value: fmt(v), without: (cc) => { const n = clone(cc); delete n.partner[k]; delete n.partner[`${k}_all_any_none`]; return n } })
+      out.push({ id: `partner.${k}`, label, value: fmt(v), modifier: modifierOf(partner[`${k}_all_any_none`]), without: (cc) => { const n = clone(cc); delete n.partner[k]; delete n.partner[`${k}_all_any_none`]; return n } })
     }
   }
   // partner ranges
@@ -139,6 +165,8 @@ export function activeCriteria(c: Criteria): ActiveCrit[] {
   for (const base of partnerBases) {
     const min = partner[`${base}_min`]
     const max = partner[`${base}_max`]
+    // Match the loan-range guard: a present-but-empty bound is not a filter.
+    if (min == null && max == null) continue
     out.push({ id: `partner.${base}`, label: humanize(base), value: `${min ?? '–'} – ${max ?? '–'}`, without: (cc) => { const n = clone(cc); delete n.partner[`${base}_min`]; delete n.partner[`${base}_max`]; return n } })
   }
 
