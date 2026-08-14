@@ -12,7 +12,7 @@ const cases = JSON.parse(await readFile(new URL('../evals/ask-kivalens.json', im
 
 function validateCase(test) {
   if (!test?.id || !test?.input) throw new Error('Every eval needs id and input')
-  for (const field of ['expectedTools', 'argumentIncludes', 'forbiddenText', 'requiredText']) {
+  for (const field of ['expectedTools', 'forbiddenTools', 'argumentIncludes', 'forbiddenText', 'requiredText']) {
     if (test[field] != null && !Array.isArray(test[field])) throw new Error(`${test.id}: ${field} must be an array`)
   }
 }
@@ -105,6 +105,9 @@ for (const test of cases) {
 
   for (const expected of test.expectedTools || []) {
     if (!toolNames.includes(expected)) failures.push(`missing tool ${expected}; got ${toolNames.join(', ') || '(none)'}`)
+  }
+  for (const forbidden of test.forbiddenTools || []) {
+    if (toolNames.includes(forbidden)) failures.push(`called forbidden tool ${forbidden}`)
   }
   for (const fragment of test.argumentIncludes || []) {
     if (!args.toLowerCase().includes(String(fragment).toLowerCase())) failures.push(`tool args missing ${fragment}`)

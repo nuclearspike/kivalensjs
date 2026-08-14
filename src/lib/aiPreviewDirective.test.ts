@@ -44,6 +44,52 @@ const emptyCriteria = () => ({ loan: {}, partner: {}, portfolio: {} })
 const run = (args: Record<string, unknown>, applied = emptyCriteria()) =>
   execTool('analyze_loans', args, { state, lenderId: null, criteria: applied }, () => {})
 
+describe('report_bug', () => {
+  // Most users have no GitHub account, so this chat is the only channel they
+  // have. The tool CALL is what makes the report machine-visible to the digest.
+  const report = (args: Record<string, unknown>) =>
+    execTool('report_bug', args, { state, lenderId: null, criteria: emptyCriteria() }, () => {})
+
+  it('records what the user described', async () => {
+    const r = await report({
+      summary: 'saved searches vanished',
+      expected: 'my 6 searches',
+      actual: 'the list is empty',
+      where: 'Saved page',
+    })
+    expect(r.ok).toBe(true)
+    expect(r.recorded).toMatchObject({
+      summary: 'saved searches vanished',
+      actual: 'the list is empty',
+      where: 'Saved page',
+    })
+  })
+
+  it('accepts a partial report rather than demanding every field', async () => {
+    const r = await report({ summary: 'basket keeps emptying' })
+    expect(r.ok).toBe(true)
+    expect(r.recorded.summary).toBe('basket keeps emptying')
+  })
+
+  it('asks for one detail instead of filing an empty report', async () => {
+    const r = await report({})
+    expect(r.ok).toBeUndefined()
+    expect(r.error).toBe('summary_required')
+  })
+
+  it('tells the model to confirm receipt WITHOUT promising a fix or a timeline', async () => {
+    const r = await report({ summary: 'x' })
+    expect(r.note).toMatch(/do NOT\s+promise a fix or a timeline/i)
+    expect(r.note).toMatch(/not ask them to file it anywhere else/i)
+  })
+
+  it('clips hostile-length input so one report cannot bloat the digest', async () => {
+    const r = await report({ summary: 'x'.repeat(5000), actual: 'y'.repeat(5000) })
+    expect(r.recorded.summary.length).toBeLessThanOrEqual(300)
+    expect(r.recorded.actual.length).toBeLessThanOrEqual(300)
+  })
+})
+
 describe('analyze_loans preview directive', () => {
   it('tells the model the search was NOT changed when it previews new criteria', async () => {
     const result = await run({ criteria: { loan: { country_code: 'JO' } } })

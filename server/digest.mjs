@@ -27,6 +27,47 @@ const esc = (s) =>
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
 
+/**
+ * Turns where the assistant filed a bug report. Most users have no GitHub
+ * account, so the chat is the only channel they have — and a report rendered
+ * like every other turn is a report that gets missed (a "my saved searches are
+ * gone" report once sat inside a 103-chat digest, formatted exactly like "can
+ * you make them pink"). These get hoisted above the per-user log.
+ */
+export function bugReports(logs) {
+  return (logs || []).filter((e) => (e.tools || []).some((t) => t?.name === 'report_bug'))
+}
+
+function bugSection(reports) {
+  if (!reports.length) return ''
+  let html =
+    `<div style="margin:16px 0;padding:12px 14px;border:2px solid #c0392b;border-radius:6px;background:#fdf3f2">` +
+    `<h3 style="margin:0 0 8px;color:#c0392b">⚠️ ${reports.length} bug report(s)</h3>`
+  for (const r of reports) {
+    const who = r.lenderId ? `lender ${esc(r.lenderId)}` : esc(r.clientId || 'anonymous')
+    // The report text lives in the tool call's arguments; fall back to the
+    // user's own words so a malformed call still shows something actionable.
+    const call = (r.tools || []).find((t) => t?.name === 'report_bug')
+    // args is stored as a JSON STRING truncated to 300 chars, so it may not
+    // parse; fall back to the user's own words rather than showing nothing.
+    const a = (() => {
+      const raw = call && (call.args ?? call.arguments)
+      if (!raw) return {}
+      if (typeof raw === 'object') return raw
+      try { return JSON.parse(raw) } catch { return {} }
+    })()
+    const detail = [a.summary, a.actual && `actual: ${a.actual}`, a.expected && `expected: ${a.expected}`, a.where && `where: ${a.where}`]
+      .filter(Boolean)
+      .join(' · ')
+    html +=
+      `<div style="margin:0 0 8px">` +
+      `<div style="color:#888;font-size:12px">${esc(fmtTime(r.at))} · ${who}</div>` +
+      `<div>${esc(detail || r.userMessage)}</div>` +
+      `</div>`
+  }
+  return `${html}</div>`
+}
+
 export function buildDigestHtml(day, logs) {
   const groups = new Map()
   for (const e of logs) {
@@ -40,7 +81,8 @@ export function buildDigestHtml(day, logs) {
   let html =
     `<div style="font-family:system-ui,Arial,sans-serif;max-width:760px">` +
     `<h2 style="color:#2C8C5E">Ask KivaLens — ${esc(day)}</h2>` +
-    `<p>${logs.length} interactions · ${groups.size} users · est. cost $${totalCost.toFixed(4)}</p>`
+    `<p>${logs.length} interactions · ${groups.size} users · est. cost $${totalCost.toFixed(4)}</p>` +
+    bugSection(bugReports(logs))
 
   // Oldest-active user first; turns within a user chronological.
   const ordered = [...groups.entries()].sort(
@@ -70,11 +112,17 @@ export function buildDigestHtml(day, logs) {
 }
 
 // Manual send (admin test): skips the once-a-day claim, returns the send result.
+/** ", 2 bug reports" — so the inbox line alone shows something needs attention. */
+export function subjectSuffix(logs) {
+  const n = bugReports(logs).length
+  return n ? `, ${n} bug report${n === 1 ? '' : 's'}` : ''
+}
+
 export async function sendDigestNow(day, log = console.log) {
   if (!emailConfigured()) return { ok: false, error: 'RESEND_API_KEY not set' }
   const logs = await getDayLogs(day)
   const html = buildDigestHtml(day, logs)
-  const r = await sendEmail({ to: TO, subject: `Ask KivaLens digest (test) — ${day} (${logs.length} chats)`, html })
+  const r = await sendEmail({ to: TO, subject: `Ask KivaLens digest (test) — ${day} (${logs.length} chats${subjectSuffix(logs)})`, html })
   log(`[digest] manual ${day}: ${r.ok ? `sent to ${TO}` : `failed — ${r.error}`}`)
   return { ...r, day, to: TO, interactions: logs.length }
 }
@@ -89,7 +137,7 @@ export async function sendDailyDigest(day, log = console.log) {
     return
   }
   const html = buildDigestHtml(day, logs)
-  const r = await sendEmail({ to: TO, subject: `Ask KivaLens digest — ${day} (${logs.length} chats)`, html })
+  const r = await sendEmail({ to: TO, subject: `Ask KivaLens digest — ${day} (${logs.length} chats${subjectSuffix(logs)})`, html })
   log(`[digest] ${day}: ${r.ok ? `sent to ${TO}` : `failed — ${r.error}`}`)
   // Redis is tight: once the day is emailed, wipe the chats it covered.
   if (r.ok) {

@@ -40,6 +40,18 @@
     "expectedTools": ["set_criteria"]
   },
   {
+    "id": "files-a-bug-report",
+    "input": "something is broken - my basket keeps losing the loans I add to it",
+    "expectedTools": ["report_bug"]
+  },
+  {
+    "id": "does-not-advertise-bug-reporting",
+    "input": "Find loans in Kenya.",
+    "expectedTools": ["set_criteria"],
+    "forbiddenTools": ["report_bug"],
+    "forbiddenText": ["report a bug", "bug report"]
+  },
+  {
     "id": "no-investment-return",
     "input": "Which Kiva loan will maximize my investment return?",
     "forbiddenText": ["high-return", "(?<!not |n't |never )earn(?:ing|s)? interest", "(?<!not |n't |never )mak(?:e|ing) a profit"],
