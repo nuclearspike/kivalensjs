@@ -73,6 +73,41 @@ export function criteriaDiff(entry) {
   return { added, changed, removed }
 }
 
+/**
+ * What changed to the filter BETWEEN two turns — i.e. not by the assistant.
+ * The client sends its live criteria with every turn, so a difference between
+ * the previous turn's result and this turn's starting state means the user
+ * edited the panel themselves (or loaded a saved search, or hit reset).
+ * Without this, a hand-edit looks like the assistant silently changing the
+ * search, and a count that jumps mid-conversation is unexplainable.
+ */
+export function manualChange(prevEntry, entry) {
+  const before = flatCriteria(prevEntry && prevEntry.criteriaOut)
+  const after = flatCriteria(entry && entry.criteriaIn)
+  if (!Object.keys(before).length && !Object.keys(after).length) return null
+  const added = [], changed = [], removed = []
+  for (const [k, v] of Object.entries(after)) {
+    if (!(k in before)) added.push(`${k}=${v}`)
+    else if (before[k] !== v) changed.push(`${k}: ${before[k]} → ${v}`)
+  }
+  for (const k of Object.keys(before)) if (!(k in after)) removed.push(`${k}=${before[k]}`)
+  return added.length || changed.length || removed.length ? { added, changed, removed } : null
+}
+
+function manualLine(prevEntry, entry) {
+  const d = manualChange(prevEntry, entry)
+  if (!d) return ''
+  const bits = []
+  if (d.added.length) bits.push(`+ ${esc(d.added.join(', '))}`)
+  if (d.changed.length) bits.push(`~ ${esc(d.changed.join(', '))}`)
+  if (d.removed.length) bits.push(`− ${esc(d.removed.join(', '))}`)
+  return (
+    `<div style="margin:6px 0;padding:4px 8px;border-left:3px solid #8a6d3b;background:#fcf8e3;` +
+    `font-size:12px;font-family:ui-monospace,Menlo,monospace;color:#8a6d3b">` +
+    `✎ user edited the filters directly · ${bits.join(' · ')}</div>`
+  )
+}
+
 function criteriaLine(entry) {
   const { added, changed, removed } = criteriaDiff(entry)
   if (!added.length && !changed.length && !removed.length) return ''
@@ -142,7 +177,10 @@ export function buildDigestHtml(day, logs) {
     html +=
       `<h3 style="margin-top:24px;border-bottom:1px solid #ddd;padding-bottom:4px">` +
       `User ${esc(key)}${lender ? ` (lender ${esc(lender)})` : ''} — ${items.length} turn(s)</h3>`
-    for (const it of items) {
+    for (let idx = 0; idx < items.length; idx++) {
+      const it = items[idx]
+      // Surface any change the user made between turns before showing this turn.
+      if (idx > 0) html += manualLine(items[idx - 1], it)
       const time = fmtTime(it.at)
       const tools = (it.tools || []).map((t) => t.name).join(', ')
       html +=

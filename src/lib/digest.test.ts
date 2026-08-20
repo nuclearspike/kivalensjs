@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildDigestHtml, bugReports, subjectSuffix, criteriaDiff } from '../../server/digest.mjs'
+import { buildDigestHtml, bugReports, subjectSuffix, criteriaDiff, manualChange } from '../../server/digest.mjs'
 
 /**
  * The daily digest emails real user chat turns to the operator. It embeds
@@ -209,5 +209,56 @@ describe('digest — criteria diff', () => {
   it('escapes hostile criteria values', () => {
     const html = buildDigestHtml('2026-08-15', [withCriteria({}, { loan: { name: '<script>x</script>' } })])
     expect(html).not.toContain('<script>')
+  })
+})
+
+/**
+ * The user can edit the criteria panel by hand between turns, so a count that
+ * jumps mid-conversation is not necessarily the assistant's doing. The client
+ * sends its live criteria every turn, so comparing the previous turn's RESULT
+ * with this turn's STARTING state reveals edits made outside the chat.
+ */
+describe('digest — edits made outside the conversation', () => {
+  const t = (inC: unknown, outC: unknown, at: string) =>
+    turn({ at, criteriaIn: JSON.stringify(inC), criteriaOut: JSON.stringify(outC) })
+
+  it('detects a filter the user removed between turns', () => {
+    const prev = t({}, { loan: { country_code: 'PE', sector: 'Food' } }, '2026-08-15T10:00:00Z')
+    const next = t({ loan: { sector: 'Food' } }, { loan: { sector: 'Food' } }, '2026-08-15T10:05:00Z')
+    expect(manualChange(prev, next)).toMatchObject({ removed: ['loan.country_code=PE'] })
+  })
+
+  it('detects a filter the user added between turns', () => {
+    const prev = t({}, { loan: { sector: 'Food' } }, '2026-08-15T10:00:00Z')
+    const next = t({ loan: { sector: 'Food', country_code: 'KE' } }, {}, '2026-08-15T10:05:00Z')
+    expect(manualChange(prev, next)).toMatchObject({ added: ['loan.country_code=KE'] })
+  })
+
+  it('returns null when the user did not touch anything', () => {
+    const prev = t({}, { loan: { sector: 'Food' } }, '2026-08-15T10:00:00Z')
+    const next = t({ loan: { sector: 'Food' } }, {}, '2026-08-15T10:05:00Z')
+    expect(manualChange(prev, next)).toBeNull()
+  })
+
+  it('renders a marker between the turns so the jump is explained', () => {
+    const html = buildDigestHtml('2026-08-15', [
+      t({}, { loan: { country_code: 'PE', percent_female_min: 50 } }, '2026-08-15T10:00:00Z'),
+      t({ loan: { percent_female_min: 50 } }, { loan: { percent_female_min: 50, sector: 'Food' } }, '2026-08-15T10:05:00Z'),
+    ])
+    expect(html).toContain('user edited the filters directly')
+    expect(html).toContain('loan.country_code=PE')
+  })
+
+  it('does not mark the first turn of a conversation', () => {
+    const html = buildDigestHtml('2026-08-15', [t({ loan: { sector: 'Food' } }, { loan: { sector: 'Food' } }, '2026-08-15T10:00:00Z')])
+    expect(html).not.toContain('user edited the filters directly')
+  })
+
+  it('does not attribute one user’s edits to another user', () => {
+    const html = buildDigestHtml('2026-08-15', [
+      turn({ clientId: 'a', criteriaIn: '{}', criteriaOut: JSON.stringify({ loan: { sector: 'Food' } }), at: '2026-08-15T10:00:00Z' }),
+      turn({ clientId: 'b', criteriaIn: '{}', criteriaOut: '{}', at: '2026-08-15T10:05:00Z' }),
+    ])
+    expect(html).not.toContain('user edited the filters directly')
   })
 })
