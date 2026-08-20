@@ -38,6 +38,52 @@ export function bugReports(logs) {
   return (logs || []).filter((e) => (e.tools || []).some((t) => t?.name === 'report_bug'))
 }
 
+/** Flatten {loan,partner,portfolio} into "loan.sector=Food" pairs for diffing. */
+function flatCriteria(raw) {
+  if (!raw) return {}
+  let o = raw
+  if (typeof o === 'string') { try { o = JSON.parse(o) } catch { return {} } }
+  const out = {}
+  for (const sec of ['loan', 'partner', 'portfolio']) {
+    const g = o[sec] || {}
+    for (const [k, v] of Object.entries(g)) {
+      if (v === '' || v == null) continue
+      out[`${sec}.${k}`] = typeof v === 'object' ? JSON.stringify(v) : String(v)
+    }
+  }
+  return out
+}
+
+/**
+ * What this turn actually did to the filter. The counts alone hide the failure
+ * mode where a "refinement" silently DROPS a filter and widens the search, so
+ * show removals explicitly — criteriaIn/criteriaOut were always logged, they
+ * were just never rendered, which made one such report impossible to diagnose
+ * after the logs were wiped.
+ */
+export function criteriaDiff(entry) {
+  const before = flatCriteria(entry && entry.criteriaIn)
+  const after = flatCriteria(entry && entry.criteriaOut)
+  const added = [], changed = [], removed = []
+  for (const [k, v] of Object.entries(after)) {
+    if (!(k in before)) added.push(`${k}=${v}`)
+    else if (before[k] !== v) changed.push(`${k}: ${before[k]} → ${v}`)
+  }
+  for (const k of Object.keys(before)) if (!(k in after)) removed.push(`${k}=${before[k]}`)
+  return { added, changed, removed }
+}
+
+function criteriaLine(entry) {
+  const { added, changed, removed } = criteriaDiff(entry)
+  if (!added.length && !changed.length && !removed.length) return ''
+  const bits = []
+  if (added.length) bits.push(`<span style="color:#2C8C5E">+ ${esc(added.join(', '))}</span>`)
+  if (changed.length) bits.push(`<span style="color:#8a6d3b">~ ${esc(changed.join(', '))}</span>`)
+  // Removals are the ones worth noticing: they widen the search.
+  if (removed.length) bits.push(`<span style="color:#c0392b">− ${esc(removed.join(', '))}</span>`)
+  return `<div style="margin-top:2px;font-size:12px;font-family:ui-monospace,Menlo,monospace">${bits.join(' · ')}</div>`
+}
+
 function bugSection(reports) {
   if (!reports.length) return ''
   let html =
@@ -104,6 +150,7 @@ export function buildDigestHtml(day, logs) {
         `<div style="color:#888;font-size:12px">${esc(time)}${it.page ? ` · ${esc(it.page)}` : ''}${tools ? ` · tools: ${esc(tools)}` : ''}</div>` +
         `<div style="margin-top:4px"><b>User:</b> ${esc(it.userMessage)}</div>` +
         `<div style="margin-top:2px"><b>KivaLens:</b> ${esc(it.response)}</div>` +
+        criteriaLine(it) +
         `</div>`
     }
   }

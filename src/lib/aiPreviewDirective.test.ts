@@ -44,6 +44,42 @@ const emptyCriteria = () => ({ loan: {}, partner: {}, portfolio: {} })
 const run = (args: Record<string, unknown>, applied = emptyCriteria()) =>
   execTool('analyze_loans', args, { state, lenderId: null, criteria: applied }, () => {})
 
+describe('set_criteria — broadening guard', () => {
+  // A user went 271 -> 243 -> 1,245 loans while ADDING filters and was told each
+  // step had "narrowed" it. replace:true and empty-string clears both drop
+  // filters silently, so the tool result has to call the widening out.
+  const apply = (args: Record<string, unknown>, applied = emptyCriteria()) =>
+    execTool('set_criteria', args, { state, lenderId: null, criteria: applied }, () => {})
+
+  it('warns when a call makes the search broader', async () => {
+    const narrow = { loan: { country_code: 'JO', sector: 'Services' }, partner: {}, portfolio: {} }
+    // replace:true wipes the country filter, widening the result set.
+    const r = await apply({ criteria: { loan: { sector: 'Services' } }, replace: true }, narrow)
+
+    expect(r.count).toBeGreaterThan(r.countBefore)
+    expect(r.note).toMatch(/BROADER, not narrower/)
+    expect(r.note).toMatch(/NEVER call this "narrowed"/)
+  })
+
+  it('reports the before and after counts so the model can quote them', async () => {
+    const narrow = { loan: { country_code: 'JO' }, partner: {}, portfolio: {} }
+    const r = await apply({ criteria: {}, replace: true }, narrow)
+    expect(r.note).toContain(`${r.countBefore} -> ${r.count}`)
+  })
+
+  it('stays quiet when the call actually narrows', async () => {
+    const r = await apply({ criteria: { loan: { country_code: 'JO' } } })
+    expect(r.count).toBeLessThanOrEqual(r.countBefore)
+    expect(r.note).not.toMatch(/BROADER/)
+  })
+
+  it('stays quiet when nothing changed', async () => {
+    const same = { loan: { country_code: 'JO' }, partner: {}, portfolio: {} }
+    const r = await apply({ criteria: { loan: { country_code: 'JO' } } }, same)
+    expect(r.note).not.toMatch(/BROADER/)
+  })
+})
+
 describe('report_bug', () => {
   // Most users have no GitHub account, so this chat is the only channel they
   // have. The tool CALL is what makes the report machine-visible to the digest.

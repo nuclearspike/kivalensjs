@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildDigestHtml, bugReports, subjectSuffix } from '../../server/digest.mjs'
+import { buildDigestHtml, bugReports, subjectSuffix, criteriaDiff } from '../../server/digest.mjs'
 
 /**
  * The daily digest emails real user chat turns to the operator. It embeds
@@ -148,5 +148,66 @@ describe('digest — bug reports', () => {
   ])('subject suffix for %i report(s)', (n, expected) => {
     const logs = [turn(), ...Array.from({ length: n as number }, () => bug({ summary: 's' }))]
     expect(subjectSuffix(logs)).toBe(expected)
+  })
+})
+
+/**
+ * A user went 271 -> 243 -> 1,245 loans while ADDING filters, and was told each
+ * step "narrowed" it. The counts alone could not show which filter had been
+ * dropped, and criteriaIn/criteriaOut were logged but never rendered — so the
+ * evidence was wiped with the logs. These pin that a turn shows what it changed.
+ */
+const withCriteria = (before: unknown, after: unknown, o: Record<string, unknown> = {}) =>
+  turn({ criteriaIn: JSON.stringify(before), criteriaOut: JSON.stringify(after), ...o })
+
+describe('digest — criteria diff', () => {
+  it('reports an added filter', () => {
+    const d = criteriaDiff(withCriteria({ loan: {} }, { loan: { sector: 'Food' } }))
+    expect(d.added).toEqual(['loan.sector=Food'])
+    expect(d.removed).toEqual([])
+  })
+
+  it('reports a REMOVED filter — the case that widens a search', () => {
+    const d = criteriaDiff(withCriteria(
+      { loan: { sector: 'Food', country_code: 'PE' } },
+      { loan: { sector: 'Food' } },
+    ))
+    expect(d.removed).toEqual(['loan.country_code=PE'])
+  })
+
+  it('reports a changed value', () => {
+    const d = criteriaDiff(withCriteria({ loan: { sector: 'Food' } }, { loan: { sector: 'Retail' } }))
+    expect(d.changed).toEqual(['loan.sector: Food → Retail'])
+  })
+
+  it('spans all three criteria groups', () => {
+    const d = criteriaDiff(withCriteria(
+      {},
+      { loan: { sector: 'Food' }, partner: { region: 'me' }, portfolio: { exclude_portfolio_loans: 'true' } },
+    ))
+    expect(d.added).toHaveLength(3)
+  })
+
+  it('renders removals in the turn so a dropped filter is visible', () => {
+    const html = buildDigestHtml('2026-08-15', [
+      withCriteria({ loan: { country_code: 'PE', percent_female_min: 50 } }, { loan: { sector: 'Food' } }),
+    ])
+    expect(html).toContain('loan.country_code=PE')
+    expect(html).toContain('loan.sector=Food')
+  })
+
+  it('adds no line when the turn did not touch the filter', () => {
+    const html = buildDigestHtml('2026-08-15', [withCriteria({ loan: { sector: 'Food' } }, { loan: { sector: 'Food' } })])
+    expect(html).not.toContain('loan.sector')
+  })
+
+  it('survives unparseable/truncated criteria without throwing', () => {
+    expect(() => criteriaDiff(turn({ criteriaIn: '{"loan":{"sec', criteriaOut: null }))).not.toThrow()
+    expect(criteriaDiff(turn({ criteriaIn: '{"loan":{"sec', criteriaOut: null })).added).toEqual([])
+  })
+
+  it('escapes hostile criteria values', () => {
+    const html = buildDigestHtml('2026-08-15', [withCriteria({}, { loan: { name: '<script>x</script>' } })])
+    expect(html).not.toContain('<script>')
   })
 })

@@ -663,6 +663,14 @@ async function execTool(name, args, sctx, sse) {
           }
         }
       }
+      // Count the OUTGOING filter before swapping it in, so we can tell whether
+      // this call actually narrowed. replace:true and explicit clears both drop
+      // filters silently, so a "refinement" can widen the search without the
+      // model noticing — a user once went 271 -> 243 -> 1,245 while adding
+      // filters and was told each step had "narrowed" it.
+      const beforeCount =
+        state.ready && state.allLoans?.length ? filterLoans(base, loanCtx(state)).length : null
+
       sctx.criteria = criteria
       sse({ type: 'apply_criteria', criteria })
       let count = null
@@ -677,8 +685,15 @@ async function execTool(name, args, sctx, sse) {
           note = `${count} loans match this filter. State this exact number to the user; NEVER tell them there are no/zero/none matching loans.`
           if (portfolioGated) note += ' Portfolio filters resolve in the browser, so treat this count as an upper bound — do not quote it as exact.'
         }
+        if (beforeCount != null && count > beforeCount) {
+          note +=
+            ` WARNING — this made the search BROADER, not narrower: ${beforeCount} -> ${count} loans.` +
+            ' If the user was adding or refining a filter, you have dropped one of their existing filters' +
+            ' (replace:true and empty-string clears both remove filters). NEVER call this "narrowed".' +
+            ' Say plainly that the result set grew, name the filter that is now missing, and offer to put it back.'
+        }
       }
-      return { ok: true, count, criteria, note }
+      return { ok: true, count, countBefore: beforeCount, criteria, note }
     }
     case 'save_search': {
       const searchName = String(args.name || '').trim()
