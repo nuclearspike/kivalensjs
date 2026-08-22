@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { createState, prepareData, loansFilterable } from '../../server/klCore.mjs'
+import { createState, prepareData, loansFilterable, awaitLoansFilterable } from '../../server/klCore.mjs'
 
 /**
  * Kiva's fundraising listing is LIVE: loans fund out and new ones post while the
@@ -176,6 +176,44 @@ describe('loansFilterable — warm start must not look like an empty result set'
   it('tolerates a missing/!bogus state rather than throwing', () => {
     expect(loansFilterable(null as never)).toBe(false)
     expect(loansFilterable({} as never)).toBe(false)
+  })
+})
+
+describe('awaitLoansFilterable — wait for a late warm start instead of punting', () => {
+  it('returns immediately when the data is already usable', async () => {
+    globalThis.fetch = fakeKiva(() => [[loan(1)]]) as unknown as typeof fetch
+    const state = createState()
+    await prepareData(state, silent)
+
+    vi.useRealTimers()
+    const t0 = Date.now()
+    await expect(awaitLoansFilterable(state, 5000)).resolves.toBe(true)
+    expect(Date.now() - t0).toBeLessThan(50) // no needless delay
+    vi.useFakeTimers()
+  })
+
+  it('resolves as soon as the refresh publishes, not after the full timeout', async () => {
+    vi.useRealTimers()
+    globalThis.fetch = fakeKiva(() => [[loan(1), loan(2)]]) as unknown as typeof fetch
+    const state = createState()
+
+    const waiting = awaitLoansFilterable(state, 10_000) // generous ceiling
+    await prepareData(state, silent) // publishes -> resolves rssReadyPromise
+
+    await expect(waiting).resolves.toBe(true)
+    vi.useFakeTimers()
+  })
+
+  it('gives up cleanly when the data never arrives', async () => {
+    vi.useRealTimers()
+    // A cold refresh takes ~150s; holding an SSE response that long would trip
+    // Heroku's router, so the wait must be bounded.
+    await expect(awaitLoansFilterable(createState(), 30)).resolves.toBe(false)
+    vi.useFakeTimers()
+  })
+
+  it('does not throw on a state with no readiness promise', async () => {
+    await expect(awaitLoansFilterable({} as never, 10)).resolves.toBe(false)
   })
 })
 

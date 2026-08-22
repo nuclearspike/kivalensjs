@@ -14,7 +14,7 @@ import zlib from 'node:zlib'
 import OpenAI from 'openai'
 import { filterLoans, groupBy, filterPartners } from './loanFilter.mjs'
 // Gate every filterLoans call on this, never on state.ready — see its doc comment.
-import { loansFilterable } from './klCore.mjs'
+import { loansFilterable, awaitLoansFilterable } from './klCore.mjs'
 import { fetchSuperGraphSlices, fetchLenderProfile } from './lenderData.mjs'
 import { budgetExceeded, addSpend, costOf, logInteraction, getRecentLogs, getMonthlySpend, monthKey, BUDGET_USD } from './aiUsage.mjs'
 import { sendDigestNow } from './digest.mjs'
@@ -401,7 +401,9 @@ async function execTool(name, args, sctx, sse) {
       }
     }
     case 'analyze_loans': {
-      if (!loansFilterable(state)) return { ready: false, note: 'Loan data is still loading; ask the user to retry shortly. Do NOT tell them nothing matches — nothing has been searched yet.' }
+      if (!(await awaitLoansFilterable(state))) {
+        return { ready: false, note: 'Loan data is still loading; ask the user to retry shortly. Do NOT tell them nothing matches — nothing has been searched yet.' }
+      }
       // Merge the model's (often partial) facet criteria onto the CURRENT applied
       // filter so the breakdown/count matches the live search — mirrors list_results.
       // Passing only {percent_female} must NOT drop the applied country/portfolio
@@ -670,15 +672,19 @@ async function execTool(name, args, sctx, sse) {
       // filters silently, so a "refinement" can widen the search without the
       // model noticing — a user once went 271 -> 243 -> 1,245 while adding
       // filters and was told each step had "narrowed" it.
-      const beforeCount = loansFilterable(state) ? filterLoans(base, loanCtx(state)).length : null
+      // Give a late-arriving warm start a moment to finish so we can quote a
+      // real number rather than telling the user to check back.
+      const filterable = await awaitLoansFilterable(state)
+      const beforeCount = filterable ? filterLoans(base, loanCtx(state)).length : null
 
       sctx.criteria = criteria
       sse({ type: 'apply_criteria', criteria })
       let count = null
       let note =
-        'Applied to the live search. Loan data is still loading, so no count is available yet — ' +
-        'say the filter is applied and the count is still coming; do NOT say nothing matches.'
-      if (loansFilterable(state)) {
+        'Applied to the live search — the results are already updating on the user’s screen. The' +
+        ' server-side count is not available yet, so tell them the filter is applied and they can' +
+        ' see the results on the left; do NOT say nothing matches and do NOT ask them to come back.'
+      if (filterable) {
         count = filterLoans(criteria, loanCtx(state)).length
         const portfolioGated = criteria.portfolio?.exclude_portfolio_loans === 'true' ||
           ['pb_sector', 'pb_country', 'pb_activity', 'pb_partner', 'pb_region', 'pb_gender'].some((k) => criteria.portfolio?.[k]?.enabled)
@@ -744,7 +750,7 @@ async function execTool(name, args, sctx, sse) {
       return { sliceBy, slices: (slices || []).slice(0, 20) }
     }
     case 'list_results': {
-      if (!loansFilterable(state)) return { ready: false, note: 'Loan data is still loading; ask the user to retry shortly. Do NOT tell them nothing matches.' }
+      if (!(await awaitLoansFilterable(state))) return { ready: false, note: 'Loan data is still loading; ask the user to retry shortly. Do NOT tell them nothing matches.' }
       const base = sctx.criteria && typeof sctx.criteria === 'object' ? sctx.criteria : { loan: {}, partner: {}, portfolio: {} }
       const argCrit = criteriaArg(args)
       const crit = validateCriteria(Object.keys(argCrit).length ? mergeCriteria(base, validateCriteria(argCrit, vocab)) : base, vocab)
@@ -759,7 +765,7 @@ async function execTool(name, args, sctx, sse) {
       }
     }
     case 'bulk_add_to_basket': {
-      if (!loansFilterable(state)) return { ready: false, note: 'Loan data is still loading. Do NOT tell them nothing matches.' }
+      if (!(await awaitLoansFilterable(state))) return { ready: false, note: 'Loan data is still loading. Do NOT tell them nothing matches.' }
       const crit = validateCriteria(sctx.criteria || {}, vocab)
       const matched = filterLoans(crit, loanCtx(state))
       const perLoan = Math.min(Math.max(Number(args.perLoan) || 25, 25), 500)

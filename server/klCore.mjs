@@ -511,6 +511,28 @@ export function loansFilterable(state) {
   return !!(state && state.rssReady && state.allLoans && state.allLoans.length)
 }
 
+/**
+ * Wait (briefly) for the live loan set to become filterable, so a request that
+ * lands late in a warm start answers properly instead of punting.
+ *
+ * Bounded on purpose: a cold refresh takes ~150s, and an SSE response that goes
+ * quiet that long trips Heroku's inter-byte router timeout — a request held to
+ * the end would fail rather than succeed. So this rescues the tail of the
+ * window and gives up cleanly otherwise.
+ */
+export function awaitLoansFilterable(state, timeoutMs = 20_000) {
+  if (loansFilterable(state)) return Promise.resolve(true)
+  if (!state || !state.rssReadyPromise) return Promise.resolve(false)
+  let timer
+  return Promise.race([
+    state.rssReadyPromise.then(() => loansFilterable(state)),
+    new Promise((resolve) => { timer = setTimeout(() => resolve(false), timeoutMs) }),
+  ]).then((ok) => {
+    clearTimeout(timer)
+    return ok
+  })
+}
+
 export function createState() {
   let resolveRssReady
   const rssReadyPromise = new Promise((resolve) => {
