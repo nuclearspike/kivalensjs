@@ -508,7 +508,110 @@ async function loadAplusCsv(log) {
  * this names the concept so the AI tools stop reaching for the wrong flag.
  */
 export function loansFilterable(state) {
-  return !!(state && state.rssReady && state.allLoans && state.allLoans.length)
+  return !!(state && state.filterableLoans && state.allLoans && state.allLoans.length)
+}
+
+/**
+ * Rebuild the fields compressLoan strips, so a cached page can be filtered.
+ * Mirrors the client's ResultProcessors.processLoan, which does exactly this to
+ * the same payload.
+ *
+ * Deliberately does NOT set kl_processed: /api/since treats a loan as "changed"
+ * when its kl_processed is newer than the batch, so stamping it here would make
+ * the next delta request return the whole dataset.
+ */
+function rehydrateCompressedLoan(l, words, detail) {
+  if (!l.funded_amount) l.funded_amount = 0
+  if (!l.basket_amount) l.basket_amount = 0
+  l.status = l.status || 'fundraising'
+
+  const male = (l.klb && l.klb.M) || 0
+  const female = (l.klb && l.klb.F) || 0
+  l.borrower_count = male + female
+  l.borrowers = [
+    ...Array.from({ length: male }, () => ({ gender: 'M', first_name: '...' })),
+    ...Array.from({ length: female }, () => ({ gender: 'F', first_name: '...' })),
+  ]
+  l.kl_percent_women = l.borrower_count ? (female / l.borrower_count) * 100 : 0
+
+  l.kl_name_arr = (l.name || '').toUpperCase().match(/(\w+)/g) || []
+  l.kl_posted_date = new Date(l.posted_date)
+  l.kl_newest_sort = l.kl_posted_date.getTime()
+  l.kl_still_needed = Math.max(l.loan_amount - l.funded_amount - l.basket_amount, 0)
+  l.kl_percent_funded = (100 * (l.funded_amount + l.basket_amount)) / l.loan_amount
+
+  const DAY = 24 * 60 * 60 * 1000
+  if (l.planned_expiration_date) {
+    l.kl_planned_expiration_date = new Date(l.planned_expiration_date)
+    l.kl_expiring_in_days = (l.kl_planned_expiration_date.getTime() - Date.now()) / DAY
+  }
+  if (l.terms && l.terms.disbursal_date) {
+    l.kl_disbursal_in_days = (new Date(l.terms.disbursal_date).getTime() - Date.now()) / DAY
+  }
+  const hoursAgo = (Date.now() - l.kl_posted_date.getTime()) / (60 * 60 * 1000)
+  l.kl_dollars_per_hour = hoursAgo > 0 ? (l.funded_amount + l.basket_amount) / hoursAgo : 0
+
+  if (!l.kls_tags) l.kls_tags = []
+  // Word arrays for the use/description search live in the parallel keyword pages.
+  l.kls_use_or_descr_arr = words || []
+  for (const k of ['kls_half_back', 'kls_75_back', 'kls_final_repayment', 'kls_half_back_actual']) {
+    if (typeof l[k] === 'string') l[k] = new Date(l[k])
+  }
+  if (detail) {
+    if (detail.description) l.description = detail.description
+    if (detail.kl_repayments) l.kl_repayments = detail.kl_repayments
+  }
+  if (!l.description) l.description = { languages: ['en'], texts: { en: '' } }
+  return l
+}
+
+const gunzipJson = (buf) => JSON.parse(zlib.gunzipSync(buf).toString('utf8'))
+
+/**
+ * Make the Redis warm start filterable WITHOUT waiting for the live refresh.
+ *
+ * The snapshot already holds the whole dataset as the compressed pages the
+ * browser filters against; the warm start just never expanded them, so for the
+ * ~150s a cold refresh takes, anything server-side that filtered (the AI tools)
+ * saw an empty result set. Expanding them costs one pass over ~7k loans and is
+ * done at most once per boot, on demand.
+ *
+ * Restores partners too: without activePartners the default MFI-only filter has
+ * no partner to match and would hide every loan.
+ */
+export function rehydrateWarmCache(state, log = () => {}) {
+  if (!state || state.warmRehydrated || loansFilterable(state)) return false
+  const served = state.batches && state.batches.get(state.batch)
+  if (!served || !served.loanPages || !served.loanPages.length || !state.partnersGz) return false
+  state.warmRehydrated = true // one attempt per boot, success or not
+  try {
+    const partners = gunzipJson(state.partnersGz)
+
+    const words = new Map()
+    for (const page of served.keywordPages || []) {
+      for (const k of gunzipJson(page)) words.set(k.id, k.t)
+    }
+    const details = new Map()
+    for (const d of state.warmDetails || []) details.set(d.id, d)
+
+    const loans = []
+    for (const page of served.loanPages) {
+      for (const l of gunzipJson(page)) {
+        loans.push(rehydrateCompressedLoan(l, words.get(l.id), details.get(l.id)))
+      }
+    }
+
+    state.partners = partners
+    state.activePartners = partners.filter((p) => p.status === 'active')
+    state.allLoans = loans
+    state.warmDetails = null // freed: merged into the loans above
+    state.filterableLoans = true
+    log(`Warm cache expanded: ${loans.length} loans filterable without waiting for the refresh`)
+    return true
+  } catch (e) {
+    log(`Warm cache expand skipped (non-fatal): ${e}`)
+    return false
+  }
 }
 
 /**
@@ -524,6 +627,9 @@ export function awaitLoansFilterable(state, timeoutMs = 20_000) {
   if (loansFilterable(state)) return Promise.resolve(true)
   if (!state || !state.rssReadyPromise) return Promise.resolve(false)
   let timer
+  // The snapshot already contains the whole dataset — expand it instead of
+  // waiting on the network at all. Only genuinely cold boots fall through.
+  if (rehydrateWarmCache(state)) return Promise.resolve(true)
   return Promise.race([
     state.rssReadyPromise.then(() => loansFilterable(state)),
     new Promise((resolve) => { timer = setTimeout(() => resolve(false), timeoutMs) }),
@@ -541,6 +647,12 @@ export function createState() {
 
   return {
     ready: false,
+    // True once allLoans holds FULL loan objects the shared filter can run on —
+    // set by a live refresh, or by expanding the warm-start cache on demand.
+    // Distinct from `ready`, which only means the /api pages are servable.
+    filterableLoans: false,
+    warmRehydrated: false,
+    warmDetails: null,
     // RSS needs the full live loan + partner objects. The Redis warm start only
     // restores compressed API pages and per-loan details, so general API
     // readiness must not be treated as RSS filtering readiness.
@@ -691,6 +803,9 @@ export async function prepareData(state, log = console.log) {
     state.batch = batch
     state.klStart = klStart
     state.ready = true
+    // Live data supersedes anything expanded from the warm cache.
+    state.filterableLoans = true
+    state.warmDetails = null
     if (!state.rssReady) {
       state.rssReady = true
       state.resolveRssReady()
@@ -738,6 +853,9 @@ async function hydrateFromCache(state, log) {
     // the full objects within the cycle. /api/since stays correct meanwhile:
     // these partial objects have no kl_processed, so none count as "changed".
     state.allLoans = snap.details ?? []
+    // Kept so an on-demand expand can merge descriptions/repayments back into
+    // the loans it rebuilds from the compressed pages.
+    state.warmDetails = snap.details ?? []
     state.batches.set(snap.batch, {
       loanPages: snap.loanPages,
       keywordPages: snap.keywordPages,

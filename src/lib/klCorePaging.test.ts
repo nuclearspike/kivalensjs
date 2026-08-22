@@ -1,5 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { createState, prepareData, loansFilterable, awaitLoansFilterable } from '../../server/klCore.mjs'
+import { createState, prepareData, loansFilterable, awaitLoansFilterable, rehydrateWarmCache } from '../../server/klCore.mjs'
+import { filterLoans } from '../../server/loanFilter.mjs'
+import zlib from 'node:zlib'
 
 /**
  * Kiva's fundraising listing is LIVE: loans fund out and new ones post while the
@@ -176,6 +178,113 @@ describe('loansFilterable — warm start must not look like an empty result set'
   it('tolerates a missing/!bogus state rather than throwing', () => {
     expect(loansFilterable(null as never)).toBe(false)
     expect(loansFilterable({} as never)).toBe(false)
+  })
+})
+
+/**
+ * The snapshot already holds the entire dataset as the compressed pages the
+ * browser filters against — the warm start just never expanded them, so for the
+ * ~150s a cold refresh takes, anything filtering server-side saw nothing. These
+ * build a REAL warm start (publish -> reuse those exact pages) and prove the
+ * server can filter immediately, with no live fetch available.
+ */
+describe('rehydrateWarmCache — filter straight from the cache, no waiting', () => {
+  /** A state as it looks after hydrateFromCache: pages + partners, no live data. */
+  async function warmStartState() {
+    // partner_id matters: a loan with no partner is “Direct”, which the default
+    // MFI-only filter hides — partnerless fixtures would look like a broken filter.
+    globalThis.fetch = fakeKiva(() => [[
+      loan(1, { partner_id: 10, sector: 'Agriculture', location: { country_code: 'KE', country: 'Kenya' } }),
+      loan(2, { partner_id: 10, sector: 'Retail', location: { country_code: 'PE', country: 'Peru' } }),
+      loan(3, { partner_id: 10, sector: 'Retail', location: { country_code: 'KE', country: 'Kenya' } }),
+    ]]) as unknown as typeof fetch
+    const live = createState()
+    await prepareData(live, silent)
+    const served = live.batches.get(live.batch)!
+    // The fake Kiva serves no partners, so stand in the compressed partner blob
+    // the real snapshot would carry — the rehydrate reads it from partnersGz.
+    const partnersGz = zlib.gzipSync(
+      Buffer.from(JSON.stringify([{ id: 10, status: 'active', name: 'Test MFI', countries: [{ iso_code: 'KE' }] }])),
+    )
+    live.partnersGz = partnersGz as never
+
+    const warm = createState()
+    warm.batch = live.batch
+    warm.klStart = live.klStart
+    warm.partnersGz = live.partnersGz
+    warm.optionsGz = live.optionsGz
+    warm.allLoans = [] as never
+    warm.warmDetails = [] as never
+    warm.batches.set(live.batch, served)
+    warm.ready = true // /api pages servable...
+    return warm     // ...but filterableLoans is still false
+  }
+
+  it('a warm start is not filterable until it is expanded', async () => {
+    const warm = await warmStartState()
+    expect(warm.ready).toBe(true)
+    expect(loansFilterable(warm)).toBe(false)
+  })
+
+  it('expands the cached pages into loans the shared filter can use', async () => {
+    const warm = await warmStartState()
+    expect(rehydrateWarmCache(warm, silent)).toBe(true)
+    expect(loansFilterable(warm)).toBe(true)
+    expect(warm.allLoans).toHaveLength(3)
+  })
+
+  it('filters correctly straight from the cache — the bug that told users “no loans”', async () => {
+    const warm = await warmStartState()
+    rehydrateWarmCache(warm, silent)
+    const ctx = { loans: warm.allLoans, activePartners: warm.activePartners, atheistListProcessed: true }
+
+    expect(filterLoans({ loan: { country_code: 'KE' }, partner: {}, portfolio: {} }, ctx)).toHaveLength(2)
+    expect(filterLoans({ loan: { sector: 'Retail' }, partner: {}, portfolio: {} }, ctx)).toHaveLength(2)
+    expect(filterLoans({ loan: {}, partner: {}, portfolio: {} }, ctx)).toHaveLength(3)
+  })
+
+  it('restores partners — without them the MFI-only default hides every loan', async () => {
+    const warm = await warmStartState()
+    rehydrateWarmCache(warm, silent)
+    expect(warm.activePartners.length).toBeGreaterThan(0)
+  })
+
+  it('rebuilds the derived fields the filter depends on', async () => {
+    const warm = await warmStartState()
+    rehydrateWarmCache(warm, silent)
+    const l = warm.allLoans[0] as Record<string, unknown>
+
+    expect(l.kl_still_needed).toBe(1000)
+    expect(l.kl_percent_women).toBe(100) // from the klb counts compressLoan kept
+    expect(l.borrower_count).toBe(1)
+    expect(l.status).toBe('fundraising')
+    expect(Array.isArray(l.kl_name_arr)).toBe(true)
+    expect(Array.isArray(l.kls_tags)).toBe(true)
+  })
+
+  it('does NOT stamp kl_processed, or /api/since would replay the whole dataset', async () => {
+    const warm = await warmStartState()
+    rehydrateWarmCache(warm, silent)
+    expect((warm.allLoans[0] as Record<string, unknown>).kl_processed).toBeUndefined()
+  })
+
+  it('only attempts the expand once per boot', async () => {
+    const warm = await warmStartState()
+    expect(rehydrateWarmCache(warm, silent)).toBe(true)
+    expect(rehydrateWarmCache(warm, silent)).toBe(false)
+  })
+
+  it('declines cleanly on a genuinely cold boot (nothing cached)', () => {
+    expect(rehydrateWarmCache(createState(), silent)).toBe(false)
+  })
+
+  it('makes awaitLoansFilterable resolve instantly instead of waiting', async () => {
+    vi.useRealTimers()
+    const warm = await warmStartState()
+    const t0 = Date.now()
+    await expect(awaitLoansFilterable(warm, 5000)).resolves.toBe(true)
+    expect(Date.now() - t0).toBeLessThan(200)
+    vi.useFakeTimers()
   })
 })
 

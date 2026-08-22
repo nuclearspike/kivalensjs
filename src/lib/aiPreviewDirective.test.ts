@@ -30,9 +30,11 @@ const mkLoan = (o: Record<string, unknown>) => ({
 const state = {
   batch: 1,
   ready: true,
-  // A fully-loaded server: the live refresh has published full loan objects.
-  // `ready` alone is the warm start, where allLoans holds unfilterable partials.
+  // A fully-loaded server: the live refresh has published full loan objects, so
+  // the shared filter can run. `ready` alone is the warm start, where allLoans
+  // holds partials that filter to nothing.
   rssReady: true,
+  filterableLoans: true,
   optionsGz: null,
   atheistListProcessed: true,
   activePartners: [{ id: 10, status: 'active', kl_regions: ['me'], kl_sp: [], countries: [{ iso_code: 'JO' }], rating: 5 }],
@@ -56,6 +58,11 @@ describe('AI tools during the warm start', () => {
     ...state,
     ready: true,
     rssReady: false,
+    filterableLoans: false,
+    // No cached pages here, so the on-demand expand cannot rescue it — this is
+    // the genuinely-cold case that must report “still loading”.
+    batches: new Map(),
+    partnersGz: null,
     allLoans: [{ id: 1, description: { texts: { en: 'hi' } } }],
   })
 
