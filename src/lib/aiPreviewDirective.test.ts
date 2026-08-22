@@ -75,6 +75,73 @@ describe('per-request readiness budget (council finding #2b)', () => {
     expect(r3.ready).toBe(false)
     expect(elapsed).toBeLessThan(2000) // ~one 300ms budget, nowhere near 3×
   })
+
+  // The shared budget must hold even for callers that never set the field:
+  // execTool defaults it at entry, so an sctx built without readyDeadline
+  // (a test, a future tool route) cannot silently reinstate per-tool stacking.
+  it('execTool defaults readyDeadline on an sctx that lacks it', async () => {
+    const cold = {
+      ...state,
+      ready: false,
+      rssReady: false,
+      filterableLoans: false,
+      batches: new Map(),
+      partnersGz: null,
+      allLoans: [],
+      rssReadyPromise: new Promise(() => {}), // never resolves
+    }
+    const sctx = { state: cold, lenderId: null, criteria: emptyCriteria() }
+    // Force the shared window into the past so all three calls return at once.
+    sctx.readyDeadline = Date.now() - 1
+    const t0 = Date.now()
+    const r1 = await execTool('analyze_loans', { criteria: {} }, sctx, () => {})
+    const r2 = await execTool('list_results', {}, sctx, () => {})
+    const r3 = await execTool('bulk_add_to_basket', {}, sctx, () => {})
+    expect(Date.now() - t0).toBeLessThan(2000)
+    expect(r1.ready).toBe(false)
+    expect(r2.ready).toBe(false)
+    expect(r3.ready).toBe(false)
+
+    const bare = { state: cold, lenderId: null, criteria: emptyCriteria() }
+    void execTool('analyze_loans', { criteria: {} }, bare, () => {}) // resolves later; only the default matters here
+    expect(typeof bare.readyDeadline).toBe('number')
+  })
+})
+
+describe('ready:false notes never contradict each other in one turn', () => {
+  // set_criteria tells the model the filter is applied and visible and to
+  // never send the user away; a sibling tool answering "ask the user to retry
+  // shortly" in the same turn hands the model opposing directives. Every
+  // gated read tool must carry the applied-and-visible framing, and the one
+  // write tool must say its action did not run — not that anything is broken.
+  const cold = () => ({
+    ...state,
+    ready: false,
+    rssReady: false,
+    filterableLoans: false,
+    batches: new Map(),
+    partnersGz: null,
+    allLoans: [],
+  })
+  const sctx = () => ({ state: cold(), lenderId: null, criteria: emptyCriteria(), readyDeadline: Date.now() - 1 })
+
+  it('read tools carry the applied-and-visible framing, never a retry ask', async () => {
+    for (const [tool, args] of [['analyze_loans', { criteria: {} }], ['list_results', {}]]) {
+      const r = await execTool(tool, args, sctx(), () => {})
+      expect(r.ready).toBe(false)
+      expect(r.note).not.toMatch(/retry shortly/i)
+      expect(r.note).toMatch(/already visible/i)
+      expect(r.note).toMatch(/do NOT ask them to come back/i)
+    }
+  })
+
+  it('bulk_add_to_basket says the add did not run, without implying breakage', async () => {
+    const r = await execTool('bulk_add_to_basket', {}, sctx(), () => {})
+    expect(r.ready).toBe(false)
+    expect(r.note).toMatch(/did NOT run/i)
+    expect(r.note).not.toMatch(/retry shortly/i)
+    expect(r.note).toMatch(/do NOT imply the search is broken/i)
+  })
 })
 
 describe('system prompt during the warm window (council finding #3)', () => {

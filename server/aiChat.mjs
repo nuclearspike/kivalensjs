@@ -374,6 +374,12 @@ const awaitReady = (sctx) =>
   awaitLoansFilterable(sctx.state, Math.max(0, (sctx.readyDeadline ?? Date.now() + 20_000) - Date.now()))
 
 async function execTool(name, args, sctx, sse) {
+  // The readiness budget is one shared deadline per request, not per tool —
+  // serial cold-start tool calls must split one 20s window rather than each
+  // waiting its own. Defaulting it here makes that structural for any caller
+  // that builds an sctx without the field (tests, future tool routes).
+  sctx.readyDeadline ??= Date.now() + 20_000
+
   const { state, lenderId } = sctx
   const vocab = getTaxonomy(state).vocab
   switch (name) {
@@ -412,7 +418,7 @@ async function execTool(name, args, sctx, sse) {
     }
     case 'analyze_loans': {
       if (!(await awaitReady(sctx))) {
-        return { ready: false, note: 'Loan data is still loading; ask the user to retry shortly. Do NOT tell them nothing matches — nothing has been searched yet.' }
+        return { ready: false, note: 'Loan data is still loading for the assistant, so a breakdown is not available yet — but the search on the left is live and the results are already visible on the user screen. Do NOT tell them nothing matches and do NOT ask them to come back.' }
       }
       // Merge the model's (often partial) facet criteria onto the CURRENT applied
       // filter so the breakdown/count matches the live search — mirrors list_results.
@@ -760,7 +766,7 @@ async function execTool(name, args, sctx, sse) {
       return { sliceBy, slices: (slices || []).slice(0, 20) }
     }
     case 'list_results': {
-      if (!(await awaitReady(sctx))) return { ready: false, note: 'Loan data is still loading; ask the user to retry shortly. Do NOT tell them nothing matches.' }
+      if (!(await awaitReady(sctx))) return { ready: false, note: 'Loan data is still loading for the assistant, so a list is not available yet — but the search on the left is live and the results are already visible on the user screen. Do NOT tell them nothing matches and do NOT ask them to come back.' }
       const base = sctx.criteria && typeof sctx.criteria === 'object' ? sctx.criteria : { loan: {}, partner: {}, portfolio: {} }
       const argCrit = criteriaArg(args)
       const crit = validateCriteria(Object.keys(argCrit).length ? mergeCriteria(base, validateCriteria(argCrit, vocab)) : base, vocab)
@@ -775,7 +781,7 @@ async function execTool(name, args, sctx, sse) {
       }
     }
     case 'bulk_add_to_basket': {
-      if (!(await awaitReady(sctx))) return { ready: false, note: 'Loan data is still loading. Do NOT tell them nothing matches.' }
+      if (!(await awaitReady(sctx))) return { ready: false, note: 'The add did NOT run: loan data is still loading for the assistant. Tell the user the search on the left is live and to say the word again in a moment to add those loans; do NOT tell them nothing matches and do NOT imply the search is broken.' }
       const crit = validateCriteria(sctx.criteria || {}, vocab)
       const matched = filterLoans(crit, loanCtx(state))
       const perLoan = Math.min(Math.max(Number(args.perLoan) || 25, 25), 500)
