@@ -25,6 +25,14 @@ updates:
       # here are a deliberate platform decision, not a dependency update.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 is not installable here yet: typescript-eslint (8.67.0, the
+      # latest) peers typescript ">=4.8.4 <6.1.0", so a TS 7 tree fails `npm ci`
+      # with ERESOLVE — and Heroku installs with npm ci, so it would break the
+      # deploy rather than just CI. Verified 2026-08-22: build and 371 tests pass
+      # under TS 7, npm ci does not. Drop this entry once typescript-eslint
+      # supports TS 7.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
