@@ -629,7 +629,10 @@ export function awaitLoansFilterable(state, timeoutMs = 20_000) {
   let timer
   // The snapshot already contains the whole dataset — expand it instead of
   // waiting on the network at all. Only genuinely cold boots fall through.
-  if (rehydrateWarmCache(state)) return Promise.resolve(true)
+  // state.log is the server's logger (stashed by startRefresh): the expand —
+  // and especially a FAILED expand — must show up in production logs, not
+  // silently degrade into 20s waits.
+  if (rehydrateWarmCache(state, state.log || (() => {}))) return Promise.resolve(true)
   return Promise.race([
     state.rssReadyPromise.then(() => loansFilterable(state)),
     new Promise((resolve) => { timer = setTimeout(() => resolve(false), timeoutMs) }),
@@ -895,6 +898,9 @@ async function maybeSendDigest(log = console.log) {
 }
 
 export function startRefresh(state, log = console.log) {
+  // Retain the logger for paths that run outside this call chain (e.g. the
+  // on-demand warm-cache expand triggered by an AI request).
+  state.log = log
   // Serve cached data ASAP (non-blocking) and fetch live data in parallel.
   void hydrateFromCache(state, log)
   prepareData(state, log)
