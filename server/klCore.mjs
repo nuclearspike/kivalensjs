@@ -548,8 +548,9 @@ function rehydrateCompressedLoan(l, words, detail) {
   if (l.terms && l.terms.disbursal_date) {
     l.kl_disbursal_in_days = (new Date(l.terms.disbursal_date).getTime() - Date.now()) / DAY
   }
-  const hoursAgo = (Date.now() - l.kl_posted_date.getTime()) / (60 * 60 * 1000)
-  l.kl_dollars_per_hour = hoursAgo > 0 ? (l.funded_amount + l.basket_amount) / hoursAgo : 0
+  // kl_dollars_per_hour is deliberately NOT set: the shared filter computes it
+  // fresh from posted_date when the field is absent (dollarsPerHour fallback),
+  // so a stored number would only freeze a value that otherwise stays live.
 
   if (!l.kls_tags) l.kls_tags = []
   // Word arrays for the use/description search live in the parallel keyword pages.
@@ -581,6 +582,14 @@ const gunzipJson = (buf) => JSON.parse(zlib.gunzipSync(buf).toString('utf8'))
  */
 export function rehydrateWarmCache(state, log = () => {}) {
   if (!state || state.warmRehydrated || loansFilterable(state)) return false
+  // Refuse only while the refresh has STAGED its live loans and is gzipping
+  // (liveStaged): an expand in that window overwrote the freshly-built dataset
+  // with the old cached one — new pages beside stale loans, persisted by the
+  // deferred snapshot. Guarding on state.building instead was wrong: building
+  // spans the whole ~150s startup refresh, which is precisely the window this
+  // feature exists to cover (cross-exam finding). A refusal does NOT latch; the
+  // staged window is seconds, and publication resolves the caller's wait.
+  if (state.liveStaged) return false
   const served = state.batches && state.batches.get(state.batch)
   if (!served || !served.loanPages || !served.loanPages.length || !state.partnersGz) return false
   state.warmRehydrated = true // one attempt per boot, success or not
@@ -601,11 +610,33 @@ export function rehydrateWarmCache(state, log = () => {}) {
       }
     }
 
-    state.partners = partners
-    state.activePartners = partners.filter((p) => p.status === 'active')
+    // Only populate partners if nothing owns them yet: a refresh in its fetch
+    // phase may ALREADY have set fresh, A+-enriched partners, and the cached
+    // blob predates the A+ merge — overwriting would strip atheistScore/
+    // normalizedReligions while atheistListProcessed stays true, so the loss
+    // would not even self-repair until the next cycle (cross-exam round 2).
+    if (!state.partners || !state.partners.length) {
+      state.partners = partners
+      state.activePartners = partners.filter((p) => p.status === 'active')
+    }
     state.allLoans = loans
     state.warmDetails = null // freed: merged into the loans above
     state.filterableLoans = true
+    // The cached partner blob predates the A+ merge (prepareData gzips partners
+    // BEFORE enriching), while the browser fetches A+ itself when its payload
+    // lacks it — so without this, a religion filter here returns 0 while the
+    // user's own client shows matches. Fire-and-forget; the live refresh does
+    // its own merge and replaces state.partners, so bail if that happened.
+    if (state.partners === partners && !state.atheistListProcessed) {
+      void loadAplusCsv(log)
+        .then((csv) => {
+          if (!csv || state.atheistListProcessed || state.partners !== partners) return
+          state.aplusMerged = applyAtheistData(state.partners, csv)
+          state.atheistListProcessed = true
+          log(`A+ merged into warm partners: ${state.aplusMerged}/${state.partners.length}`)
+        })
+        .catch(() => {})
+    }
     log(`Warm cache expanded: ${loans.length} loans filterable without waiting for the refresh`)
     return true
   } catch (e) {
@@ -623,23 +654,27 @@ export function rehydrateWarmCache(state, log = () => {}) {
  * the end would fail rather than succeed. So this rescues the tail of the
  * window and gives up cleanly otherwise.
  */
-export function awaitLoansFilterable(state, timeoutMs = 20_000) {
-  if (loansFilterable(state)) return Promise.resolve(true)
-  if (!state || !state.rssReadyPromise) return Promise.resolve(false)
-  let timer
-  // The snapshot already contains the whole dataset — expand it instead of
-  // waiting on the network at all. Only genuinely cold boots fall through.
-  // state.log is the server's logger (stashed by startRefresh): the expand —
-  // and especially a FAILED expand — must show up in production logs, not
-  // silently degrade into 20s waits.
-  if (rehydrateWarmCache(state, state.log || (() => {}))) return Promise.resolve(true)
-  return Promise.race([
-    state.rssReadyPromise.then(() => loansFilterable(state)),
+export async function awaitLoansFilterable(state, timeoutMs = 20_000) {
+  if (!state) return false
+  const log = state.log || (() => {})
+  const tryNow = () => loansFilterable(state) || rehydrateWarmCache(state, log)
+  if (tryNow()) return true
+  if (!state.rssReadyPromise || timeoutMs <= 0) return false
+  // Poll while waiting: the Redis snapshot can finish loading AFTER this wait
+  // begins, and hydrateFromCache resolves no promise — without the re-try, a
+  // request arriving seconds before the snapshot landed sat out the full bound
+  // and answered "still loading" with a usable cache already on the state. The
+  // re-tries are near-free until the cache appears (guards fail before any
+  // work, and a refusal during a live refresh does not latch).
+  let timer, poller
+  const ok = await Promise.race([
+    state.rssReadyPromise.then(() => true),
+    new Promise((resolve) => { poller = setInterval(() => { if (tryNow()) resolve(true) }, 250) }),
     new Promise((resolve) => { timer = setTimeout(() => resolve(false), timeoutMs) }),
-  ]).then((ok) => {
-    clearTimeout(timer)
-    return ok
-  })
+  ])
+  clearTimeout(timer)
+  clearInterval(poller)
+  return ok && loansFilterable(state)
 }
 
 export function createState() {
@@ -655,6 +690,8 @@ export function createState() {
     // Distinct from `ready`, which only means the /api pages are servable.
     filterableLoans: false,
     warmRehydrated: false,
+    // True only between the refresh staging its live loans and publishing them.
+    liveStaged: false,
     warmDetails: null,
     // RSS needs the full live loan + partner objects. The Redis warm start only
     // restores compressed API pages and per-loan details, so general API
@@ -767,6 +804,10 @@ export async function prepareData(state, log = console.log) {
     log(`Excluded ${processed.length - fundable.length} fully-funded loans; ${fundable.length} remain`)
     processed = null
 
+    // Stage the live dataset now (releasing the previous batch's loans — holding
+    // both through the gzip awaits cost ~29MB on the 512MB dyno), and flag the
+    // staged window so the warm-cache expand cannot overwrite it mid-gzip.
+    state.liveStaged = true
     state.allLoans = fundable.map((p) => p.loan)
     state.newestTime = Math.max(...state.allLoans.map((l) => new Date(l.kl_processed).getTime()))
 
@@ -809,6 +850,7 @@ export async function prepareData(state, log = console.log) {
     // Live data supersedes anything expanded from the warm cache.
     state.filterableLoans = true
     state.warmDetails = null
+    state.liveStaged = false
     if (!state.rssReady) {
       state.rssReady = true
       state.resolveRssReady()
@@ -830,6 +872,9 @@ export async function prepareData(state, log = console.log) {
     log(`Data preparation failed: ${e}`)
   } finally {
     state.building = false
+    // A failed refresh must not leave the staged flag latched, or the warm
+    // expand would be refused until the next successful publication.
+    state.liveStaged = false
   }
 }
 
@@ -846,10 +891,16 @@ async function hydrateFromCache(state, log) {
     if (!snap) return
     // The live fetch already published while Redis was being read — keep it.
     if (state.batch > 0) return
+    // A pathologically slow Redis read can land after the live refresh already
+    // staged its dataset — never let cached stubs overwrite staged live loans.
+    if (state.liveStaged) return
     state.batch = snap.batch
     state.klStart = snap.klStart
-    state.partnersGz = snap.partnersGz
-    state.optionsGz = snap.optionsGz
+    // ??= : the refresh writes FRESH partner/option blobs early in its cycle —
+    // a slower Redis read must not replace them with the cached copies (the
+    // cross-exam reproduced /api/partners serving a stale blob beside new loans).
+    state.partnersGz ??= snap.partnersGz
+    state.optionsGz ??= snap.optionsGz
     state.newestTime = snap.newestTime
     // Restore the per-loan details (descriptions + repayment schedules) so
     // /graphql can serve them immediately. The live fetch replaces allLoans with

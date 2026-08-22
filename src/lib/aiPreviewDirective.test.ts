@@ -49,6 +49,54 @@ const emptyCriteria = () => ({ loan: {}, partner: {}, portfolio: {} })
 const run = (args: Record<string, unknown>, applied = emptyCriteria()) =>
   execTool('analyze_loans', args, { state, lenderId: null, criteria: applied }, () => {})
 
+describe('per-request readiness budget (council finding #2b)', () => {
+  // Tool calls run serially, so per-tool 20s waits STACK: three cold tools held
+  // the SSE stream silent for a minute. The budget lives on sctx and is shared.
+  it('three serial cold tool calls spend ONE budget, not three', async () => {
+    const cold = {
+      ...state,
+      ready: false,
+      rssReady: false,
+      filterableLoans: false,
+      batches: new Map(),
+      partnersGz: null,
+      allLoans: [],
+      rssReadyPromise: new Promise(() => {}), // never resolves
+    }
+    const sctx = { state: cold, lenderId: null, criteria: emptyCriteria(), readyDeadline: Date.now() + 300 }
+    const t0 = Date.now()
+    const r1 = await execTool('analyze_loans', { criteria: {} }, sctx, () => {})
+    const r2 = await execTool('list_results', {}, sctx, () => {})
+    const r3 = await execTool('analyze_loans', { criteria: {} }, sctx, () => {})
+    const elapsed = Date.now() - t0
+
+    expect(r1.ready).toBe(false)
+    expect(r2.ready).toBe(false)
+    expect(r3.ready).toBe(false)
+    expect(elapsed).toBeLessThan(2000) // ~one 300ms budget, nowhere near 3×
+  })
+})
+
+describe('system prompt during the warm window (council finding #3)', () => {
+  it('never states Direct/MFI counts computed from partial stubs', async () => {
+    const { buildSystemPrompt } = await import('../../server/aiChat.mjs')
+    const warmPartial = {
+      ...state,
+      ready: true,
+      rssReady: false,
+      filterableLoans: false,
+      // partial warm details: no partner_id — the old prompt counted these all as Direct
+      allLoans: [{ id: 1, description: { texts: { en: 'x' } } }, { id: 2, description: { texts: { en: 'y' } } }],
+    }
+    const prompt = buildSystemPrompt(warmPartial, null, emptyCriteria())
+    expect(prompt).toContain('per-mode counts are NOT available')
+    expect(prompt).not.toMatch(/currently \d+ Direct loans/)
+
+    const loaded = buildSystemPrompt(state, null, emptyCriteria())
+    expect(loaded).toMatch(/currently \d+ Direct loans and \d+ MFI loans/)
+  })
+})
+
 describe('AI tools during the warm start', () => {
   // state.ready is true and allLoans holds PARTIAL detail objects that filter to
   // nothing. The tools must report "still loading", never "nothing matches" — in

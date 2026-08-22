@@ -278,6 +278,102 @@ describe('rehydrateWarmCache — filter straight from the cache, no waiting', ()
     expect(rehydrateWarmCache(createState(), silent)).toBe(false)
   })
 
+  it('does not mark RSS ready — RSS needs the LIVE refresh, not the expanded cache', async () => {
+    const warm = await warmStartState()
+    rehydrateWarmCache(warm, silent)
+    expect(loansFilterable(warm)).toBe(true)
+    expect(warm.rssReady).toBe(false) // divergence is intended; RSS keeps waiting
+  })
+
+  it('never clobbers partners a refresh already enriched (A+ merge survives the expand)', async () => {
+    // Cross-exam round 2: expanding during the fetch phase overwrote fresh,
+    // A+-merged partners with the pre-merge cached blob and skipped re-merging
+    // (the processed flag was already true) — losing enrichment until the next
+    // cycle. Partners already owned by the refresh must be left alone.
+    const warm = await warmStartState()
+    const enriched = [{ id: 10, status: 'active', countries: [{ iso_code: 'KE' }], atheistScore: { secularRating: 4 }, normalizedReligions: ['Secular'] }]
+    warm.partners = enriched as never
+    warm.activePartners = enriched as never
+    warm.atheistListProcessed = true
+    warm.building = true // refresh mid-fetch
+
+    expect(rehydrateWarmCache(warm, silent)).toBe(true)
+    expect(warm.partners).toBe(enriched) // same array — untouched
+    expect((warm.partners[0] as Record<string, unknown>).atheistScore).toBeDefined()
+    expect(loansFilterable(warm)).toBe(true) // loans still expanded
+  })
+
+  it('still expands while a refresh is FETCHING — that window is the whole point', async () => {
+    // First-round fix guarded on state.building, which spans the entire ~150s
+    // startup refresh — refusing the expand in exactly the window the feature
+    // exists for (cross-exam refutation). Only the staged window may refuse.
+    const warm = await warmStartState()
+    warm.building = true // refresh running, nothing staged yet
+    expect(rehydrateWarmCache(warm, silent)).toBe(true)
+    expect(loansFilterable(warm)).toBe(true)
+  })
+
+  it('refuses (without latching) only while live loans are STAGED mid-publication', async () => {
+    // Expanding between staging and publication overwrote the freshly-built
+    // dataset with the old cached one — new pages beside stale loans, persisted
+    // by the deferred snapshot (blind-review finding #1).
+    const warm = await warmStartState()
+    warm.liveStaged = true
+    expect(rehydrateWarmCache(warm, silent)).toBe(false)
+    expect(warm.warmRehydrated).toBe(false) // refusal must not burn the one attempt
+
+    warm.liveStaged = false // publication cleared it
+    expect(rehydrateWarmCache(warm, silent)).toBe(true)
+  })
+
+  it('a refresh that fails mid-cycle clears the staged flag (finally), re-enabling the expand', async () => {
+    // fakeKiva throwing after staging is hard to arrange here; assert the state
+    // contract directly: prepareData’s finally must reset liveStaged.
+    globalThis.fetch = (async () => { throw new Error('kiva down') }) as unknown as typeof fetch
+    const s = createState()
+    s.liveStaged = true // pretend a previous cycle died after staging
+    await prepareData(s, silent)
+    expect(s.liveStaged).toBe(false)
+  })
+
+  it('rescues a Redis hydration that lands AFTER the wait began (council finding #2)', async () => {
+    vi.useRealTimers()
+    // hydrateFromCache resolves no promise, so before the poll a request that
+    // arrived seconds early sat out the full bound with a usable cache present.
+    const donor = await warmStartState()
+    const late = createState()
+    const waiting = awaitLoansFilterable(late, 5000)
+    setTimeout(() => {
+      late.batch = donor.batch
+      late.partnersGz = donor.partnersGz
+      late.warmDetails = [] as never
+      late.batches.set(donor.batch, donor.batches.get(donor.batch)!)
+      late.ready = true
+    }, 120)
+
+    const t0 = Date.now()
+    await expect(waiting).resolves.toBe(true)
+    expect(Date.now() - t0).toBeLessThan(2500) // resolved by the poll, not the bound
+    vi.useFakeTimers()
+  })
+
+
+  it('leaves no frozen $/hour — the filter computes it fresh when absent', async () => {
+    const warm = await warmStartState()
+    rehydrateWarmCache(warm, silent)
+    expect((warm.allLoans[0] as Record<string, unknown>).kl_dollars_per_hour).toBeUndefined()
+  })
+
+  it('survives a corrupt cached page: returns false, latches, does not throw', async () => {
+    const warm = await warmStartState()
+    const served = warm.batches.get(warm.batch)!
+    served.loanPages = [Buffer.from('not gzip at all')] as never
+
+    expect(() => rehydrateWarmCache(warm, silent)).not.toThrow()
+    expect(rehydrateWarmCache(warm, silent)).toBe(false) // latched: no second attempt
+    expect(loansFilterable(warm)).toBe(false)
+  })
+
   it('makes awaitLoansFilterable resolve instantly instead of waiting', async () => {
     vi.useRealTimers()
     const warm = await warmStartState()
@@ -320,6 +416,15 @@ describe('awaitLoansFilterable — wait for a late warm start instead of punting
     await expect(awaitLoansFilterable(createState(), 30)).resolves.toBe(false)
     vi.useFakeTimers()
   })
+
+  it('returns immediately on a zero budget (a request that already spent its wait)', async () => {
+    vi.useRealTimers()
+    const t0 = Date.now()
+    await expect(awaitLoansFilterable(createState(), 0)).resolves.toBe(false)
+    expect(Date.now() - t0).toBeLessThan(50)
+    vi.useFakeTimers()
+  })
+
 
   it('does not throw on a state with no readiness promise', async () => {
     await expect(awaitLoansFilterable({} as never, 10)).resolves.toBe(false)
