@@ -30,6 +30,9 @@ const mkLoan = (o: Record<string, unknown>) => ({
 const state = {
   batch: 1,
   ready: true,
+  // A fully-loaded server: the live refresh has published full loan objects.
+  // `ready` alone is the warm start, where allLoans holds unfilterable partials.
+  rssReady: true,
   optionsGz: null,
   atheistListProcessed: true,
   activePartners: [{ id: 10, status: 'active', kl_regions: ['me'], kl_sp: [], countries: [{ iso_code: 'JO' }], rating: 5 }],
@@ -43,6 +46,39 @@ const state = {
 const emptyCriteria = () => ({ loan: {}, partner: {}, portfolio: {} })
 const run = (args: Record<string, unknown>, applied = emptyCriteria()) =>
   execTool('analyze_loans', args, { state, lenderId: null, criteria: applied }, () => {})
+
+describe('AI tools during the warm start', () => {
+  // state.ready is true and allLoans holds PARTIAL detail objects that filter to
+  // nothing. The tools must report "still loading", never "nothing matches" — in
+  // production this told every user there were no loans for ~3 minutes after
+  // each deploy.
+  const warm = () => ({
+    ...state,
+    ready: true,
+    rssReady: false,
+    allLoans: [{ id: 1, description: { texts: { en: 'hi' } } }],
+  })
+
+  it('analyze_loans says loading, not “no loans match”', async () => {
+    const r = await execTool('analyze_loans', { criteria: { loan: { country_code: 'KE' } } }, { state: warm(), lenderId: null, criteria: emptyCriteria() }, () => {})
+    expect(r.ready).toBe(false)
+    expect(r.note).toMatch(/still loading/i)
+    expect(r.note).toMatch(/do NOT tell them nothing matches/i)
+    expect(r.count).toBeUndefined()
+  })
+
+  it('set_criteria still applies the filter but reports no count yet', async () => {
+    const r = await execTool('set_criteria', { criteria: { loan: { country_code: 'KE' } } }, { state: warm(), lenderId: null, criteria: emptyCriteria() }, () => {})
+    expect(r.ok).toBe(true)
+    expect(r.count).toBeNull() // NOT 0 — zero would read as “nothing matches”
+    expect(r.note).toMatch(/do NOT say nothing matches/i)
+  })
+
+  it('reports a real count once the live data is published', async () => {
+    const r = await execTool('set_criteria', { criteria: { loan: { country_code: 'JO' } } }, { state, lenderId: null, criteria: emptyCriteria() }, () => {})
+    expect(r.count).toBeGreaterThan(0)
+  })
+})
 
 describe('set_criteria — broadening guard', () => {
   // A user went 271 -> 243 -> 1,245 loans while ADDING filters and was told each

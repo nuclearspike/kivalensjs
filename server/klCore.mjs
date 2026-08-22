@@ -494,6 +494,23 @@ async function loadAplusCsv(log) {
 // State + data preparation
 // ---------------------------------------------------------------------------
 
+/**
+ * True once the FULL live loan objects are published, i.e. the shared filter
+ * can actually be run over them.
+ *
+ * `state.ready` is NOT this: it only means the compressed /api pages are
+ * servable. The Redis warm start sets `ready` with `allLoans` holding PARTIAL
+ * detail objects (descriptions + repayments, no country/sector), which filter to
+ * nothing. Anything running filterLoans must gate on this instead — otherwise,
+ * for the ~3 minutes after every deploy or dyno restart, it reports "no loans
+ * match" for every query while the site itself shows thousands (the browser is
+ * warm from its own cache). RSS already had this distinction as `rssReady`;
+ * this names the concept so the AI tools stop reaching for the wrong flag.
+ */
+export function loansFilterable(state) {
+  return !!(state && state.rssReady && state.allLoans && state.allLoans.length)
+}
+
 export function createState() {
   let resolveRssReady
   const rssReadyPromise = new Promise((resolve) => {

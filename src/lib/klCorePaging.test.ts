@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { createState, prepareData } from '../../server/klCore.mjs'
+import { createState, prepareData, loansFilterable } from '../../server/klCore.mjs'
 
 /**
  * Kiva's fundraising listing is LIVE: loans fund out and new ones post while the
@@ -140,6 +140,42 @@ describe('klCore paging — a live listing that shifts mid-pull', () => {
 
     expect(state.batch).toBe(first + 1)
     expect(state.ready).toBe(true)
+  })
+})
+
+/**
+ * Reproduces the warm start: Redis restores the compressed API pages plus
+ * PARTIAL loan details (descriptions/repayments, no country or sector) and marks
+ * the server ready, while the full live objects are still being fetched. Running
+ * the shared filter over those partials matches nothing — which made the
+ * assistant tell users "no loans match" for ~3 minutes after every deploy, while
+ * the site itself showed thousands from the browser's own cache.
+ */
+describe('loansFilterable — warm start must not look like an empty result set', () => {
+  it('is false when the warm start marked the server ready with partial loans', () => {
+    const s = createState()
+    s.ready = true // /api pages are servable...
+    s.allLoans = [{ id: 1, description: { texts: { en: 'hi' } } }] as never // ...but these cannot be filtered
+    expect(s.rssReady).toBe(false)
+    expect(loansFilterable(s)).toBe(false)
+  })
+
+  it('is false before anything has loaded', () => {
+    expect(loansFilterable(createState())).toBe(false)
+  })
+
+  it('is true once a live refresh has published full loans', async () => {
+    globalThis.fetch = fakeKiva(() => [[loan(1), loan(2)]]) as unknown as typeof fetch
+    const state = createState()
+    await prepareData(state, silent)
+
+    expect(loansFilterable(state)).toBe(true)
+    expect(state.rssReady).toBe(true)
+  })
+
+  it('tolerates a missing/!bogus state rather than throwing', () => {
+    expect(loansFilterable(null as never)).toBe(false)
+    expect(loansFilterable({} as never)).toBe(false)
   })
 })
 
