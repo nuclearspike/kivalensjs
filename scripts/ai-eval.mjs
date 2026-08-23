@@ -76,19 +76,22 @@ const state = {
   atheistListProcessed: false,
   optionsGz: gzipSync(Buffer.from(JSON.stringify({ sectors, activities: [], themes: [], tags: [] }))),
 }
-const instructions = buildSystemPrompt(state, null, { loan: {}, partner: {}, portfolio: {} }, {
-  shown: state.allLoans.length,
-  total: state.allLoans.length,
-  page: 'the Search page',
-  basket: [],
-  savedSearches: [],
-})
+// A case may seed its own `lenderId` / `criteria` (e.g. portfolio-exclusion
+// behaviour depends on both); everything else shares the default prompt.
+const promptFor = (test) =>
+  buildSystemPrompt(state, test.lenderId ?? null, test.criteria ?? { loan: {}, partner: {}, portfolio: {} }, {
+    shown: state.allLoans.length,
+    total: state.allLoans.length,
+    page: 'the Search page',
+    basket: [],
+    savedSearches: [],
+  })
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 let passed = 0
 
 for (const test of cases) {
   const request = buildResponsesRequest({
-    instructions,
+    instructions: promptFor(test),
     input: [{ role: 'user', content: test.input }],
     clientId: `eval-${test.id}`,
   })

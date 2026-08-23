@@ -2,59 +2,181 @@
   {
     "id": "english-sector-from-spanish",
     "input": "Muéstrame préstamos del sector agricultura.",
-    "expectedTools": ["set_criteria"],
-    "argumentIncludes": ["Agriculture"]
+    "expectedTools": [
+      "set_criteria"
+    ],
+    "argumentIncludes": [
+      "Agriculture"
+    ]
   },
   {
     "id": "exclude-sector",
     "input": "Show me everything except retail loans.",
-    "expectedTools": ["set_criteria"],
-    "argumentIncludes": ["Retail", "none"]
+    "expectedTools": [
+      "set_criteria"
+    ],
+    "argumentIncludes": [
+      "Retail",
+      "none"
+    ]
   },
   {
     "id": "remember-goal",
     "input": "Remember that my lending goal is women-owned agriculture in Latin America.",
-    "expectedTools": ["save_application_storage"],
-    "argumentIncludes": ["women", "agriculture"]
+    "expectedTools": [
+      "save_application_storage"
+    ],
+    "argumentIncludes": [
+      "women",
+      "agriculture"
+    ]
   },
   {
     "id": "retrieve-goal",
     "input": "What lending goal did I ask you to remember?",
-    "expectedTools": ["retrieve_application_storage"]
+    "expectedTools": [
+      "retrieve_application_storage"
+    ]
   },
   {
     "id": "show-basket",
     "input": "Show me my basket.",
-    "expectedTools": ["navigate"],
-    "argumentIncludes": ["basket"]
+    "expectedTools": [
+      "navigate"
+    ],
+    "argumentIncludes": [
+      "basket"
+    ]
   },
   {
     "id": "apply-country-codes",
     "input": "Find loans in Peru and Ecuador.",
-    "expectedTools": ["set_criteria"],
-    "argumentIncludes": ["PE", "EC"]
+    "expectedTools": [
+      "set_criteria"
+    ],
+    "argumentIncludes": [
+      "PE",
+      "EC"
+    ]
   },
   {
     "id": "applies-descriptive-search",
     "input": "countries in the middle east with women who are oppressed",
-    "expectedTools": ["set_criteria"]
+    "expectedTools": [
+      "set_criteria"
+    ]
   },
   {
     "id": "files-a-bug-report",
     "input": "something is broken - my basket keeps losing the loans I add to it",
-    "expectedTools": ["report_bug"]
+    "expectedTools": [
+      "report_bug"
+    ]
   },
   {
     "id": "does-not-advertise-bug-reporting",
     "input": "Find loans in Kenya.",
-    "expectedTools": ["set_criteria"],
-    "forbiddenTools": ["report_bug"],
-    "forbiddenText": ["report a bug", "bug report"]
+    "expectedTools": [
+      "set_criteria"
+    ],
+    "forbiddenTools": [
+      "report_bug"
+    ],
+    "forbiddenText": [
+      "report a bug",
+      "bug report"
+    ]
   },
   {
     "id": "no-investment-return",
     "input": "Which Kiva loan will maximize my investment return?",
-    "forbiddenText": ["high-return", "(?<!not |n't |never )earn(?:ing|s)? interest", "(?<!not |n't |never )mak(?:e|ing) a profit"],
-    "requiredText": ["no interest|not paid interest|no profit|philanthropic"]
+    "forbiddenText": [
+      "high-return",
+      "(?<!not |n't |never )earn(?:ing|s)? interest",
+      "(?<!not |n't |never )mak(?:e|ing) a profit"
+    ],
+    "requiredText": [
+      "no interest|not paid interest|no profit|philanthropic"
+    ]
+  },
+  {
+    "id": "no-apply-step-exists",
+    "input": "How do I perform the search after setting the criteria",
+    "forbiddenTools": [
+      "set_criteria"
+    ],
+    "forbiddenText": [
+      "(?:need to|have to|simply|just) (?:apply|submit|press|click|hit)",
+      "(?:apply|submit|go) button"
+    ],
+    "expectedTools": [
+      "point_at"
+    ],
+    "argumentIncludes": [
+      "results"
+    ]
+  },
+  {
+    "id": "exclude-funded-is-automatic",
+    "input": "how often do I need to filter my loans to ensure that I do not pick a loan I have already funded",
+    "lenderId": "lendiogives",
+    "criteria": {
+      "loan": {},
+      "partner": {},
+      "portfolio": {
+        "exclude_portfolio_loans": "true"
+      }
+    },
+    "forbiddenTools": [
+      "set_criteria",
+      "prompt_lender_id"
+    ],
+    "forbiddenText": [
+      "(?<!n't |not )(?:need|have) to (?:filter|re-?apply|redo)",
+      "you should (?:filter|re-?apply)",
+      "must (?:filter|re-?apply)"
+    ],
+    "requiredText": [
+      "automatic|stays on|remember|already on|persist|once"
+    ]
+  },
+  {
+    "id": "exclude-funded-turns-it-on",
+    "input": "make sure I never see loans I already funded",
+    "lenderId": "lendiogives",
+    "criteria": {
+      "loan": {},
+      "partner": {},
+      "portfolio": {
+        "exclude_portfolio_loans": "false"
+      }
+    },
+    "expectedTools": [
+      "set_criteria"
+    ],
+    "argumentIncludes": [
+      "exclude_portfolio_loans"
+    ]
+  },
+  {
+    "id": "exclude-funded-needs-lender-id",
+    "input": "does kivalens leave out loans I have previously funded?",
+    "criteria": {
+      "loan": {},
+      "partner": {},
+      "portfolio": {
+        "exclude_portfolio_loans": "true"
+      }
+    },
+    "forbiddenText": [
+      "every time"
+    ],
+    "requiredText": [
+      "lender id|lender ID"
+    ],
+    "forbiddenTools": [
+      "prompt_lender_id",
+      "set_criteria"
+    ]
   }
 ]

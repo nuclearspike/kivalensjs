@@ -108,6 +108,44 @@ describe('per-request readiness budget (council finding #2b)', () => {
   })
 })
 
+describe('system prompt: live search + already-funded exclusion (digest 2026-08-22 / 08-19)', () => {
+  // A user asked "how do I perform the search after setting the criteria" and
+  // the model invented an apply step; another asked two days running how often
+  // to screen out loans they already funded and was told "every time" — the
+  // filter is on by default and persists. The prompt must carry both facts and
+  // the filter's live state.
+  it('states there is no apply step and that exclusion is automatic', async () => {
+    const { buildSystemPrompt } = await import('../../server/aiChat.mjs')
+    const p = buildSystemPrompt(state, 'lendiogives', { loan: {}, partner: {}, portfolio: { exclude_portfolio_loans: 'true' } })
+    expect(p).toMatch(/NO search \/ apply \/ submit/)
+    expect(p).toMatch(/never describe an apply step/)
+    expect(p).toMatch(/exclude_portfolio_loans/)
+    expect(p).toMatch(/ON by default/)
+    expect(p).toMatch(/stays on across visits/)
+    expect(p).toMatch(/Never tell them to re-filter every time/)
+    expect(p).toContain('Exclude-funded filter is ON')
+  })
+
+  it('reports the exclusion filter OFF when the applied criteria turned it off or never set it', async () => {
+    const { buildSystemPrompt } = await import('../../server/aiChat.mjs')
+    expect(buildSystemPrompt(state, 'lendiogives', { loan: {}, partner: {}, portfolio: { exclude_portfolio_loans: 'false' } })).toContain('Exclude-funded filter is OFF')
+    expect(buildSystemPrompt(state, null, emptyCriteria())).toContain('Exclude-funded filter is OFF')
+  })
+
+  it('flags the filter INERT when it is on but no lender id exists to resolve it', async () => {
+    const { buildSystemPrompt } = await import('../../server/aiChat.mjs')
+    const p = buildSystemPrompt(state, null, { loan: {}, partner: {}, portfolio: { exclude_portfolio_loans: 'true' } })
+    expect(p).toContain('ON but INERT')
+    expect(p).toContain('excludes NOTHING yet')
+  })
+
+  it('documents the exclusion key in the criteria schema the model reads', async () => {
+    const { RESPONSES_TOOL_DEFS } = await import('../../server/aiChat.mjs')
+    const setCriteria = RESPONSES_TOOL_DEFS.find((t) => t.name === 'set_criteria')
+    expect(JSON.stringify(setCriteria)).toContain('exclude_portfolio_loans')
+  })
+})
+
 describe('ready:false notes never contradict each other in one turn', () => {
   // set_criteria tells the model the filter is applied and visible and to
   // never send the user away; a sibling tool answering "ask the user to retry
