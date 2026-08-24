@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { gzipSync } from 'node:zlib'
 import dotenv from 'dotenv'
 import OpenAI from 'openai'
-import { buildResponsesRequest, buildSystemPrompt } from '../server/aiChat.mjs'
+import { buildResponsesRequest, buildSystemPrompt, execTool } from '../server/aiChat.mjs'
 
 dotenv.config({ path: '.env.local' })
 dotenv.config()
@@ -55,9 +55,15 @@ const mkEvalLoan = (o) => ({
   ...o,
 })
 
-const state = {
+// Built fresh per case: the harness executes real tools, so a shared object
+// would let one case's mutations leak into the next.
+const makeState = () => ({
   batch: 1,
   ready: true,
+  // Tools gate on this (not `ready`): without it every tool result is the
+  // "still loading" branch, which is not what these cases mean to exercise
+  // and bleeds loading language into the replies they assert on.
+  filterableLoans: true,
   // A few representative loans: with an EMPTY set the prompt tells the model no
   // loans are loaded, so it declines to act and every behavioural case is
   // vacuous. These make "find me X" requests answerable, which is what the
@@ -75,13 +81,13 @@ const state = {
   partners: [],
   atheistListProcessed: false,
   optionsGz: gzipSync(Buffer.from(JSON.stringify({ sectors, activities: [], themes: [], tags: [] }))),
-}
+})
 // A case may seed its own `lenderId` / `criteria` (e.g. portfolio-exclusion
 // behaviour depends on both); everything else shares the default prompt.
-const promptFor = (test) =>
-  buildSystemPrompt(state, test.lenderId ?? null, test.criteria ?? { loan: {}, partner: {}, portfolio: {} }, {
-    shown: state.allLoans.length,
-    total: state.allLoans.length,
+const promptFor = (test, st) =>
+  buildSystemPrompt(st, test.lenderId ?? null, test.criteria ?? { loan: {}, partner: {}, portfolio: {} }, {
+    shown: st.allLoans.length,
+    total: st.allLoans.length,
     page: 'the Search page',
     basket: [],
     savedSearches: [],
@@ -90,20 +96,56 @@ const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 let passed = 0
 
 for (const test of cases) {
-  const request = buildResponsesRequest({
-    instructions: promptFor(test),
-    input: [{ role: 'user', content: test.input }],
-    clientId: `eval-${test.id}`,
-  })
+  const state = makeState()
+  const instructions = promptFor(test, state)
+  const input = [{ role: 'user', content: test.input }]
   const response = await client.responses.create({
-    ...request,
+    ...buildResponsesRequest({ instructions, input, clientId: `eval-${test.id}` }),
     stream: false,
     max_output_tokens: 500,
   })
   const calls = (response.output || []).filter((item) => item.type === 'function_call')
   const toolNames = calls.map((call) => call.name)
   const args = calls.map((call) => call.arguments || '').join('\n')
-  const text = response.output_text || ''
+  let text = response.output_text || ''
+  let answerText = text
+
+  // A turn that calls a tool has no user-visible text yet, so every
+  // forbiddenText/requiredText assertion would silently pass on it. Run the
+  // tool results back through the model the way handleChat does, and assert
+  // against the reply the user actually reads.
+  if (calls.length) {
+    const sctx = {
+      state,
+      lenderId: test.lenderId ?? null,
+      criteria: test.criteria ?? { loan: {}, partner: {}, portfolio: {} },
+      applicationStorage: {},
+    }
+    const followUp = [...input, ...(response.output || [])]
+    for (const call of calls) {
+      let result
+      try {
+        result = await execTool(call.name, call.arguments ? JSON.parse(call.arguments) : {}, sctx, () => {})
+      } catch (e) {
+        result = { error: 'tool_failed', message: String(e?.message ?? e) }
+      }
+      let output
+      try { output = JSON.stringify(result) } catch { output = JSON.stringify({ error: 'unserializable_tool_result' }) }
+      followUp.push({ type: 'function_call_output', call_id: call.call_id, output })
+    }
+    const final = await client.responses.create({
+      ...buildResponsesRequest({ instructions, input: followUp, lastRound: true, clientId: `eval-${test.id}` }),
+      stream: false,
+      max_output_tokens: 500,
+    })
+    // Both turns are shown to the user (round-1 text streams before the tools
+    // run), so `text` — what forbiddenText scans — is everything they read: a
+    // clean final sentence must not mask a forbidden offer made alongside the
+    // tool call. requiredText keeps asserting the ANSWER only, so a phrase in
+    // the pre-tool preamble cannot satisfy it for a final reply that omits it.
+    answerText = final.output_text || ''
+    text = [text, answerText].filter(Boolean).join('\n')
+  }
   const failures = []
 
   for (const expected of test.expectedTools || []) {
@@ -119,7 +161,7 @@ for (const test of cases) {
     if (new RegExp(pattern, 'i').test(text)) failures.push(`forbidden text matched /${pattern}/i`)
   }
   for (const pattern of test.requiredText || []) {
-    if (!new RegExp(pattern, 'i').test(text)) failures.push(`required text missing /${pattern}/i`)
+    if (!new RegExp(pattern, 'i').test(answerText)) failures.push(`required text missing /${pattern}/i`)
   }
 
   if (failures.length) {

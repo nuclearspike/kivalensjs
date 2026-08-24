@@ -107,13 +107,11 @@
     ],
     "forbiddenText": [
       "(?:need to|have to|simply|just) (?:apply|submit|press|click|hit)",
-      "(?:apply|submit|go) button"
+      "(?:apply|submit|go) button",
+      "(?:would you like me to|want me to|I can|shall I) (?:apply|run|perform|submit)"
     ],
-    "expectedTools": [
-      "point_at"
-    ],
-    "argumentIncludes": [
-      "results"
+    "requiredText": [
+      "nothing|automatic|already|instantl|live|as you (?:change|adjust|select|set)"
     ]
   },
   {
@@ -177,6 +175,21 @@
     "forbiddenTools": [
       "prompt_lender_id",
       "set_criteria"
+    ]
+  },
+  {
+    "id": "nothing-to-do-to-apply-filters",
+    "input": "what do I have to do to make the filter apply?",
+    "forbiddenTools": [
+      "set_criteria"
+    ],
+    "forbiddenText": [
+      "(?:need to|have to|must) (?:apply|click|press|hit|submit)",
+      "(?:apply|submit|search|go) button",
+      "(?:would you like me to|want me to|I can|shall I) (?:apply|run|perform|submit)"
+    ],
+    "requiredText": [
+      "nothing|automatic|already|instantl|as you (?:change|adjust|select|set)"
     ]
   }
 ]

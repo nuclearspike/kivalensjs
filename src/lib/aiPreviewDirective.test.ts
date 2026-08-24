@@ -118,7 +118,14 @@ describe('system prompt: live search + already-funded exclusion (digest 2026-08-
     const { buildSystemPrompt } = await import('../../server/aiChat.mjs')
     const p = buildSystemPrompt(state, 'lendiogives', { loan: {}, partner: {}, portfolio: { exclude_portfolio_loans: 'true' } })
     expect(p).toMatch(/NO search \/ apply \/ submit/)
-    expect(p).toMatch(/never describe an apply step/)
+    // The fix is not just "no button" — it is that nothing is required, ever,
+    // because filtering is continuous. A one-shot "it already ran" framing left
+    // room for the model to offer to re-apply.
+    expect(p).toMatch(/NOTHING the user has to do/)
+    expect(p).toMatch(/CONTINUOUSLY/)
+    expect(p).toMatch(/the answer is NOTHING/)
+    expect(p).toMatch(/NEVER offer to "apply" or "run" criteria that are already set/)
+    expect(p).toMatch(/NEVER describe an apply step/)
     expect(p).toMatch(/exclude_portfolio_loans/)
     expect(p).toMatch(/ON by default/)
     expect(p).toMatch(/stays on across visits/)
