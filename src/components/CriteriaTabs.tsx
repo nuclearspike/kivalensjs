@@ -678,47 +678,40 @@ function SelectRow({
 }
 
 // ---------------------------------------------------------------------------
-// Sub-component: SliderRow (range slider with min/max display)
+// Sub-component: RangeExactControl (button + modal for typing an exact
+// min/max). Shared by SliderRow below AND by the standalone Partners page's
+// own range filters (imported from there) — single source, so the two
+// surfaces can't drift the way they did before this was extracted.
 // ---------------------------------------------------------------------------
 
-function SliderRow({
-  config,
+export function RangeExactControl({
+  label,
+  helpText,
+  min: oMin,
+  max: oMax,
+  step = 1,
   minVal,
   maxVal,
   onChange,
 }: {
-  config: SliderConfig
+  label: string
+  helpText?: string
+  min: number
+  max: number
+  step?: number
   minVal: unknown
   maxVal: unknown
   onChange: (minV: number | null, maxV: number | null) => void
 }) {
   const { t } = useI18n()
-  const { min: oMin, max: oMax, step = 1, label, helpText } = config
   const localizedLabel = t(label)
   const localizedHelp = helpText ? t(helpText) : undefined
 
   const cMin = minVal != null && !isNaN(Number(minVal)) ? Number(minVal) : null
   const cMax = maxVal != null && !isNaN(Number(maxVal)) ? Number(maxVal) : null
 
-  const aMin = cMin ?? oMin
-  const aMax = cMax ?? oMax
-
-  const dMin = cMin === null || cMin === oMin ? t('Min') : String(cMin)
-  const dMax = cMax === null || cMax === oMax ? t('Max') : String(cMax)
-
-  const handleChange = useCallback(
-    (vals: number | number[]) => {
-      if (Array.isArray(vals) && vals.length === 2) {
-        const newMin = vals[0] === oMin ? null : vals[0]
-        const newMax = vals[1] === oMax ? null : vals[1]
-        onChange(newMin, newMax)
-      }
-    },
-    [oMin, oMax, onChange],
-  )
-
-  // Exact-value modal: type precise min/max, or check "not set" to drop that
-  // bound entirely (no constraint). Lets users go beyond the slider's range/step.
+  // Type precise min/max, or check "not set" to drop that bound entirely (no
+  // constraint). Lets users go beyond the slider's range/step.
   const [showModal, setShowModal] = useState(false)
   const [minUnset, setMinUnset] = useState(cMin === null)
   const [maxUnset, setMaxUnset] = useState(cMax === null)
@@ -741,50 +734,18 @@ function SliderRow({
     setShowModal(false)
   }
 
-  const labelEl = localizedHelp ? (
-    <OverlayTrigger
-      trigger={['hover', 'focus']}
-      placement="top"
-      overlay={<Popover id={`pop-${label}`}><Popover.Body>{localizedHelp}</Popover.Body></Popover>}
-    >
-      <Form.Label style={{ borderBottom: '#333 1px dotted', cursor: 'help' }}>{localizedLabel}</Form.Label>
-    </OverlayTrigger>
-  ) : (
-    <Form.Label>{localizedLabel}</Form.Label>
-  )
-
   return (
-    <Row className="mb-3">
-      <Col md={3}>
-        {labelEl}
-        <div style={{ fontSize: 12, color: '#666' }}>
-          {dMin} &ndash; {dMax}
-        </div>
-      </Col>
-      <Col md={9} style={{ paddingTop: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ flex: 1 }}>
-            <Slider
-              range
-              min={oMin}
-              max={oMax}
-              step={step}
-              value={[aMin, aMax]}
-              onChange={handleChange}
-            />
-          </div>
-          <Button
-            variant="outline-secondary"
-            size="sm"
-            onClick={openModal}
-            title={t('Set exact {label} minimum and maximum', { label: localizedLabel })}
-            aria-label={t('Set exact {label} minimum and maximum', { label: localizedLabel })}
-            style={{ flexShrink: 0, lineHeight: 1, padding: '2px 9px' }}
-          >
-            &hellip;
-          </Button>
-        </div>
-      </Col>
+    <>
+      <Button
+        variant="outline-secondary"
+        size="sm"
+        onClick={openModal}
+        title={t('Set exact {label} minimum and maximum', { label: localizedLabel })}
+        aria-label={t('Set exact {label} minimum and maximum', { label: localizedLabel })}
+        style={{ flexShrink: 0, lineHeight: 1, padding: '2px 9px' }}
+      >
+        &hellip;
+      </Button>
 
       <Modal show={showModal} onHide={() => setShowModal(false)} size="sm" centered>
         <Modal.Header closeButton>
@@ -827,6 +788,94 @@ function SliderRow({
           </Button>
         </Modal.Footer>
       </Modal>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Sub-component: SliderRow (range slider with min/max display)
+// ---------------------------------------------------------------------------
+
+export function SliderRow({
+  config,
+  minVal,
+  maxVal,
+  onChange,
+}: {
+  config: SliderConfig
+  minVal: unknown
+  maxVal: unknown
+  onChange: (minV: number | null, maxV: number | null) => void
+}) {
+  const { t } = useI18n()
+  const { min: oMin, max: oMax, step = 1, label, helpText } = config
+  const localizedLabel = t(label)
+  const localizedHelp = helpText ? t(helpText) : undefined
+
+  const cMin = minVal != null && !isNaN(Number(minVal)) ? Number(minVal) : null
+  const cMax = maxVal != null && !isNaN(Number(maxVal)) ? Number(maxVal) : null
+
+  const aMin = cMin ?? oMin
+  const aMax = cMax ?? oMax
+
+  const dMin = cMin === null || cMin === oMin ? t('Min') : String(cMin)
+  const dMax = cMax === null || cMax === oMax ? t('Max') : String(cMax)
+
+  const handleChange = useCallback(
+    (vals: number | number[]) => {
+      if (Array.isArray(vals) && vals.length === 2) {
+        const newMin = vals[0] === oMin ? null : vals[0]
+        const newMax = vals[1] === oMax ? null : vals[1]
+        onChange(newMin, newMax)
+      }
+    },
+    [oMin, oMax, onChange],
+  )
+
+  const labelEl = localizedHelp ? (
+    <OverlayTrigger
+      trigger={['hover', 'focus']}
+      placement="top"
+      overlay={<Popover id={`pop-${label}`}><Popover.Body>{localizedHelp}</Popover.Body></Popover>}
+    >
+      <Form.Label style={{ borderBottom: '#333 1px dotted', cursor: 'help' }}>{localizedLabel}</Form.Label>
+    </OverlayTrigger>
+  ) : (
+    <Form.Label>{localizedLabel}</Form.Label>
+  )
+
+  return (
+    <Row className="mb-3">
+      <Col md={3}>
+        {labelEl}
+        <div style={{ fontSize: 12, color: '#666' }}>
+          {dMin} &ndash; {dMax}
+        </div>
+      </Col>
+      <Col md={9} style={{ paddingTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <Slider
+              range
+              min={oMin}
+              max={oMax}
+              step={step}
+              value={[aMin, aMax]}
+              onChange={handleChange}
+            />
+          </div>
+          <RangeExactControl
+            label={label}
+            helpText={helpText}
+            min={oMin}
+            max={oMax}
+            step={step}
+            minVal={minVal}
+            maxVal={maxVal}
+            onChange={onChange}
+          />
+        </div>
+      </Col>
     </Row>
   )
 }

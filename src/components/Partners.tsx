@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { Container, Button, Badge, ListGroup, Form, Row, Col, Dropdown, OverlayTrigger, Popover } from '../ui'
 import Select from './KLSelect'
-import { PARTNER_SLIDER_HELP, RELIGION_HELP } from './CriteriaTabs'
+import { PARTNER_SLIDER_HELP, RELIGION_HELP, RangeExactControl } from './CriteriaTabs'
 import Slider from 'rc-slider'
 import numeral from 'numeral'
 import type { Partner } from '../types'
@@ -217,7 +217,7 @@ function FilterRow({
   )
 }
 
-function RangeRow({
+export function RangeRow({
   label,
   min,
   max,
@@ -252,17 +252,29 @@ function RangeRow({
         </div>
       }
     >
-      <div style={{ paddingTop: 8 }}>
-        <Slider
-          range
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8 }}>
+        <div style={{ flex: 1 }}>
+          <Slider
+            range
+            min={min}
+            max={max}
+            step={step ?? 1}
+            value={[actualMin, actualMax]}
+            onChange={(value) => {
+              if (!Array.isArray(value)) return
+              onChange(value[0] === min ? null : value[0], value[1] === max ? null : value[1])
+            }}
+          />
+        </div>
+        <RangeExactControl
+          label={label}
+          helpText={hint}
           min={min}
           max={max}
-          step={step ?? 1}
-          value={[actualMin, actualMax]}
-          onChange={(value) => {
-            if (!Array.isArray(value)) return
-            onChange(value[0] === min ? null : value[0], value[1] === max ? null : value[1])
-          }}
+          step={step}
+          minVal={minVal}
+          maxVal={maxVal}
+          onChange={onChange}
         />
       </div>
     </FilterRow>

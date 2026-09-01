@@ -26,7 +26,11 @@ function sourceFiles(root: string): string[] {
     if (name === 'node_modules' || name === 'dist') return []
     return statSync(path).isDirectory()
       ? sourceFiles(path)
-      : /\.(ts|tsx)$/.test(name) && !name.endsWith('.test.ts') ? [path] : []
+      // Excludes both suffixes vitest.config.ts's own test glob recognizes
+      // (`*.{test,spec}.{ts,tsx}`) — a narrower check here excluded `.test.ts`
+      // but not `.test.tsx`, so component tests using literal prop values
+      // (e.g. label="...") were scanned as if they were product copy.
+      : /\.(ts|tsx)$/.test(name) && !/\.(test|spec)\.tsx?$/.test(name) ? [path] : []
   })
 }
 

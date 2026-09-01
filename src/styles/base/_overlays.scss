@@ -28,6 +28,21 @@
   }
 }
 
+// Vertical centering for modals whose `centered` prop adds this class. The
+// min-height mirrors .modal-dialog's own vertical margins above so a short
+// dialog doesn't touch the viewport edges. Centering lives here, not on
+// .modal itself, because .modal is shared by every dialog and most keep the
+// default top-anchored position.
+.modal-dialog-centered {
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 20px);
+
+  @media (min-width: $breakpoint-md) {
+    min-height: calc(100% - 60px);
+  }
+}
+
 .modal-sm {
   @media (min-width: $breakpoint-md) {
     width: 300px;
