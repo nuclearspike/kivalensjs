@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { useLatestRef } from '../lib/useLatestRef'
 import { Container, Button, Badge, ListGroup, Form, Row, Col, Dropdown, OverlayTrigger, Popover } from '../ui'
 import Select from './KLSelect'
 import { PARTNER_SLIDER_HELP, RELIGION_HELP, RangeExactControl } from './CriteriaTabs'
@@ -351,7 +352,27 @@ export function Component() {
 
   const [nameSearch, setNameSearch] = useState('')
   const { id: routePartnerId } = useParams<{ id: string }>()
-  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
+  const [resolvedPartner, setResolvedPartner] = useState<Partner | null>(null)
+  // Cleared the moment routePartnerId changes to ANYTHING different — to no
+  // id, or to a different one — so a still-loading /partners/2 can't show
+  // /partners/1's leftover resolved partner while the lookup below catches
+  // up. No route id means nothing to show at all, which is fully known from
+  // routePartnerId alone; both are applied here (render time), not inside
+  // the effect below, which exists only for the async partner lookup itself.
+  const [prevRoutePartnerId, setPrevRoutePartnerId] = useState(routePartnerId)
+  if (routePartnerId !== prevRoutePartnerId) {
+    setPrevRoutePartnerId(routePartnerId)
+    setResolvedPartner(null)
+  }
+  const selectedPartner = routePartnerId ? resolvedPartner : null
+  // The one route id a settling poll tick is allowed to write a result for
+  // — see useLatestRef for why a layout effect, not the poll's own effect
+  // cleanup, has to be what keeps this current. Finding a partner by id from
+  // a static, already-loaded list can't itself go stale (unlike a fresh
+  // network fetch), but a tick from an OLD id — even one revisited later,
+  // e.g. id1 -> id2 -> id1 — must still not resolve after the reset above
+  // has already moved on.
+  const activeRoutePartnerIdRef = useLatestRef(routePartnerId)
   const [partnerTick, setPartnerTick] = useState(0)
   const [filters, setFilters] = useState<PartnerFilters>({ status: 'active', status_all_any_none: 'any' })
   const localizedOptions = useMemo(() => {
@@ -380,18 +401,18 @@ export function Component() {
   }, [downloading])
 
   // /partners/:id pre-selects the partner; plain /partners shows the
-  // placeholder. The URL is the source of truth for the detail pane.
-  // Polls until the partner list has downloaded so cold deep links resolve.
+  // placeholder (selectedPartner above already handles that case). The URL
+  // is the source of truth for the detail pane. Polls until the partner list
+  // has downloaded so cold deep links resolve.
   useEffect(() => {
-    if (!routePartnerId) {
-      setSelectedPartner(null)
-      return
-    }
+    if (!routePartnerId) return
+    const myRoutePartnerId = routePartnerId
     const wanted = parseInt(routePartnerId, 10)
     const resolve = () => {
+      if (activeRoutePartnerIdRef.current !== myRoutePartnerId) return true // superseded; stop polling
       const kl = getKivaLoans()
       const partner = (kl?.partnersFromKiva ?? []).find((p: Partner) => p.id === wanted)
-      if (partner) setSelectedPartner(partner)
+      if (partner) setResolvedPartner(partner)
       return !!partner
     }
     if (resolve()) return
@@ -399,7 +420,7 @@ export function Component() {
       if (resolve()) clearInterval(timer)
     }, 500)
     return () => clearInterval(timer)
-  }, [routePartnerId])
+  }, [routePartnerId, activeRoutePartnerIdRef])
 
   const atheistOptionsReady = Boolean(getKivaLoans()?.atheistListProcessed)
 
@@ -427,6 +448,10 @@ export function Component() {
       filtered: [...results].sort((a, b) => a.name.localeCompare(b.name)),
       totalCount: total,
     }
+    // downloading/partnerTick aren't read above, but getKivaLoans() reads a
+    // mutable object those two are known to correlate with changing — they
+    // force a recompute exhaustive-deps can't infer from the call alone.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, nameSearch, downloading, partnerTick])
 
   const updateFilter = useCallback((key: string, value: unknown) => {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useLatestRef } from '../lib/useLatestRef'
 import { Row, Col, Tab, Tabs, Form, Dropdown, Card, Alert, OverlayTrigger, Popover, Modal, Button } from '../ui'
 import Select from './KLSelect'
 import type { MultiValue, SingleValue } from 'react-select'
@@ -21,8 +22,11 @@ import { PortfolioLoansLoadingNotice } from './FilteringProgress'
 // ---------------------------------------------------------------------------
 
 function useDebouncedEffect(fn: () => void, deps: unknown[], delay: number) {
-  const fnRef = useRef(fn)
-  fnRef.current = fn
+  // fn is deliberately excluded from the deps array below (callers pass a
+  // fresh inline function every render, which would restart the debounce
+  // timer on every keystroke) — useLatestRef keeps the timeout calling the
+  // CURRENT callback without that.
+  const fnRef = useLatestRef(fn)
   useEffect(() => {
     const id = setTimeout(() => fnRef.current(), delay)
     return () => clearTimeout(id)
@@ -970,22 +974,65 @@ function BalancingRow({
   }
 
   const [slices, setSlices] = useState<BalancerResult['slices']>([])
-  const [loading, setLoading] = useState(false)
+  // Seeded from v.enabled: mount already-enabled means the effect below fires
+  // a fetch immediately, so the loading indicator must be true from this very
+  // first render, not lag a render behind it.
+  const [loading, setLoading] = useState(() => v.enabled)
   const [lastUpdated, setLastUpdated] = useState<string | undefined>()
+
+  // Tracks every value the effect below re-runs for — not just the config
+  // values a refetch cares about — so `generation` bumps for EVERY trigger
+  // that starts a new fetch, including an identity-only change to
+  // fetchBalancerData/dependencyKey/setFilterDependencyLoading (e.g. a
+  // StrictMode replay), not only a genuine config change. That makes
+  // `generation` an exact proxy for "the effect is about to re-run": there is
+  // no path that reruns the effect without also bumping it.
+  const effectDeps = [v.enabled, v.hideshow, v.ltgt, v.percent, v.allactive, meta.sliceBy, fetchBalancerData, dependencyKey, setFilterDependencyLoading] as const
+  const [prevEffectDeps, setPrevEffectDeps] = useState<readonly unknown[]>(effectDeps)
+  // Object.is, not !==, to mirror what React itself uses to decide whether a
+  // dependency changed (React docs: Object.is comparison) — !== would treat
+  // NaN as changed when it hadn't, and miss 0 vs -0 when React wouldn't.
+  const effectDepsChanged = effectDeps.length !== prevEffectDeps.length || effectDeps.some((d, i) => !Object.is(d, prevEffectDeps[i]))
+
+  // Flips the loading indicator on (or resets to empty, if the filter turned
+  // off) the moment a refetch-worthy trigger is seen, rather than one render
+  // behind it via the effect below — the "adjust during render" pattern, same
+  // as aiCriteriaTab above (https://react.dev/learn/you-might-not-need-an-effect).
+  // The effect still owns the actual fetch and its result.
+  const [generation, setGeneration] = useState(0)
+  if (effectDepsChanged) {
+    setPrevEffectDeps(effectDeps)
+    setGeneration((g) => g + 1)
+    if (v.enabled) {
+      setLoading(true)
+    } else {
+      setSlices([])
+      setLoading(false)
+    }
+  }
+
+  // The one generation a settling fetch is allowed to write results for —
+  // see useLatestRef for why a layout effect, not this effect's own (passive,
+  // deferred) cleanup, has to be what keeps this current. Because generation
+  // bumps for every render-triggered rerun (see effectDeps above), it closes
+  // that gap on its own — but StrictMode's dev-only setup→cleanup→setup
+  // replay runs both instances synchronously with NO render in between, so
+  // they'd share a generation regardless. The per-instance `cancelled` flag
+  // below (set from THIS instance's own cleanup, not generation) is what
+  // actually distinguishes them there.
+  const activeGenerationRef = useLatestRef(generation)
 
   useEffect(() => {
     if (!v.enabled) {
-      setSlices([])
-      setLoading(false)
       setFilterDependencyLoading(dependencyKey, false)
       return
     }
     let cancelled = false
-    setLoading(true)
+    const myGeneration = generation
     setFilterDependencyLoading(dependencyKey, true)
     fetchBalancerData(meta.sliceBy, v)
       .then((result) => {
-        if (cancelled) return
+        if (cancelled || activeGenerationRef.current !== myGeneration) return
         const pct = v.percent ?? 0
         const filtered = v.ltgt === 'gt'
           ? result.slices.filter((s) => s.percent > pct)
@@ -1003,7 +1050,10 @@ function BalancingRow({
         setFilterDependencyLoading(dependencyKey, false)
       })
       .catch(() => {
-        if (!cancelled) {
+        // All three gated together: a stale failure clearing the external
+        // store's loading flag could mask a NEWER request that's already
+        // back to true.
+        if (!cancelled && activeGenerationRef.current === myGeneration) {
           setLoading(false)
           setFilterDependencyLoading(dependencyKey, false)
         }
@@ -1012,9 +1062,12 @@ function BalancingRow({
       cancelled = true
       setFilterDependencyLoading(dependencyKey, false)
     }
-    // We only want to refetch when these specific config values change
+    // Same array as effectDeps above, spread rather than re-listed — one
+    // source, so the two can't drift out of sync with each other. generation
+    // itself always changes in lockstep with these and is deliberately
+    // excluded, like fn in useDebouncedEffect above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [v.enabled, v.hideshow, v.ltgt, v.percent, v.allactive, meta.sliceBy, fetchBalancerData, dependencyKey, setFilterDependencyLoading])
+  }, [...effectDeps])
 
   return (
     <Row className="mb-3">
@@ -1569,20 +1622,63 @@ export function CriteriaTabs() {
     portfolio: { ...lastKnown.portfolio },
   }))
 
-  const [activeTab, setActiveTab] = useState<string>('borrower')
+  // The AI assistant can switch which criteria tab is shown. Read up front so
+  // the initial tab reflects an already-set command immediately (e.g.
+  // navigating back to Search after the AI issued one earlier) instead of
+  // only reacting to a LATER change — the transition check further down only
+  // catches changes after mount, so the tab's own initial value has to be
+  // seeded from it directly.
+  const aiCriteriaTab = useUtilsStore((s) => s.aiCriteriaTab)
+  const [activeTab, setActiveTab] = useState<string>(() => aiCriteriaTab?.tab ?? 'borrower')
   const [helperTarget, setHelperTarget] = useState<HelperChartTarget | null>(null)
-  const [helperChart, setHelperChart] = useState<HelperChart | null>(null)
   const removeGraphTimer = useRef(0)
   // react-select refocuses its input after closing the menu on an outside
   // click; suppress that follow-up onFocus so it can't re-arm the graph.
   const suppressInspectUntil = useRef(0)
   const hideGraphs = !!lsj.get<{ hide_criteria_graphs?: boolean }>('Options').hide_criteria_graphs
 
-  // The AI assistant can switch which criteria tab is shown.
-  const aiCriteriaTab = useUtilsStore((s) => s.aiCriteriaTab)
-  useEffect(() => {
+  // The focused field's value-distribution chart. Computed here rather than
+  // mirrored through effect+state — every input (loaded criteria, the
+  // already-filtered loans, hideGraphs) is available at render time, and
+  // kl.filter() below runs synchronously over already-loaded data, not a
+  // fetch.
+  const helperChart = useMemo<HelperChart | null>(() => {
+    if (!helperTarget || hideGraphs) return null
+
+    const kl = getKivaLoans()
+    if (!kl?.isReady()) return null
+
+    const nextCriteria: Criteria = {
+      loan: { ...criteria.loan },
+      partner: { ...criteria.partner },
+      portfolio: { ...criteria.portfolio },
+    }
+    const groupCriteria = nextCriteria[helperTarget.group] as Record<string, unknown>
+    const aanKey = `${helperTarget.key}_all_any_none`
+    const ignoreCurrentValue =
+      groupCriteria[aanKey] === 'all' || (!!helperTarget.canAll && !groupCriteria[aanKey])
+
+    let loans = filteredLoans
+    if (!ignoreCurrentValue) {
+      delete groupCriteria[helperTarget.key]
+      delete groupCriteria[aanKey]
+      loans = kl.filter(nextCriteria, false)
+    }
+
+    return buildHelperChart(loans, helperTarget.key, sector, t)
+  }, [criteria, filteredLoans, helperTarget, hideGraphs, sector, t])
+
+  // Applied during render rather than in an effect, so a LATER AI-issued
+  // switch lands in the same commit as the store update instead of one
+  // render behind it — see
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes.
+  // (The initial value is handled by activeTab's own lazy initializer above;
+  // this only needs to catch CHANGES after mount.)
+  const [prevAiCriteriaTab, setPrevAiCriteriaTab] = useState(aiCriteriaTab)
+  if (aiCriteriaTab !== prevAiCriteriaTab) {
+    setPrevAiCriteriaTab(aiCriteriaTab)
     if (aiCriteriaTab?.tab) setActiveTab(aiCriteriaTab.tab)
-  }, [aiCriteriaTab])
+  }
 
   // The exact criteria object the debounce below last pushed to the store. Lets
   // the sync-from-store effect distinguish our own echo from a genuine external
@@ -1650,7 +1746,6 @@ export function CriteriaTabs() {
     window.clearTimeout(removeGraphTimer.current)
     removeGraphTimer.current = window.setTimeout(() => {
       setHelperTarget(null)
-      setHelperChart(null)
     }, 200)
   }, [])
 
@@ -1668,43 +1763,10 @@ export function CriteriaTabs() {
       suppressInspectUntil.current = Date.now() + 400
       window.clearTimeout(removeGraphTimer.current)
       setHelperTarget(null)
-      setHelperChart(null)
     }
     document.addEventListener('mousedown', onDocMouseDown)
     return () => document.removeEventListener('mousedown', onDocMouseDown)
   }, [helperChart, handleInspectEnd])
-
-  useEffect(() => {
-    if (!helperTarget || hideGraphs) {
-      setHelperChart(null)
-      return
-    }
-
-    const kl = getKivaLoans()
-    if (!kl?.isReady()) {
-      setHelperChart(null)
-      return
-    }
-
-    const nextCriteria: Criteria = {
-      loan: { ...criteria.loan },
-      partner: { ...criteria.partner },
-      portfolio: { ...criteria.portfolio },
-    }
-    const groupCriteria = nextCriteria[helperTarget.group] as Record<string, unknown>
-    const aanKey = `${helperTarget.key}_all_any_none`
-    const ignoreCurrentValue =
-      groupCriteria[aanKey] === 'all' || (!!helperTarget.canAll && !groupCriteria[aanKey])
-
-    let loans = filteredLoans
-    if (!ignoreCurrentValue) {
-      delete groupCriteria[helperTarget.key]
-      delete groupCriteria[aanKey]
-      loans = kl.filter(nextCriteria, false)
-    }
-
-    setHelperChart(buildHelperChart(loans, helperTarget.key, sector, t))
-  }, [criteria, filteredLoans, helperTarget, hideGraphs, sector, t])
 
   // The focused field's distribution, fed INTO its own dropdown as in-list bars.
   const distributionMap = useMemo<Record<string, number> | undefined>(() => {
@@ -1721,7 +1783,6 @@ export function CriteriaTabs() {
         onSelect={(k) => {
           setActiveTab(k ?? 'borrower')
           setHelperTarget(null)
-          setHelperChart(null)
         }}
         className="mb-2"
       >
