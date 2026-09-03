@@ -64,180 +64,228 @@ interface HelperChartTarget {
 // ---------------------------------------------------------------------------
 
 const COUNTRY_OPTIONS: SelectOption[] = [
-  { value: 'AF', label: 'Afghanistan' }, { value: 'AL', label: 'Albania' }, { value: 'AM', label: 'Armenia' },
-  { value: 'AZ', label: 'Azerbaijan' }, { value: 'BJ', label: 'Benin' }, { value: 'BO', label: 'Bolivia' },
-  { value: 'BA', label: 'Bosnia and Herzegovina' }, { value: 'BR', label: 'Brazil' },
-  { value: 'BF', label: 'Burkina Faso' }, { value: 'BI', label: 'Burundi' }, { value: 'KH', label: 'Cambodia' },
-  { value: 'CM', label: 'Cameroon' }, { value: 'TD', label: 'Chad' }, { value: 'CL', label: 'Chile' },
-  { value: 'CN', label: 'China' }, { value: 'CO', label: 'Colombia' }, { value: 'CG', label: 'Congo' },
-  { value: 'CD', label: 'Congo (Dem. Rep.)' }, { value: 'CR', label: 'Costa Rica' },
-  { value: 'CI', label: "Cote D'Ivoire" }, { value: 'DO', label: 'Dominican Republic' },
-  { value: 'EC', label: 'Ecuador' }, { value: 'EG', label: 'Egypt' }, { value: 'SV', label: 'El Salvador' },
-  { value: 'GE', label: 'Georgia' }, { value: 'GH', label: 'Ghana' }, { value: 'GT', label: 'Guatemala' },
-  { value: 'GN', label: 'Guinea' }, { value: 'HT', label: 'Haiti' }, { value: 'HN', label: 'Honduras' },
-  { value: 'IN', label: 'India' }, { value: 'ID', label: 'Indonesia' }, { value: 'IQ', label: 'Iraq' },
-  { value: 'IL', label: 'Israel' }, { value: 'JO', label: 'Jordan' }, { value: 'KE', label: 'Kenya' },
-  { value: 'XK', label: 'Kosovo' }, { value: 'KG', label: 'Kyrgyzstan' }, { value: 'LA', label: 'Laos' },
-  { value: 'LB', label: 'Lebanon' }, { value: 'LR', label: 'Liberia' }, { value: 'MG', label: 'Madagascar' },
-  { value: 'MW', label: 'Malawi' }, { value: 'ML', label: 'Mali' }, { value: 'MX', label: 'Mexico' },
-  { value: 'MD', label: 'Moldova' }, { value: 'MN', label: 'Mongolia' }, { value: 'MZ', label: 'Mozambique' },
-  { value: 'MM', label: 'Myanmar (Burma)' }, { value: 'NA', label: 'Namibia' }, { value: 'NP', label: 'Nepal' },
-  { value: 'NI', label: 'Nicaragua' }, { value: 'NE', label: 'Niger' }, { value: 'NG', label: 'Nigeria' },
-  { value: 'PK', label: 'Pakistan' }, { value: 'PS', label: 'Palestine' }, { value: 'PA', label: 'Panama' },
-  { value: 'PG', label: 'Papua New Guinea' }, { value: 'PY', label: 'Paraguay' }, { value: 'PE', label: 'Peru' },
-  { value: 'PH', label: 'Philippines' }, { value: 'PR', label: 'Puerto Rico' }, { value: 'RW', label: 'Rwanda' },
-  { value: 'WS', label: 'Samoa' }, { value: 'SN', label: 'Senegal' }, { value: 'SL', label: 'Sierra Leone' },
-  { value: 'SB', label: 'Solomon Islands' }, { value: 'SO', label: 'Somalia' },
-  { value: 'ZA', label: 'South Africa' }, { value: 'SS', label: 'South Sudan' },
-  { value: 'LK', label: 'Sri Lanka' }, { value: 'SR', label: 'Suriname' }, { value: 'TJ', label: 'Tajikistan' },
-  { value: 'TZ', label: 'Tanzania' }, { value: 'TH', label: 'Thailand' },
-  { value: 'TL', label: 'Timor-Leste' }, { value: 'TG', label: 'Togo' }, { value: 'TO', label: 'Tonga' },
-  { value: 'TR', label: 'Turkey' }, { value: 'UG', label: 'Uganda' }, { value: 'UA', label: 'Ukraine' },
-  { value: 'US', label: 'United States' }, { value: 'UZ', label: 'Uzbekistan' }, { value: 'VN', label: 'Vietnam' },
-  { value: 'VU', label: 'Vanuatu' }, { value: 'YE', label: 'Yemen' }, { value: 'ZM', label: 'Zambia' },
-  { value: 'ZW', label: 'Zimbabwe' },
+  { value: 'AF', label: 'afghanistan' }, { value: 'AL', label: 'albania' }, { value: 'AM', label: 'armenia' },
+  { value: 'AZ', label: 'azerbaijan' }, { value: 'BJ', label: 'benin' }, { value: 'BO', label: 'bolivia' },
+  { value: 'BA', label: 'bosnia_herzegovina' }, { value: 'BR', label: 'brazil' },
+  { value: 'BF', label: 'burkina_faso' }, { value: 'BI', label: 'burundi' }, { value: 'KH', label: 'cambodia' },
+  { value: 'CM', label: 'cameroon' }, { value: 'TD', label: 'chad' }, { value: 'CL', label: 'chile' },
+  { value: 'CN', label: 'china' }, { value: 'CO', label: 'colombia' }, { value: 'CG', label: 'congo' },
+  { value: 'CD', label: 'congo_dem_rep' }, { value: 'CR', label: 'costa_rica' },
+  { value: 'CI', label: 'cote_divoire' }, { value: 'DO', label: 'dominican_republic' },
+  { value: 'EC', label: 'ecuador' }, { value: 'EG', label: 'egypt' }, { value: 'SV', label: 'el_salvador' },
+  { value: 'GE', label: 'georgia' }, { value: 'GH', label: 'ghana' }, { value: 'GT', label: 'guatemala' },
+  { value: 'GN', label: 'guinea' }, { value: 'HT', label: 'haiti' }, { value: 'HN', label: 'honduras' },
+  { value: 'IN', label: 'india' }, { value: 'ID', label: 'indonesia' }, { value: 'IQ', label: 'iraq' },
+  { value: 'IL', label: 'israel' }, { value: 'JO', label: 'jordan' }, { value: 'KE', label: 'kenya' },
+  { value: 'XK', label: 'kosovo' }, { value: 'KG', label: 'kyrgyzstan' }, { value: 'LA', label: 'laos' },
+  { value: 'LB', label: 'lebanon' }, { value: 'LR', label: 'liberia' }, { value: 'MG', label: 'madagascar' },
+  { value: 'MW', label: 'malawi' }, { value: 'ML', label: 'mali' }, { value: 'MX', label: 'mexico' },
+  { value: 'MD', label: 'moldova' }, { value: 'MN', label: 'mongolia' }, { value: 'MZ', label: 'mozambique' },
+  { value: 'MM', label: 'myanmar_burma' }, { value: 'NA', label: 'namibia' }, { value: 'NP', label: 'nepal' },
+  { value: 'NI', label: 'nicaragua' }, { value: 'NE', label: 'niger' }, { value: 'NG', label: 'nigeria' },
+  { value: 'PK', label: 'pakistan' }, { value: 'PS', label: 'palestine' }, { value: 'PA', label: 'panama' },
+  { value: 'PG', label: 'papua_new_guinea' }, { value: 'PY', label: 'paraguay' }, { value: 'PE', label: 'peru' },
+  { value: 'PH', label: 'philippines' }, { value: 'PR', label: 'puerto_rico' }, { value: 'RW', label: 'rwanda' },
+  { value: 'WS', label: 'samoa' }, { value: 'SN', label: 'senegal' }, { value: 'SL', label: 'sierra_leone' },
+  { value: 'SB', label: 'solomon_islands' }, { value: 'SO', label: 'somalia' },
+  { value: 'ZA', label: 'south_africa' }, { value: 'SS', label: 'south_sudan' },
+  { value: 'LK', label: 'sri_lanka' }, { value: 'SR', label: 'suriname' }, { value: 'TJ', label: 'tajikistan' },
+  { value: 'TZ', label: 'tanzania' }, { value: 'TH', label: 'thailand' },
+  { value: 'TL', label: 'timor_leste' }, { value: 'TG', label: 'togo' }, { value: 'TO', label: 'tonga' },
+  { value: 'TR', label: 'turkey' }, { value: 'UG', label: 'uganda' }, { value: 'UA', label: 'ukraine' },
+  { value: 'US', label: 'united_states' }, { value: 'UZ', label: 'uzbekistan' }, { value: 'VN', label: 'vietnam' },
+  { value: 'VU', label: 'vanuatu' }, { value: 'YE', label: 'yemen' }, { value: 'ZM', label: 'zambia' },
+  { value: 'ZW', label: 'zimbabwe' },
 ]
 
 const SECTOR_OPTIONS: SelectOption[] = [
-  'Agriculture', 'Arts', 'Clean Energy', 'Clothing', 'Construction', 'Education',
-  'Entertainment', 'Food', 'Health', 'Housing', 'Manufacturing', 'Personal Use', 'Retail',
-  'Reuse & Recycle', 'Sanitation & Hygiene', 'Services', 'Transportation', 'Water',
-  'Wholesale',
-].map((s) => ({ value: s, label: s }))
+  { value: 'Agriculture', label: 'agriculture' }, { value: 'Arts', label: 'arts' }, { value: 'Clean Energy', label: 'clean_energy' },
+  { value: 'Clothing', label: 'clothing' }, { value: 'Construction', label: 'construction' }, { value: 'Education', label: 'education' },
+  { value: 'Entertainment', label: 'entertainment' }, { value: 'Food', label: 'food' }, { value: 'Health', label: 'health' },
+  { value: 'Housing', label: 'housing' }, { value: 'Manufacturing', label: 'manufacturing' }, { value: 'Personal Use', label: 'personal_use' },
+  { value: 'Retail', label: 'retail' }, { value: 'Reuse & Recycle', label: 'reuse_recycle' }, { value: 'Sanitation & Hygiene', label: 'sanitation_hygiene' },
+  { value: 'Services', label: 'services' }, { value: 'Transportation', label: 'transportation' }, { value: 'Water', label: 'water' },
+  { value: 'Wholesale', label: 'wholesale' },
+]
 
 // Kiva's full activity taxonomy (from the original app)
 const ACTIVITY_OPTIONS: SelectOption[] = [
-  'Agriculture', 'Air Conditioning', 'Animal Sales', 'Aquaculture', 'Arts', 'Auto Repair',
-  'Bakery', 'Balut-Making', 'Barber Shop', 'Beauty Salon', 'Beverages', 'Bicycle Repair',
-  'Bicycle Sales', 'Blacksmith', 'Bookbinding', 'Bookstore', 'Bricks', 'Butcher Shop', 'Cafe',
-  'Call Center', 'Carpentry', 'Catering', 'Cattle', 'Cement', 'Cereals', 'Charcoal Sales',
-  'Cheese Making', 'Child Care', 'Cleaning Services', 'Cloth & Dressmaking Supplies',
-  'Clothing', 'Clothing Sales', 'Cobbler', 'Communications', 'Community Water Distribution',
-  'Computer', 'Computers', 'Construction', 'Construction Supplies', 'Consumer Goods',
-  'Cosmetics Sales', 'Crafts', 'Dairy', 'Day Care/Adult Care', 'Decorations Sales', 'Dental',
-  'Education provider', 'Electrical Goods', 'Electrician', 'Electronics Repair',
-  'Electronics Sales', 'Embroidery', 'Energy', 'Entertainment', 'Event Planning',
-  'Farm Supplies', 'Farming', 'Film', 'Fish Selling', 'Fishing', 'Florist', 'Flowers', 'Food',
-  'Food Market', 'Food Production/Sales', 'Food Stall', 'Fruits & Vegetables', 'Fuel/Firewood',
-  'Funeral Expenses', 'Furniture Making', 'Games', 'General Store', 'Goods Distribution',
-  'Grocery Store', 'Hardware', 'Health', 'Higher education costs', 'Home Appliances',
-  'Home Energy', 'Home Products Sales', 'Hotel', 'Internet Cafe', 'Jewelry', 'Knitting',
-  'Land Rental', 'Landscaping / Gardening', 'Landscaping/Gardening', 'Laundry',
-  'Liquor Store / Off-License', 'Livestock', 'Machine Shop', 'Machinery Rental',
-  'Manufacturing', 'Medical Clinic', 'Metal Shop', 'Milk Sales', 'Mobile Phones',
-  'Mobile Transactions', 'Motorcycle Repair', 'Motorcycle Transport', 'Movie Tapes & DVDs',
-  'Music Discs & Tapes', 'Musical Instruments', 'Musical Performance', 'Natural Medicines',
-  'Office Supplies', 'Other', 'Paper Sales', 'Party Supplies', 'Patchwork', 'Perfumes',
-  'Personal Expenses', 'Personal Housing Expenses', 'Personal Medical Expenses',
-  'Personal Products Sales', 'Personal Purchases', 'Pharmacy', 'Phone Accessories',
-  'Phone Repair', 'Phone Use Sales', 'Photography', 'Pigs', 'Plastics Sales', 'Poultry',
-  'Primary/secondary school costs', 'Printing', 'Property', 'Pub', 'Quarrying',
-  'Recycled Materials', 'Recycling', 'Religious Articles', 'Renewable Energy Products',
-  'Repair/Mechanic', 'Restaurant', 'Restaurant/Caterer', 'Retail', 'Rickshaw',
-  'Secretarial Services', 'Services', 'Sewing', 'Shoe Sales', 'Social Enterprise',
-  'Soft Drinks', 'Solar Home Systems', 'Souvenir Sales', 'Spare Parts', 'Sporting Good Sales',
-  'Tailoring', 'Taxi', 'Textiles', 'Timber Sales', 'Toilets & Sanitation Systems', 'Tourism',
-  'Transportation', 'Traveling Sales', 'Upholstery', 'Used Clothing', 'Used Shoes',
-  'Utilities', 'Vehicle', 'Vehicle Repairs', 'Veterinary Sales', 'Waste Management',
-  'Water Distribution', 'Water Pumps & Irrigation', 'Weaving', 'Wedding Expenses',
-  'Well digging', 'Wholesale',
-].map((s) => ({ value: s, label: s }))
+  { value: 'Agriculture', label: 'agriculture' }, { value: 'Air Conditioning', label: 'air_conditioning' },
+  { value: 'Animal Sales', label: 'animal_sales' }, { value: 'Aquaculture', label: 'aquaculture' },
+  { value: 'Arts', label: 'arts' }, { value: 'Auto Repair', label: 'auto_repair' }, { value: 'Bakery', label: 'bakery' },
+  { value: 'Balut-Making', label: 'balut_making' }, { value: 'Barber Shop', label: 'barber_shop' },
+  { value: 'Beauty Salon', label: 'beauty_salon' }, { value: 'Beverages', label: 'beverages' }, { value: 'Bicycle Repair', label: 'bicycle_repair' },
+  { value: 'Bicycle Sales', label: 'bicycle_sales' }, { value: 'Blacksmith', label: 'blacksmith' },
+  { value: 'Bookbinding', label: 'bookbinding' }, { value: 'Bookstore', label: 'bookstore' }, { value: 'Bricks', label: 'bricks' },
+  { value: 'Butcher Shop', label: 'butcher_shop' }, { value: 'Cafe', label: 'cafe' }, { value: 'Call Center', label: 'call_center' },
+  { value: 'Carpentry', label: 'carpentry' }, { value: 'Catering', label: 'catering' }, { value: 'Cattle', label: 'cattle' },
+  { value: 'Cement', label: 'cement' }, { value: 'Cereals', label: 'cereals' }, { value: 'Charcoal Sales', label: 'charcoal_sales' },
+  { value: 'Cheese Making', label: 'cheese_making' }, { value: 'Child Care', label: 'child_care' },
+  { value: 'Cleaning Services', label: 'cleaning_services' }, { value: 'Cloth & Dressmaking Supplies', label: 'cloth_dressmaking_supplies' },
+  { value: 'Clothing', label: 'clothing' }, { value: 'Clothing Sales', label: 'clothing_sales' }, { value: 'Cobbler', label: 'cobbler' },
+  { value: 'Communications', label: 'communications' }, { value: 'Community Water Distribution', label: 'community_water_distribution' },
+  { value: 'Computer', label: 'computer' }, { value: 'Computers', label: 'computers' }, { value: 'Construction', label: 'construction' },
+  { value: 'Construction Supplies', label: 'construction_supplies' }, { value: 'Consumer Goods', label: 'consumer_goods' },
+  { value: 'Cosmetics Sales', label: 'cosmetics_sales' }, { value: 'Crafts', label: 'crafts' }, { value: 'Dairy', label: 'dairy' },
+  { value: 'Day Care/Adult Care', label: 'day_care_adult_care' }, { value: 'Decorations Sales', label: 'decorations_sales' },
+  { value: 'Dental', label: 'dental' }, { value: 'Education provider', label: 'education_provider' },
+  { value: 'Electrical Goods', label: 'electrical_goods' }, { value: 'Electrician', label: 'electrician' },
+  { value: 'Electronics Repair', label: 'electronics_repair' }, { value: 'Electronics Sales', label: 'electronics_sales' },
+  { value: 'Embroidery', label: 'embroidery' }, { value: 'Energy', label: 'energy' }, { value: 'Entertainment', label: 'entertainment' },
+  { value: 'Event Planning', label: 'event_planning' }, { value: 'Farm Supplies', label: 'farm_supplies' },
+  { value: 'Farming', label: 'farming' }, { value: 'Film', label: 'film' }, { value: 'Fish Selling', label: 'fish_selling' },
+  { value: 'Fishing', label: 'fishing' }, { value: 'Florist', label: 'florist' }, { value: 'Flowers', label: 'flowers' },
+  { value: 'Food', label: 'food' }, { value: 'Food Market', label: 'food_market' }, { value: 'Food Production/Sales', label: 'food_production_sales' },
+  { value: 'Food Stall', label: 'food_stall' }, { value: 'Fruits & Vegetables', label: 'fruits_vegetables' },
+  { value: 'Fuel/Firewood', label: 'fuel_firewood' }, { value: 'Funeral Expenses', label: 'funeral_expenses' },
+  { value: 'Furniture Making', label: 'furniture_making' }, { value: 'Games', label: 'games' }, { value: 'General Store', label: 'general_store' },
+  { value: 'Goods Distribution', label: 'goods_distribution' }, { value: 'Grocery Store', label: 'grocery_store' },
+  { value: 'Hardware', label: 'hardware' }, { value: 'Health', label: 'health' }, { value: 'Higher education costs', label: 'higher_education_costs' },
+  { value: 'Home Appliances', label: 'home_appliances' }, { value: 'Home Energy', label: 'home_energy' },
+  { value: 'Home Products Sales', label: 'home_products_sales' }, { value: 'Hotel', label: 'hotel' },
+  { value: 'Internet Cafe', label: 'internet_cafe' }, { value: 'Jewelry', label: 'jewelry' }, { value: 'Knitting', label: 'knitting' },
+  { value: 'Land Rental', label: 'land_rental' }, { value: 'Landscaping / Gardening', label: 'landscaping_gardening' },
+  { value: 'Landscaping/Gardening', label: 'landscaping_gardening_2' }, { value: 'Laundry', label: 'laundry' },
+  { value: 'Liquor Store / Off-License', label: 'liquor_store_off_license' }, { value: 'Livestock', label: 'livestock' },
+  { value: 'Machine Shop', label: 'machine_shop' }, { value: 'Machinery Rental', label: 'machinery_rental' },
+  { value: 'Manufacturing', label: 'manufacturing' }, { value: 'Medical Clinic', label: 'medical_clinic' },
+  { value: 'Metal Shop', label: 'metal_shop' }, { value: 'Milk Sales', label: 'milk_sales' }, { value: 'Mobile Phones', label: 'mobile_phones' },
+  { value: 'Mobile Transactions', label: 'mobile_transactions' }, { value: 'Motorcycle Repair', label: 'motorcycle_repair' },
+  { value: 'Motorcycle Transport', label: 'motorcycle_transport' }, { value: 'Movie Tapes & DVDs', label: 'movie_tapes_dvds' },
+  { value: 'Music Discs & Tapes', label: 'music_discs_tapes' }, { value: 'Musical Instruments', label: 'musical_instruments' },
+  { value: 'Musical Performance', label: 'musical_performance' }, { value: 'Natural Medicines', label: 'natural_medicines' },
+  { value: 'Office Supplies', label: 'office_supplies' }, { value: 'Other', label: 'other' }, { value: 'Paper Sales', label: 'paper_sales' },
+  { value: 'Party Supplies', label: 'party_supplies' }, { value: 'Patchwork', label: 'patchwork' },
+  { value: 'Perfumes', label: 'perfumes' }, { value: 'Personal Expenses', label: 'personal_expenses' },
+  { value: 'Personal Housing Expenses', label: 'personal_housing_expenses' }, { value: 'Personal Medical Expenses', label: 'personal_medical_expenses' },
+  { value: 'Personal Products Sales', label: 'personal_products_sales' }, { value: 'Personal Purchases', label: 'personal_purchases' },
+  { value: 'Pharmacy', label: 'pharmacy' }, { value: 'Phone Accessories', label: 'phone_accessories' },
+  { value: 'Phone Repair', label: 'phone_repair' }, { value: 'Phone Use Sales', label: 'phone_use_sales' },
+  { value: 'Photography', label: 'photography' }, { value: 'Pigs', label: 'pigs' }, { value: 'Plastics Sales', label: 'plastics_sales' },
+  { value: 'Poultry', label: 'poultry' }, { value: 'Primary/secondary school costs', label: 'primary_secondary_school_costs' },
+  { value: 'Printing', label: 'printing' }, { value: 'Property', label: 'property' }, { value: 'Pub', label: 'pub' },
+  { value: 'Quarrying', label: 'quarrying' }, { value: 'Recycled Materials', label: 'recycled_materials' },
+  { value: 'Recycling', label: 'recycling' }, { value: 'Religious Articles', label: 'religious_articles' },
+  { value: 'Renewable Energy Products', label: 'renewable_energy_products' }, { value: 'Repair/Mechanic', label: 'repair_mechanic' },
+  { value: 'Restaurant', label: 'restaurant' }, { value: 'Restaurant/Caterer', label: 'restaurant_caterer' },
+  { value: 'Retail', label: 'retail' }, { value: 'Rickshaw', label: 'rickshaw' }, { value: 'Secretarial Services', label: 'secretarial_services' },
+  { value: 'Services', label: 'services' }, { value: 'Sewing', label: 'sewing' }, { value: 'Shoe Sales', label: 'shoe_sales' },
+  { value: 'Social Enterprise', label: 'social_enterprise' }, { value: 'Soft Drinks', label: 'soft_drinks' },
+  { value: 'Solar Home Systems', label: 'solar_home_systems' }, { value: 'Souvenir Sales', label: 'souvenir_sales' },
+  { value: 'Spare Parts', label: 'spare_parts' }, { value: 'Sporting Good Sales', label: 'sporting_good_sales' },
+  { value: 'Tailoring', label: 'tailoring' }, { value: 'Taxi', label: 'taxi' }, { value: 'Textiles', label: 'textiles' },
+  { value: 'Timber Sales', label: 'timber_sales' }, { value: 'Toilets & Sanitation Systems', label: 'toilets_sanitation_systems' },
+  { value: 'Tourism', label: 'tourism' }, { value: 'Transportation', label: 'transportation' }, { value: 'Traveling Sales', label: 'traveling_sales' },
+  { value: 'Upholstery', label: 'upholstery' }, { value: 'Used Clothing', label: 'used_clothing' },
+  { value: 'Used Shoes', label: 'used_shoes' }, { value: 'Utilities', label: 'utilities' }, { value: 'Vehicle', label: 'vehicle' },
+  { value: 'Vehicle Repairs', label: 'vehicle_repairs' }, { value: 'Veterinary Sales', label: 'veterinary_sales' },
+  { value: 'Waste Management', label: 'waste_management' }, { value: 'Water Distribution', label: 'water_distribution' },
+  { value: 'Water Pumps & Irrigation', label: 'water_pumps_irrigation' }, { value: 'Weaving', label: 'weaving' },
+  { value: 'Wedding Expenses', label: 'wedding_expenses' }, { value: 'Well digging', label: 'well_digging' },
+  { value: 'Wholesale', label: 'wholesale' },
+]
 
 const TAG_OPTIONS: SelectOption[] = [
-  { value: 'user_favorite', label: 'User Favorite' },
-  { value: 'volunteer_like', label: 'Volunteer Like' },
-  { value: 'volunteer_pick', label: 'Volunteer Pick' },
-  { value: '#Animals', label: '#Animals' },
-  { value: '#BizDurableAsset', label: '#BizDurableAsset' },
-  { value: '#Eco-friendly', label: '#Eco-friendly' },
-  { value: '#Elderly', label: '#Elderly' },
-  { value: '#Fabrics', label: '#Fabrics' },
-  { value: '#FemaleEducation', label: '#FemaleEducation' },
-  { value: '#FirstLoan', label: '#FirstLoan' },
-  { value: '#HealthandSanitation', label: '#HealthAndSanitation' },
-  { value: '#JobCreator', label: '#JobCreator' },
-  { value: '#Orphan', label: '#Orphan' },
-  { value: '#Parent', label: '#Parent' },
-  { value: '#Refugee', label: '#Refugee' },
-  { value: '#RepairRenewReplace', label: '#RepairRenewReplace' },
-  { value: '#RepeatBorrower', label: '#RepeatBorrower' },
-  { value: '#Schooling', label: '#Schooling' },
-  { value: '#Single', label: '#Single' },
-  { value: '#SingleParent', label: '#SingleParent' },
-  { value: '#SupportingFamily', label: '#SupportingFamily' },
-  { value: '#SustainableAg', label: '#SustainableAg' },
-  { value: '#Technology', label: '#Technology' },
-  { value: '#Trees', label: '#Trees' },
-  { value: '#Vegan', label: '#Vegan' },
-  { value: '#Widowed', label: '#Widowed' },
-  { value: '#WomanOwnedBiz', label: '#WomanOwnedBiz' },
-  { value: '#BIPOC-ownedBusiness', label: '#BIPOC-ownedBusiness' },
-  { value: '#COVID-19', label: '#COVID-19' },
-  { value: '#CommunityImpact', label: '#CommunityImpact' },
-  { value: '#InspiringStory', label: '#InspiringStory' },
-  { value: '#Latinx/Hispanic-OwnedBusiness', label: '#Latinx/Hispanic-OwnedBusiness' },
-  { value: '#NewBusiness', label: '#NewBusiness' },
-  { value: '#PowerfulStory', label: '#PowerfulStory' },
-  { value: '#StandoutBackstory', label: '#StandoutBackstory' },
-  { value: '#TangibleProducts', label: '#TangibleProducts' },
-  { value: '#USBlack-OwnedBusiness', label: '#USBlack-OwnedBusiness' },
-  { value: '#USEtsy', label: '#USEtsy' },
-  { value: '#USPGE', label: '#USPGE' },
-  { value: '#USimmigrant', label: '#USimmigrant' },
-  { value: '#Unique', label: '#Unique' },
-  { value: '#Woman-OwnedBusiness', label: '#Woman-OwnedBusiness' },
-  { value: 'BNY', label: 'BNY' },
-  { value: 'USRefugee', label: 'USRefugee' },
+  { value: 'user_favorite', label: 'user_favorite' },
+  { value: 'volunteer_like', label: 'volunteer_like' },
+  { value: 'volunteer_pick', label: 'volunteer_pick' },
+  { value: '#Animals', label: 'animals' },
+  { value: '#BizDurableAsset', label: 'bizdurableasset' },
+  { value: '#Eco-friendly', label: 'eco_friendly' },
+  { value: '#Elderly', label: 'elderly' },
+  { value: '#Fabrics', label: 'fabrics' },
+  { value: '#FemaleEducation', label: 'femaleeducation' },
+  { value: '#FirstLoan', label: 'firstloan' },
+  { value: '#HealthandSanitation', label: 'healthandsanitation' },
+  { value: '#JobCreator', label: 'jobcreator' },
+  { value: '#Orphan', label: 'orphan' },
+  { value: '#Parent', label: 'parent' },
+  { value: '#Refugee', label: 'refugee' },
+  { value: '#RepairRenewReplace', label: 'repairrenewreplace' },
+  { value: '#RepeatBorrower', label: 'repeatborrower' },
+  { value: '#Schooling', label: 'schooling' },
+  { value: '#Single', label: 'single' },
+  { value: '#SingleParent', label: 'singleparent' },
+  { value: '#SupportingFamily', label: 'supportingfamily' },
+  { value: '#SustainableAg', label: 'sustainableag' },
+  { value: '#Technology', label: 'technology' },
+  { value: '#Trees', label: 'trees' },
+  { value: '#Vegan', label: 'vegan' },
+  { value: '#Widowed', label: 'widowed' },
+  { value: '#WomanOwnedBiz', label: 'womanownedbiz' },
+  { value: '#BIPOC-ownedBusiness', label: 'bipoc_ownedbusiness' },
+  { value: '#COVID-19', label: 'covid_19' },
+  { value: '#CommunityImpact', label: 'communityimpact' },
+  { value: '#InspiringStory', label: 'inspiringstory' },
+  { value: '#Latinx/Hispanic-OwnedBusiness', label: 'latinx_hispanic_ownedbusiness' },
+  { value: '#NewBusiness', label: 'newbusiness' },
+  { value: '#PowerfulStory', label: 'powerfulstory' },
+  { value: '#StandoutBackstory', label: 'standoutbackstory' },
+  { value: '#TangibleProducts', label: 'tangibleproducts' },
+  { value: '#USBlack-OwnedBusiness', label: 'usblack_ownedbusiness' },
+  { value: '#USEtsy', label: 'usetsy' },
+  { value: '#USPGE', label: 'uspge' },
+  { value: '#USimmigrant', label: 'usimmigrant' },
+  { value: '#Unique', label: 'unique' },
+  { value: '#Woman-OwnedBusiness', label: 'woman_ownedbusiness' },
+  { value: 'BNY', label: 'bny' },
+  { value: 'USRefugee', label: 'usrefugee' },
 ]
 
 const THEME_OPTIONS: SelectOption[] = [
-  'Arab Youth', 'Clean Energy', 'Conflict Zones', 'Crop Insurance', 'Disaster recovery',
-  'Earth Day Campaign', 'Fair Trade', 'Green', 'Growing Businesses', 'Health',
-  'Higher Education', 'Innovative Loans', 'International COVID-19 support', 'Islamic Finance',
-  'Job Creation', 'Mobile Technology', 'Refugees/Displaced', 'Rural Exclusion', 'SME',
-  'Social Enterprise', 'Solar', 'Start-Up', 'Underfunded Areas', 'Vulnerable Groups',
-  'Water and Sanitation', 'Youth',
-].map((t) => ({ value: t, label: t }))
+  { value: 'Arab Youth', label: 'arab_youth' }, { value: 'Clean Energy', label: 'clean_energy' }, { value: 'Conflict Zones', label: 'conflict_zones' },
+  { value: 'Crop Insurance', label: 'crop_insurance' }, { value: 'Disaster recovery', label: 'disaster_recovery' },
+  { value: 'Earth Day Campaign', label: 'earth_day_campaign' }, { value: 'Fair Trade', label: 'fair_trade' },
+  { value: 'Green', label: 'green' }, { value: 'Growing Businesses', label: 'growing_businesses' },
+  { value: 'Health', label: 'health' }, { value: 'Higher Education', label: 'higher_education' }, { value: 'Innovative Loans', label: 'innovative_loans' },
+  { value: 'International COVID-19 support', label: 'international_covid_19_support' }, { value: 'Islamic Finance', label: 'islamic_finance' },
+  { value: 'Job Creation', label: 'job_creation' }, { value: 'Mobile Technology', label: 'mobile_technology' },
+  { value: 'Refugees/Displaced', label: 'refugees_displaced' }, { value: 'Rural Exclusion', label: 'rural_exclusion' },
+  { value: 'SME', label: 'sme' }, { value: 'Social Enterprise', label: 'social_enterprise' }, { value: 'Solar', label: 'solar' },
+  { value: 'Start-Up', label: 'start_up' }, { value: 'Underfunded Areas', label: 'underfunded_areas' },
+  { value: 'Vulnerable Groups', label: 'vulnerable_groups' }, { value: 'Water and Sanitation', label: 'water_sanitation' },
+  { value: 'Youth', label: 'youth' },
+]
 
 const REPAYMENT_INTERVAL_OPTIONS: SelectOption[] = [
-  { value: 'Monthly', label: 'Monthly' },
-  { value: 'Irregularly', label: 'Irregularly' },
-  { value: 'At end of term', label: 'At end of term' },
+  { value: 'Monthly', label: 'monthly' },
+  { value: 'Irregularly', label: 'irregularly' },
+  { value: 'At end of term', label: 'end_term' },
 ]
 
 const CURRENCY_LOSS_OPTIONS: SelectOption[] = [
-  { value: 'shared', label: 'Shared Loss' },
-  { value: 'none', label: 'No Currency Exchange Loss' },
-  { value: 'partner', label: 'Partner covers' },
+  { value: 'shared', label: 'shared_loss' },
+  { value: 'none', label: 'no_currency_exchange_loss' },
+  { value: 'partner', label: 'partner_covers' },
 ]
 
 const BONUS_CREDIT_OPTIONS: SelectOption[] = [
-  { value: '', label: 'Show All' },
-  { value: 'true', label: 'Only loans eligible' },
-  { value: 'false', label: 'Only loans NOT eligible' },
+  { value: '', label: 'show_all' },
+  { value: 'true', label: 'only_loans_eligible' },
+  { value: 'false', label: 'only_loans_not_eligible' },
 ]
 
 const SORT_OPTIONS: SelectOption[] = [
-  { value: '', label: 'Final repayment date (default)' },
-  { value: 'half_back', label: 'Date half is paid back, then 75%, then full' },
-  { value: 'newest', label: 'Newest' },
-  { value: 'expiring', label: 'Expiring' },
-  { value: 'popularity', label: 'Popularity ($/hour)' },
-  { value: 'still_needed', label: '$ Still Needed' },
+  { value: '', label: 'final_repayment_date_default' },
+  { value: 'half_back', label: 'date_half_paid_back_then' },
+  { value: 'newest', label: 'newest' },
+  { value: 'expiring', label: 'expiring' },
+  { value: 'popularity', label: 'popularity_dollar_hour' },
+  { value: 'still_needed', label: 'dollar_still_needed' },
 ]
 
 // Partner selects
 const DIRECT_OPTIONS: SelectOption[] = [
-  { value: '', label: 'MFI Only (default)' },
-  { value: 'direct', label: 'Direct Only' },
+  { value: '', label: 'mfi_only_default' },
+  { value: 'direct', label: 'direct_only' },
 ]
 
 const REGION_OPTIONS: SelectOption[] = [
-  { value: 'na', label: 'North America' }, { value: 'ca', label: 'Central America' },
-  { value: 'sa', label: 'South America' }, { value: 'af', label: 'Africa' },
-  { value: 'as', label: 'Asia' }, { value: 'me', label: 'Middle East' },
-  { value: 'ee', label: 'Eastern Europe' }, { value: 'oc', label: 'Oceania' },
-  { value: 'we', label: 'Western Europe' },
+  { value: 'na', label: 'north_america' }, { value: 'ca', label: 'central_america' },
+  { value: 'sa', label: 'south_america' }, { value: 'af', label: 'africa' },
+  { value: 'as', label: 'asia' }, { value: 'me', label: 'middle_east' },
+  { value: 'ee', label: 'eastern_europe' }, { value: 'oc', label: 'oceania' },
+  { value: 'we', label: 'western_europe' },
 ]
 
 // Region code -> readable label (e.g. 'sa' -> 'South America') for chart axes.
@@ -246,13 +294,13 @@ const REGION_LABELS: Record<string, string> = Object.fromEntries(
 )
 
 const SOCIAL_PERFORMANCE_OPTIONS: SelectOption[] = [
-  { value: '1', label: 'Anti-Poverty Focus' },
-  { value: '3', label: 'Client Voice' },
-  { value: '5', label: 'Entrepreneurial Support' },
-  { value: '6', label: 'Facilitation of Savings' },
-  { value: '4', label: 'Family and Community Empowerment' },
-  { value: '7', label: 'Innovation' },
-  { value: '2', label: 'Vulnerable Group Focus' },
+  { value: '1', label: 'anti_poverty_focus' },
+  { value: '3', label: 'client_voice' },
+  { value: '5', label: 'entrepreneurial_support' },
+  { value: '6', label: 'facilitation_savings' },
+  { value: '4', label: 'family_community_empowerment' },
+  { value: '7', label: 'innovation' },
+  { value: '2', label: 'vulnerable_group_focus' },
 ]
 
 const SOCIAL_PERFORMANCE_LABELS = Object.fromEntries(
@@ -260,22 +308,22 @@ const SOCIAL_PERFORMANCE_LABELS = Object.fromEntries(
 )
 
 const CHARGES_INTEREST_OPTIONS: SelectOption[] = [
-  { value: '', label: 'Show All' },
-  { value: 'true', label: 'Only partners that charge fees & interest' },
-  { value: 'false', label: 'Only partners that do NOT charge fees & interest' },
+  { value: '', label: 'show_all' },
+  { value: 'true', label: 'only_partners_charge_fees_interest' },
+  { value: 'false', label: 'only_partners_not_charge_fees' },
 ]
 
 const RELIGION_OPTIONS: SelectOption[] = [
-  { value: 'Secular', label: 'Secular' }, { value: 'Christian', label: 'Christian' },
-  { value: 'Christian Influence', label: 'Christian Influence' }, { value: 'Muslim', label: 'Muslim' },
-  { value: 'Hindu', label: 'Hindu' }, { value: 'Jewish', label: 'Jewish' },
-  { value: 'Buddhist', label: 'Buddhist' }, { value: 'Other', label: 'Other' },
-  { value: 'Unknown', label: 'Unknown' },
+  { value: 'Secular', label: 'secular' }, { value: 'Christian', label: 'christian' },
+  { value: 'Christian Influence', label: 'christian_influence' }, { value: 'Muslim', label: 'muslim' },
+  { value: 'Hindu', label: 'hindu' }, { value: 'Jewish', label: 'jewish' },
+  { value: 'Buddhist', label: 'buddhist' }, { value: 'Other', label: 'other' },
+  { value: 'Unknown', label: 'unknown_2' },
 ]
 
 const EXCLUDE_PORTFOLIO_OPTIONS: SelectOption[] = [
-  { value: 'true', label: "Yes, Exclude Loans I've Made" },
-  { value: 'false', label: "No, Include Loans I've Made" },
+  { value: 'true', label: 'yes_exclude_loans_ive_made' },
+  { value: 'false', label: 'no_include_loans_ive_made' },
 ]
 
 // Slider configs
@@ -288,35 +336,35 @@ interface SliderConfig {
 }
 
 const LOAN_SLIDERS: Record<string, SliderConfig> = {
-  repaid_in: { min: 2, max: 90, label: 'Repaid In (months)', helpText: 'The number of months between today and the final scheduled repayment.' },
-  borrower_count: { min: 1, max: 20, label: 'Borrower Count', helpText: 'The number of borrowers included in the loan.' },
-  percent_female: { min: 0, max: 100, label: 'Percent Female', helpText: 'What percentage of the borrowers are female.' },
-  age: { min: 19, max: 100, label: 'Age Mentioned', helpText: 'Age found in the loan description. Set lower slider above min to exclude loans without detected ages.' },
-  still_needed: { min: 0, max: 5000, step: 25, label: 'Still Needed ($)', helpText: 'How much is still needed to fully fund the loan.' },
-  loan_amount: { min: 0, max: 10000, step: 25, label: 'Loan Amount ($)', helpText: 'How much is the loan for?' },
-  dollars_per_hour: { min: 0, max: 500, label: '$/Hour', helpText: 'Funded amounts / time since posting.' },
-  percent_funded: { min: 0, max: 100, step: 1, label: 'Funded (%)', helpText: 'What percent of the loan has been funded (includes basket amounts).' },
-  expiring_in_days: { min: 0, max: 35, label: 'Expiring In (days)', helpText: 'Days left before the loan expires.' },
-  disbursal_in_days: { min: -90, max: 90, label: 'Disbursal (days)', helpText: 'When does the borrower get the money relative to today?' },
+  repaid_in: { min: 2, max: 90, label: 'repaid_months', helpText: 'number_months_between_today_final' },
+  borrower_count: { min: 1, max: 20, label: 'borrower_count', helpText: 'number_borrowers_included_loan' },
+  percent_female: { min: 0, max: 100, label: 'percent_female', helpText: 'what_percentage_borrowers_female' },
+  age: { min: 19, max: 100, label: 'age_mentioned', helpText: 'age_found_loan_description_set' },
+  still_needed: { min: 0, max: 5000, step: 25, label: 'still_needed_dollar_2', helpText: 'how_much_still_needed_fully' },
+  loan_amount: { min: 0, max: 10000, step: 25, label: 'loan_amount_dollar_2', helpText: 'how_much_loan' },
+  dollars_per_hour: { min: 0, max: 500, label: 'dollar_hour_2', helpText: 'funded_amounts_time_since_posting' },
+  percent_funded: { min: 0, max: 100, step: 1, label: 'funded_percent', helpText: 'what_percent_loan_has_been' },
+  expiring_in_days: { min: 0, max: 35, label: 'expiring_days_2', helpText: 'days_left_before_loan_expires' },
+  disbursal_in_days: { min: -90, max: 90, label: 'disbursal_days', helpText: 'when_borrower_get_money_relative' },
 }
 
 const PARTNER_SLIDERS: Record<string, SliderConfig> = {
-  partner_risk_rating: { min: 0, max: 5, step: 0.5, label: 'Risk Rating (stars)', helpText: '5 star = very low probability of collapse.' },
-  partner_arrears: { min: 0, max: 100, step: 0.1, label: 'Delinq Rate (%)', helpText: 'Amount of late payments / total outstanding balance.' },
-  loans_at_risk_rate: { min: 0, max: 100, label: 'Loans at Risk (%)', helpText: 'Percentage of loans past due by at least 1 day.' },
-  partner_default: { min: 0, max: 30, step: 0.1, label: 'Default Rate (%)', helpText: 'Percentage of ended loans that defaulted.' },
-  portfolio_yield: { min: 0, max: 100, step: 0.1, label: 'Portfolio Yield (%)', helpText: 'Interest/fees charged by the field partner.' },
-  profit: { min: -100, max: 100, step: 0.1, label: 'Profit (%)', helpText: 'Return on Assets indicator.' },
-  currency_exchange_loss_rate: { min: 0, max: 10, step: 0.1, label: 'Currency Exchange Loss (%)', helpText: 'Currency exchange loss rate.' },
-  average_loan_size_percent_per_capita_income: { min: 0, max: 300, label: 'Average Loan/Capita Income', helpText: 'Average loan as percentage of national income per capita.' },
-  years_on_kiva: { min: 0, max: 12, step: 0.25, label: 'Years on Kiva', helpText: 'How long the partner has been on Kiva.' },
-  loans_posted: { min: 0, max: 20000, step: 50, label: 'Loans Posted', helpText: 'How many loans the partner has posted to Kiva.' },
-  fundraising_loan_count: { min: 0, max: 200, step: 1, label: 'Fundraising Loans', helpText: 'How many loans from this partner are currently fundraising on Kiva.' },
+  partner_risk_rating: { min: 0, max: 5, step: 0.5, label: 'risk_rating_stars', helpText: '5_star_very_low_probability' },
+  partner_arrears: { min: 0, max: 100, step: 0.1, label: 'delinq_rate_percent', helpText: 'amount_late_payments_total_outstanding' },
+  loans_at_risk_rate: { min: 0, max: 100, label: 'loans_risk_percent', helpText: 'percentage_loans_past_due_least' },
+  partner_default: { min: 0, max: 30, step: 0.1, label: 'default_rate_percent', helpText: 'percentage_ended_loans_defaulted' },
+  portfolio_yield: { min: 0, max: 100, step: 0.1, label: 'portfolio_yield_percent', helpText: 'interest_fees_charged_field_partner' },
+  profit: { min: -100, max: 100, step: 0.1, label: 'profit_percent', helpText: 'return_assets_indicator' },
+  currency_exchange_loss_rate: { min: 0, max: 10, step: 0.1, label: 'currency_exchange_loss_percent', helpText: 'currency_exchange_loss_rate' },
+  average_loan_size_percent_per_capita_income: { min: 0, max: 300, label: 'average_loan_capita_income', helpText: 'average_loan_percentage_national_income' },
+  years_on_kiva: { min: 0, max: 12, step: 0.25, label: 'years_kiva', helpText: 'how_long_partner_has_been' },
+  loans_posted: { min: 0, max: 20000, step: 50, label: 'loans_posted', helpText: 'how_many_loans_partner_has' },
+  fundraising_loan_count: { min: 0, max: 200, step: 1, label: 'fundraising_loans', helpText: 'how_many_loans_partner_currently' },
   // A+ Team research scores (1-4). Only meaningful once the A+ data is merged
   // (Options > "Merge A+ Team's data"); the panel hides them until then. Dropped
   // in the rewrite — restored so loan & partner search can filter on them again.
-  secular_rating: { min: 1, max: 4, step: 1, label: 'Secular Score (A+ Team)', helpText: '4 Completely secular; 3 Secular but some religious influence; 2 Nonsecular but lends without regard to belief; 1 Nonsecular with a religious agenda.' },
-  social_rating: { min: 1, max: 4, step: 1, label: 'Social Score (A+ Team)', helpText: '4 Excellent, proactive social programs; 3 Good initiatives in most areas; 2 Social goals but few initiatives; 1 No attention to social goals.' },
+  secular_rating: { min: 1, max: 4, step: 1, label: 'secular_score_team', helpText: '4_completely_secular_3_secular' },
+  social_rating: { min: 1, max: 4, step: 1, label: 'social_score_team', helpText: '4_excellent_proactive_social_programs' },
 }
 
 // Partner-criteria help text, exported so the standalone Partners page shows
@@ -330,7 +378,7 @@ export const PARTNER_SLIDER_HELP: Record<string, string> = Object.fromEntries(
 )
 
 export const RELIGION_HELP =
-  'Field-partner religious-affiliation data comes from the A+ Team’s (Atheists, Agnostics, Skeptics, Freethinkers, Secular Humanists and the Non-Religious) research — it isn’t provided by Kiva.'
+  'field_partner_religious_affiliation'
 
 // Balancer configs
 interface BalancerMeta {
@@ -342,12 +390,12 @@ interface BalancerMeta {
 // Options list per criteria key — used to map a clicked distribution bar's
 // display name back to the stored option value.
 const BALANCER_OPTIONS: Record<string, BalancerMeta> = {
-  pb_partner: { label: 'Partners', sliceBy: 'partner', key: 'id' },
-  pb_country: { label: 'Countries', sliceBy: 'country' },
-  pb_region: { label: 'Regions', sliceBy: 'region' },
-  pb_sector: { label: 'Sectors', sliceBy: 'sector' },
-  pb_activity: { label: 'Activities', sliceBy: 'activity' },
-  pb_gender: { label: 'Gender', sliceBy: 'gender' },
+  pb_partner: { label: 'partners', sliceBy: 'partner', key: 'id' },
+  pb_country: { label: 'countries', sliceBy: 'country' },
+  pb_region: { label: 'regions', sliceBy: 'region' },
+  pb_sector: { label: 'sectors', sliceBy: 'sector' },
+  pb_activity: { label: 'activities', sliceBy: 'activity' },
+  pb_gender: { label: 'gender_2', sliceBy: 'gender' },
 }
 
 // ---------------------------------------------------------------------------
@@ -420,25 +468,25 @@ function buildHelperChart(
 
   switch (key) {
     case 'country_code':
-      return groupForHelperChart(loans, t('Countries'), (loan) => loan.location.country)
+      return groupForHelperChart(loans, t('countries'), (loan) => loan.location.country)
     case 'sector':
-      return groupForHelperChart(loans, t('Sectors'), (loan) => sector(loan.sector))
+      return groupForHelperChart(loans, t('sectors'), (loan) => sector(loan.sector))
     case 'activity':
-      return groupForHelperChart(loans, t('Activities'), (loan) => loan.activity)
+      return groupForHelperChart(loans, t('activities'), (loan) => loan.activity)
     case 'themes':
-      return groupForHelperChart(loans, t('Themes'), (loan) => loan.themes ?? [])
+      return groupForHelperChart(loans, t('themes'), (loan) => loan.themes ?? [])
     case 'tags':
-      return groupForHelperChart(loans, t('Tags'), (loan) => (loan.kls_tags ?? []).map((tag) => humanize(tag)))
+      return groupForHelperChart(loans, t('tags'), (loan) => (loan.kls_tags ?? []).map((tag) => humanize(tag)))
     case 'repayment_interval':
-      return groupForHelperChart(loans, t('Repayment Interval'), (loan) => loan.terms.repayment_interval ?? 'Unknown')
+      return groupForHelperChart(loans, t('repayment_interval'), (loan) => loan.terms.repayment_interval ?? 'Unknown')
     case 'currency_exchange_loss_liability':
-      return groupForHelperChart(loans, t('Currency Loss'), (loan) => humanize(loan.terms.loss_liability?.currency_exchange ?? 'unknown'))
+      return groupForHelperChart(loans, t('currency_loss_2'), (loan) => humanize(loan.terms.loss_liability?.currency_exchange ?? 'unknown'))
     case 'bonus_credit_eligibility':
-      return groupForHelperChart(loans, t('Bonus Credit'), (loan) => t(loan.bonus_credit_eligibility ? 'Eligible' : 'Not Eligible'))
+      return groupForHelperChart(loans, t('bonus_credit_2'), (loan) => t(loan.bonus_credit_eligibility ? 'eligible' : 'not_eligible'))
     case 'direct':
-      return groupForHelperChart(loans, t('MFI or Direct'), (loan) => t(loan.partner_id == null ? 'Direct' : 'MFI'))
+      return groupForHelperChart(loans, t('mfi_direct_2'), (loan) => t(loan.partner_id == null ? 'direct' : 'mfi'))
     case 'region':
-      return groupForHelperChart(loans, t('Region'), (loan) => {
+      return groupForHelperChart(loans, t('region_2'), (loan) => {
         const partner = getPartnerForLoan(loan, kl)
         const regions =
           partner?.kl_regions ?? partner?.countries.map((country) => country.region) ?? []
@@ -447,21 +495,21 @@ function buildHelperChart(
         return regions.map((r) => REGION_LABELS[r] ?? r)
       })
     case 'social_performance':
-      return groupForHelperChart(loans, t('Social Performance'), (loan) => {
+      return groupForHelperChart(loans, t('social_performance_2'), (loan) => {
         const partner = getPartnerForLoan(loan, kl)
         return (partner?.social_performance_strengths ?? []).map((strength) =>
           SOCIAL_PERFORMANCE_LABELS[String(strength.id)] ?? String(strength.id),
         )
       })
     case 'charges_fees_and_interest':
-      return groupForHelperChart(loans, t('Charges Interest'), (loan) => {
+      return groupForHelperChart(loans, t('charges_interest'), (loan) => {
         const partner = getPartnerForLoan(loan, kl)
-        return t(partner?.charges_fees_and_interest ? 'Charges fees and interest' : 'Does not charge fees and interest')
+        return t(partner?.charges_fees_and_interest ? 'charges_fees_interest_2' : 'not_charge_fees_interest')
       })
     case 'religion':
-      return groupForHelperChart(loans, t('Religion'), (loan) => {
+      return groupForHelperChart(loans, t('religion'), (loan) => {
         const partner = getPartnerForLoan(loan, kl)
-        return partner?.normalizedReligions?.length ? partner.normalizedReligions : [t('Unknown')]
+        return partner?.normalizedReligions?.length ? partner.normalizedReligions : [t('unknown_2')]
       })
     default:
       return null
@@ -556,9 +604,9 @@ function AllAnyNoneButton({
         {t(selected)}
       </Dropdown.Toggle>
       <Dropdown.Menu>
-        {canAll ? <Dropdown.Item onClick={() => onChange('all')}>{t('All of these')}</Dropdown.Item> : null}
-        <Dropdown.Item onClick={() => onChange('any')}>{t('Any of these')}</Dropdown.Item>
-        <Dropdown.Item onClick={() => onChange('none')}>{t('None of these')}</Dropdown.Item>
+        {canAll ? <Dropdown.Item onClick={() => onChange('all')}>{t('all_these')}</Dropdown.Item> : null}
+        <Dropdown.Item onClick={() => onChange('any')}>{t('any_these')}</Dropdown.Item>
+        <Dropdown.Item onClick={() => onChange('none')}>{t('none_these')}</Dropdown.Item>
       </Dropdown.Menu>
     </Dropdown>
   )
@@ -744,8 +792,8 @@ export function RangeExactControl({
         variant="outline-secondary"
         size="sm"
         onClick={openModal}
-        title={t('Set exact {label} minimum and maximum', { label: localizedLabel })}
-        aria-label={t('Set exact {label} minimum and maximum', { label: localizedLabel })}
+        title={t('set_exact_label_minimum_maximum', { label: localizedLabel })}
+        aria-label={t('set_exact_label_minimum_maximum', { label: localizedLabel })}
         style={{ flexShrink: 0, lineHeight: 1, padding: '2px 9px' }}
       >
         &hellip;
@@ -767,7 +815,7 @@ export function RangeExactControl({
               <span style={{ width: 36, fontWeight: 600 }}>{t(r.which)}</span>
               <Form.Check
                 type="checkbox"
-                label={t('not set')}
+                label={t('not_set')}
                 checked={r.unset}
                 onChange={(e) => r.setUnset(e.target.checked)}
               />
@@ -785,10 +833,10 @@ export function RangeExactControl({
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" size="sm" onClick={() => setShowModal(false)}>
-            {t('Cancel')}
+            {t('cancel')}
           </Button>
           <Button variant="primary" size="sm" onClick={applyModal}>
-            {t('Apply')}
+            {t('apply')}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -822,8 +870,8 @@ export function SliderRow({
   const aMin = cMin ?? oMin
   const aMax = cMax ?? oMax
 
-  const dMin = cMin === null || cMin === oMin ? t('Min') : String(cMin)
-  const dMax = cMax === null || cMax === oMax ? t('Max') : String(cMax)
+  const dMin = cMin === null || cMin === oMin ? t('min') : String(cMin)
+  const dMax = cMax === null || cMax === oMax ? t('max') : String(cMax)
 
   const handleChange = useCallback(
     (vals: number | number[]) => {
@@ -897,13 +945,19 @@ function LimitResultRow({
 }) {
   const { t } = useI18n()
   const v = value ?? { enabled: false, count: 1, limit_by: 'Partner' }
+  // `limit_by`'s VALUE ('Partner'/'Country'/'Sector'/'Activity') is persisted
+  // criteria data (see DEFAULT_SAVED_SEARCHES) and must stay exactly as-is;
+  // only its DISPLAY label is translated, via this fixed lookup.
+  const LIMIT_BY_LABEL_KEY: Record<string, string> = {
+    Partner: 'partner_2', Country: 'country_2', Sector: 'sector_2', Activity: 'activity_2',
+  }
 
   return (
     <Row className="mb-2">
       <Col md={3}>
         <Form.Check
           type="checkbox"
-          label={<strong>{t('Limit to top')}</strong>}
+          label={<strong>{t('limit_top')}</strong>}
           checked={!!v.enabled}
           onChange={(e) => onChange({ ...v, enabled: e.target.checked })}
         />
@@ -918,16 +972,16 @@ function LimitResultRow({
             disabled={!v.enabled}
             onChange={(e) => onChange({ ...v, count: parseInt(e.target.value) || 1 })}
           />
-          <span style={{ fontSize: 12 }}>{t('loans per')}</span>
+          <span style={{ fontSize: 12 }}>{t('loans_per')}</span>
           <div style={{ flex: 1 }}>
             <Select<SelectOption, false>
               options={[
-                { value: 'Partner', label: t('Partner') },
-                { value: 'Country', label: t('Country') },
-                { value: 'Sector', label: t('Sector') },
-                { value: 'Activity', label: t('Activity') },
+                { value: 'Partner', label: t('partner_2') },
+                { value: 'Country', label: t('country_2') },
+                { value: 'Sector', label: t('sector_2') },
+                { value: 'Activity', label: t('activity_2') },
               ]}
-              value={{ value: v.limit_by ?? 'Partner', label: t(v.limit_by ?? 'Partner') }}
+              value={{ value: v.limit_by ?? 'Partner', label: t(LIMIT_BY_LABEL_KEY[v.limit_by ?? 'Partner'] ?? 'partner_2') }}
               isDisabled={!v.enabled}
               isClearable={false}
               onChange={(opt) => onChange({ ...v, limit_by: opt?.value ?? 'Partner' })}
@@ -1077,7 +1131,7 @@ function BalancingRow({
       <Col md={9}>
         <Form.Check
           type="checkbox"
-          label={t('Enable filter')}
+          label={t('enable_filter')}
           checked={!!v.enabled}
           onChange={(e) => onChange({ ...v, enabled: e.target.checked })}
           className="mb-1"
@@ -1087,21 +1141,21 @@ function BalancingRow({
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
               <Dropdown>
                 <Dropdown.Toggle size="sm" variant="primary" id={`bal-hs-${name}`}>
-                  {t(v.hideshow === 'show' ? 'Show' : 'Hide')}
+                  {t(v.hideshow === 'show' ? 'show' : 'hide')}
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
-                  <Dropdown.Item onClick={() => onChange({ ...v, hideshow: 'show' })}>{t('Only Show')}</Dropdown.Item>
-                  <Dropdown.Item onClick={() => onChange({ ...v, hideshow: 'hide' })}>{t('Hide all')}</Dropdown.Item>
+                  <Dropdown.Item onClick={() => onChange({ ...v, hideshow: 'show' })}>{t('only_show')}</Dropdown.Item>
+                  <Dropdown.Item onClick={() => onChange({ ...v, hideshow: 'hide' })}>{t('hide_all')}</Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
-              <span>{t('{category} that have', { category: t(meta.label).toLocaleLowerCase() })}</span>
+              <span>{t('category_have', { category: t(meta.label).toLocaleLowerCase() })}</span>
               <Dropdown>
                 <Dropdown.Toggle size="sm" variant="primary" id={`bal-lg-${name}`}>
                   {v.ltgt === 'gt' ? '>' : '<'}
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
-                  <Dropdown.Item onClick={() => onChange({ ...v, ltgt: 'lt' })}>&lt; {t('Less than')}</Dropdown.Item>
-                  <Dropdown.Item onClick={() => onChange({ ...v, ltgt: 'gt' })}>&gt; {t('More than')}</Dropdown.Item>
+                  <Dropdown.Item onClick={() => onChange({ ...v, ltgt: 'lt' })}>&lt; {t('less_than')}</Dropdown.Item>
+                  <Dropdown.Item onClick={() => onChange({ ...v, ltgt: 'gt' })}>&gt; {t('more_than')}</Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
               <Form.Control
@@ -1111,24 +1165,24 @@ function BalancingRow({
                 value={v.percent ?? 0}
                 onChange={(e) => onChange({ ...v, percent: parseFloat(e.target.value) || 0 })}
               />
-              <span>{t('% of my')}</span>
+              <span>{t('percent_my')}</span>
               <Dropdown>
                 <Dropdown.Toggle size="sm" variant="primary" id={`bal-aa-${name}`}>
-                  {t(v.allactive === 'all' ? 'Total' : 'Active')}
+                  {t(v.allactive === 'all' ? 'total' : 'active')}
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
-                  <Dropdown.Item onClick={() => onChange({ ...v, allactive: 'active' })}>{t('Active Portfolio')}</Dropdown.Item>
-                  <Dropdown.Item onClick={() => onChange({ ...v, allactive: 'all' })}>{t('Total Portfolio')}</Dropdown.Item>
+                  <Dropdown.Item onClick={() => onChange({ ...v, allactive: 'active' })}>{t('active_portfolio')}</Dropdown.Item>
+                  <Dropdown.Item onClick={() => onChange({ ...v, allactive: 'all' })}>{t('total_portfolio')}</Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
             </div>
 
             <div className="mt-2">
-              {loading ? <Alert variant="info" className="py-1">{t('Loading data from Kiva…')}</Alert> : null}
+              {loading ? <Alert variant="info" className="py-1">{t('loading_data_kiva_ellipsis')}</Alert> : null}
               {!loading ? (
                 <div>
                   <span style={{ fontSize: 13 }}>
-                    {t('Matching: {count}. Loans from these {category} will be {visibility}.', {
+                    {t('matching_count_loans_these_category', {
                       count: slices.length,
                       category: t(meta.label).toLocaleLowerCase(),
                       visibility: t(v.hideshow === 'show' ? 'shown' : 'hidden'),
@@ -1146,7 +1200,7 @@ function BalancingRow({
                   ) : null}
                   {lastUpdated ? (
                     <p style={{ fontSize: 11, color: '#999' }}>
-                      {t('Last updated {time}', { time: date(Number(lastUpdated) * 1000, { dateStyle: 'medium', timeStyle: 'short' }) })}
+                      {t('last_updated_time', { time: date(Number(lastUpdated) * 1000, { dateStyle: 'medium', timeStyle: 'short' }) })}
                     </p>
                   ) : null}
                 </div>
@@ -1252,27 +1306,27 @@ function LoanCriteriaPanel({
     key: string; label: string; options: SelectOption[]; isMulti: boolean
     hasAan?: boolean; canAll?: boolean; helpText?: string; showDistribution?: boolean
   }> = [
-    { key: 'country_code', label: t('Countries'), options: discovered.country, isMulti: true, hasAan: true, showDistribution: true },
-    { key: 'sector', label: t('Sectors'), options: discovered.sector, isMulti: true, hasAan: true, showDistribution: true },
-    { key: 'activity', label: t('Activities'), options: discovered.activity, isMulti: true, hasAan: true, showDistribution: true },
-    { key: 'themes', label: t('Themes'), options: discovered.themes, isMulti: true, hasAan: true, canAll: true, showDistribution: true },
-    { key: 'tags', label: t('Tags'), options: discovered.tags, isMulti: true, hasAan: true, canAll: true, showDistribution: true },
-    { key: 'repayment_interval', label: t('Repayment Interval'), options: REPAYMENT_INTERVAL_OPTIONS, isMulti: true, showDistribution: true },
-    { key: 'currency_exchange_loss_liability', label: t('Currency Loss'), options: CURRENCY_LOSS_OPTIONS, isMulti: true, showDistribution: true },
-    { key: 'bonus_credit_eligibility', label: t('Bonus Credit'), options: BONUS_CREDIT_OPTIONS, isMulti: false, showDistribution: true },
-    { key: 'sort', label: t('Sort'), options: SORT_OPTIONS, isMulti: false },
+    { key: 'country_code', label: t('countries'), options: discovered.country, isMulti: true, hasAan: true, showDistribution: true },
+    { key: 'sector', label: t('sectors'), options: discovered.sector, isMulti: true, hasAan: true, showDistribution: true },
+    { key: 'activity', label: t('activities'), options: discovered.activity, isMulti: true, hasAan: true, showDistribution: true },
+    { key: 'themes', label: t('themes'), options: discovered.themes, isMulti: true, hasAan: true, canAll: true, showDistribution: true },
+    { key: 'tags', label: t('tags'), options: discovered.tags, isMulti: true, hasAan: true, canAll: true, showDistribution: true },
+    { key: 'repayment_interval', label: t('repayment_interval'), options: REPAYMENT_INTERVAL_OPTIONS, isMulti: true, showDistribution: true },
+    { key: 'currency_exchange_loss_liability', label: t('currency_loss_2'), options: CURRENCY_LOSS_OPTIONS, isMulti: true, showDistribution: true },
+    { key: 'bonus_credit_eligibility', label: t('bonus_credit_2'), options: BONUS_CREDIT_OPTIONS, isMulti: false, showDistribution: true },
+    { key: 'sort', label: t('sort'), options: SORT_OPTIONS, isMulti: false },
   ]
 
   return (
     <>
       <InputRow
-        label={t('Use or Description')}
+        label={t('use_description')}
         value={String(loan['use'] ?? '')}
         onChange={(val) => onUpdate('loan', 'use', val)}
-        placeholder={locale !== 'en' ? t('Search in English') : undefined}
+        placeholder={locale !== 'en' ? t('search_english') : undefined}
       />
       <InputRow
-        label={t('Name')}
+        label={t('name')}
         value={String(loan['name'] ?? '')}
         onChange={(val) => onUpdate('loan', 'name', val)}
       />
@@ -1449,14 +1503,14 @@ function PortfolioCriteriaPanel({
               showLenderIDModal()
             }}
           >
-            {t('Set your Lender ID')}
+            {t('set_lender_id_2')}
           </a>{' '}
-          {t("to use these. Without it, KivaLens doesn't know which loans you've funded, so “Exclude My Loans” and Portfolio Balancing have no effect.")}
+          {t('lender_id_required_notice')}
         </Alert>
       )}
       <PortfolioLoansLoadingNotice />
       <SelectRow
-        label={t('Exclude My Loans')}
+        label={t('exclude_my_loans')}
         options={EXCLUDE_PORTFOLIO_OPTIONS}
         isMulti={false}
         value={portfolio['exclude_portfolio_loans']}
@@ -1464,9 +1518,9 @@ function PortfolioCriteriaPanel({
       />
 
       <Card className="mt-3">
-        <Card.Header>{t('Portfolio Balancing')}</Card.Header>
+        <Card.Header>{t('portfolio_balancing')}</Card.Header>
         <Card.Body>
-          <p style={{ fontSize: 13 }}>{t('Balance your lending across partners, countries, sectors, and activities. Diversify to reduce risk or find new areas to lend in.')}</p>
+          <p style={{ fontSize: 13 }}>{t('balance_lending_across_partners')}</p>
 
           {Object.entries(BALANCER_OPTIONS).map(([key, meta]) => (
             <BalancingRow
@@ -1528,21 +1582,21 @@ function RSSPanel({ criteria }: { criteria: Criteria }) {
     <Row className="ample-padding-top">
       <Col lg={12}>
         <p>
-          {t('An RSS feed lets you follow matching loans in a feed reader, browser extension, or an automation service such as')}{' '}
+          {t('rss_feed_lets_follow_matching')}{' '}
           <NewTabLink href="http://www.ifttt.com">IFTTT (If This Then That)</NewTabLink>.{' '}
-          {t('You can create as many feeds as you want and use new feed items to trigger email, SMS, smart-home, and other actions.')}{' '}
+          {t('create_many_feeds_want_use')}{' '}
           <NewTabLink href="https://ifttt.com/recipes/147561-rss-feed-to-email">
-            {t('Create an IFTTT recipe to email you when loans match your criteria')}
+            {t('create_ifttt_recipe_email_when')}
           </NewTabLink>.
         </p>
         <p>
-          {t('The feed shows the first 100 matching loans. Portfolio features are supported when you set your Kiva Lender ID and enable “Include my portfolio” below.')}
+          {t('feed_shows_first_100_matching')}
         </p>
         <Card>
-          <Card.Header>{t('RSS Feed Details')}</Card.Header>
+          <Card.Header>{t('rss_feed_details')}</Card.Header>
           <Card.Body>
             <Form.Group>
-              <Form.Label>{t('Name (this will appear in your RSS feed reader)')}</Form.Label>
+              <Form.Label>{t('name_appear_rss_feed_reader')}</Form.Label>
               <Form.Control
                 type="text"
                 style={{ height: 38, minWidth: 50 }}
@@ -1551,7 +1605,7 @@ function RSSPanel({ criteria }: { criteria: Criteria }) {
               />
             </Form.Group>
             <Form.Group>
-              <Form.Label>{t('Links in RSS go to')}</Form.Label>
+              <Form.Label>{t('links_rss_go')}</Form.Label>
               <Form.Select value={rssLinkTo} onChange={(e) => setRssLinkTo(e.target.value)}>
                 <option value="kiva">Kiva</option>
                 <option value="kivalens">KivaLens</option>
@@ -1561,38 +1615,38 @@ function RSSPanel({ criteria }: { criteria: Criteria }) {
               <Form.Check
                 type="checkbox"
                 id="rss-include-portfolio"
-                label={t("Include my portfolio (balancing + exclude loans I've already funded)")}
+                label={t('include_my_portfolio_balancing_exclude')}
                 checked={includePortfolio && !!lenderId}
                 disabled={!lenderId}
                 onChange={(e) => setIncludePortfolio(e.target.checked)}
               />
               {!lenderId && (
                 <Form.Text className="text-muted">
-                  {t('Set your Kiva Lender ID to enable portfolio-aware feeds.')}
+                  {t('set_kiva_lender_id_enable')}
                 </Form.Text>
               )}
             </Form.Group>
           </Card.Body>
         </Card>
         <Card>
-          <Card.Header>{t('Your Settings')}</Card.Header>
+          <Card.Header>{t('settings')}</Card.Header>
           <Card.Body>
             <p>
-              {t('These are the criteria options that will be used to generate your feed.')}
+              {t('these_criteria_options_used_generate')}
               {includePortfolio && lenderId
-                ? ` ${t('Your portfolio settings are included.')}`
-                : ` ${t('Anything related to your portfolio has been removed.')}`}
+                ? ` ${t('portfolio_settings_included')}`
+                : ` ${t('anything_related_portfolio_has_been')}`}
             </p>
             <pre>{JSON.stringify(critRSS, null, 2)}</pre>
           </Card.Body>
         </Card>
         <Card>
-          <Card.Header>{t('RSS Link')}</Card.Header>
+          <Card.Header>{t('rss_link')}</Card.Header>
           <Card.Body>
             <p>
-              {t('Copy this entire URL into your RSS reader, or use')}{' '}
+              {t('rss_url_copy_hint')}{' '}
               <NewTabLink href="http://www.ifttt.com">IFTTT</NewTabLink>{' '}
-              {t('to trigger an email, SMS, or another action when a matching loan appears.')}
+              {t('rss_trigger_description')}
             </p>
             <textarea
               style={{ width: '100%', height: 150 }}
@@ -1786,7 +1840,7 @@ export function CriteriaTabs() {
         }}
         className="mb-2"
       >
-        <Tab eventKey="borrower" title={t('Borrower')}>
+        <Tab eventKey="borrower" title={t('borrower')}>
           <div className="pt-2">
             <LoanCriteriaPanel
               criteria={criteria}
@@ -1801,7 +1855,7 @@ export function CriteriaTabs() {
           </div>
         </Tab>
 
-        <Tab eventKey="partner" title={t('Partner')}>
+        <Tab eventKey="partner" title={t('partner_2')}>
           <div className="pt-2">
             <PartnerCriteriaPanel
               criteria={criteria}
@@ -1816,13 +1870,13 @@ export function CriteriaTabs() {
           </div>
         </Tab>
 
-        <Tab eventKey="portfolio" title={t('Your Portfolio')}>
+        <Tab eventKey="portfolio" title={t('portfolio_2')}>
           <div className="pt-2">
             <PortfolioCriteriaPanel criteria={criteria} onUpdate={handleUpdate} />
           </div>
         </Tab>
 
-        <Tab eventKey="rss" title={t('RSS')}>
+        <Tab eventKey="rss" title={t('rss')}>
           <div className="pt-2">
             <RSSPanel criteria={criteria} />
           </div>

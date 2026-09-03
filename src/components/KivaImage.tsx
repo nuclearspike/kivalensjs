@@ -74,7 +74,7 @@ export default function KivaImage({
 
   return (
     <div className={cx('KivaImage', { loaded, not_loaded: !loaded })} style={style}>
-      {!loaded && <div className="loading_notice">{t('Larger version loading…')}</div>}
+      {!loaded && <div className="loading_notice">{t('larger_version_loading_ellipsis')}</div>}
       <img
         width={width ?? image_width}
         height={height}
@@ -83,7 +83,7 @@ export default function KivaImage({
         src={imageUrl}
         onClick={enlargeable ? () => setZoom(true) : undefined}
         style={enlargeable ? { cursor: 'zoom-in' } : undefined}
-        title={enlargeable ? t('Click to enlarge') : undefined}
+        title={enlargeable ? t('click_enlarge') : undefined}
       />
 
       {enlargeable &&
@@ -92,7 +92,7 @@ export default function KivaImage({
           <div
             role="dialog"
             aria-modal="true"
-            aria-label={altText || t('Borrower photo')}
+            aria-label={altText || t('borrower_photo')}
             onClick={() => setZoom(false)}
             style={{
               position: 'fixed',
@@ -121,7 +121,7 @@ export default function KivaImage({
             />
             <button
               type="button"
-              aria-label={t('Close')}
+              aria-label={t('close')}
               onClick={() => setZoom(false)}
               style={{
                 position: 'fixed',

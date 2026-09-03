@@ -78,7 +78,7 @@ function BasketRepaymentChart({ entries }: { entries: BasketEntry[] }) {
         <div className="card mb-3">
           <div className="card-body">
             <div className="alert alert-info mb-0">
-              {t('Repayment schedule data is not yet available for the loans in your basket.')}
+              {t('repayment_schedule_data_not_yet')}
             </div>
           </div>
         </div>
@@ -94,10 +94,10 @@ function BasketRepaymentChart({ entries }: { entries: BasketEntry[] }) {
   return (
     <div className="card mb-3">
       <div className="card-body p-2">
-        <h4>{t('Repayments')}: {t('{count} months', { count: data.length })}</h4>
+        <h4>{t('repayments')}: {t('count_months', { count: data.length })}</h4>
         {skippedCount > 0 ? (
           <div className="alert alert-warning py-1 mb-2">
-            {t('Repayment data unavailable for {skipped} of {total} loans.', {
+            {t('repayment_data_unavailable_skipped_total', {
               skipped: skippedCount,
               total: entries.length,
             })}
@@ -144,7 +144,7 @@ function BasketRepaymentChart({ entries }: { entries: BasketEntry[] }) {
               xAxisId="amount"
               dataKey="amount"
               fill="#e8871a"
-              name={t('Monthly Repayment')}
+              name={t('monthly_repayment')}
               isAnimationActive={false}
             />
             <Area
@@ -152,7 +152,7 @@ function BasketRepaymentChart({ entries }: { entries: BasketEntry[] }) {
               dataKey="cumulativeAmount"
               stroke="#2C8C5E"
               fill="rgba(44, 140, 94, 0.15)"
-              name={t('Cumulative')}
+              name={t('cumulative')}
               isAnimationActive={false}
             />
           </ComposedChart>
@@ -244,24 +244,24 @@ export default function Basket() {
       const remaining = pending.ids.filter((id) => !confirmed.includes(id))
       if (remaining.length === 0) {
         setBasketNotice(
-          t('{count} loans confirmed on Kiva and removed from your basket.', { count: confirmed.length }),
+          t('count_loans_confirmed_kiva_removed', { count: confirmed.length }),
         )
         clearPendingCheckout()
       } else {
         // Clear pending before awaiting the dialog so re-entry can't double-prompt.
         clearPendingCheckout()
         const message = confirmed.length
-          ? t('Confirmed {confirmed} of {total} loans on your Kiva account. Did your checkout complete for the rest?', { confirmed: confirmed.length, total: pending.ids.length })
-          : t('Did your Kiva checkout complete?')
+          ? t('confirmed_confirmed_total_loans_kiva', { confirmed: confirmed.length, total: pending.ids.length })
+          : t('did_kiva_checkout_complete')
         const ok = await showConfirm(message, {
-          title: t('Confirm your lending'),
-          confirmLabel: t('Yes, remove them'),
-          cancelLabel: t('Not yet, keep them'),
+          title: t('confirm_lending'),
+          confirmLabel: t('yes_remove_them'),
+          cancelLabel: t('not_yet_keep_them'),
         })
         if (ok) {
           batchRemoveFromBasket(remaining)
           setBasketNotice(
-            t('{count} loans removed from your basket after checkout.', { count: remaining.length }),
+            t('count_loans_removed_basket_after', { count: remaining.length }),
           )
         }
       }
@@ -323,9 +323,9 @@ export default function Basket() {
   }, [basketEntries])
 
   const handleClear = async () => {
-    const ok = await showConfirm(t('Are you sure you want to empty your basket?'), {
-      title: t('Empty Basket'),
-      confirmLabel: t('Empty Basket'),
+    const ok = await showConfirm(t('sure_want_empty_basket'), {
+      title: t('empty_basket'),
+      confirmLabel: t('empty_basket'),
       danger: true,
     })
     if (ok) {
@@ -379,7 +379,7 @@ export default function Basket() {
       <div className="col-md-3 d-flex flex-column">
         <ButtonGroup className="top-only d-flex" style={{ marginBottom: 0 }}>
           <Button className="w-50" disabled={basketCount === 0} onClick={handleClear}>
-            {t('Empty Basket')}
+            {t('empty_basket')}
           </Button>
           <Button
             className="w-50"
@@ -391,24 +391,24 @@ export default function Basket() {
               }
             }}
           >
-            {t('Remove Selected')}
+            {t('remove_selected')}
           </Button>
         </ButtonGroup>
 
         {basketCount === 0 ? (
           <div className="alert alert-info mt-2">
-            {t('There are no loans in your basket.')} {t('To add loans:')}
+            {t('there_no_loans_basket')} {t('add_loans')}
             <ul className="mb-0 mt-1">
-              <li>{t('Click the “Lend” button when viewing a loan.')}</li>
-              <li>{t('Double-click a loan in the results.')}</li>
-              <li>{t('Use the “Bulk Add” button to add many loans at once.')}</li>
+              <li>{t('click_lend_button_when_viewing')}</li>
+              <li>{t('double_click_loan_results')}</li>
+              <li>{t('use_bulk_add_button_add')}</li>
             </ul>
           </div>
         ) : null}
 
         {rawBasketCount > 0 && basketCount === 0 && downloading ? (
           <div className="alert alert-warning mt-2">
-            {t('Loans in your basket are being restored. Please wait while loan data finishes loading.')}
+            {t('loans_basket_being_restored_please')}
           </div>
         ) : null}
 
@@ -435,7 +435,7 @@ export default function Basket() {
             <button
               type="button"
               className="btn-close ms-2"
-              aria-label={t('Dismiss')}
+              aria-label={t('dismiss')}
               onClick={() => setBasketNotice(null)}
             />
           </div>
@@ -443,7 +443,7 @@ export default function Basket() {
         <div className="card mb-3">
           <div className="card-body">
             <h3 style={{ margin: '0 0 8px' }}>
-              {t('Basket: {count} loans ${amount}', { count: basketCount, amount: amountSum })}
+              {t('basket_count_loans_dollar_amount', { count: basketCount, amount: amountSum })}
             </h3>
             <form
               id="kiva-basket-form"
@@ -461,7 +461,7 @@ export default function Basket() {
               disabled={basketCount === 0}
               onClick={handleCheckout}
             >
-              {t('Checkout at Kiva')}
+              {t('checkout_kiva')}
             </button>
           </div>
         </div>
@@ -487,17 +487,17 @@ export default function Basket() {
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">{t('Transferring Basket to Kiva')}</h5>
+                <h5 className="modal-title">{t('transferring_basket_kiva')}</h5>
                 <button
                   type="button"
                   className="btn-close"
-                  aria-label={t('Close')}
+                  aria-label={t('close')}
                   onClick={() => setShowTransfer(false)}
                 />
               </div>
               <div className="modal-body">
                 <p>
-                  {t('Depending on the number of loans in your basket, transferring your selection to Kiva may take some time. Please wait.')}
+                  {t('depending_number_loans_basket')}
                 </p>
               </div>
               <div className="modal-footer">

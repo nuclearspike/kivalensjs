@@ -25,8 +25,7 @@ function newClientId(): string {
 // chart; real charts come through render_chart). Strip them defensively.
 const MD_COMPONENTS = { img: () => null }
 
-const GREETING =
-  "Hi! I'm the KivaLens assistant. Tell me what kind of loans you'd like to fund — a sector, a country, a cause, a type of borrower — and I'll build the search for you."
+const GREETING = 'ai_chat_greeting'
 
 const CHAT_KEY = 'AskKivaLensChat'
 
@@ -490,23 +489,23 @@ export default function AskKivaLens() {
   return (
     <div className="ask-kl" ref={rootRef}>
       {!open && (
-        <button type="button" className="ask-kl-chip" aria-label={t('Open the KivaLens AI assistant')} onClick={() => openAskKl()}>
+        <button type="button" className="ask-kl-chip" aria-label={t('open_kivalens_ai_assistant')} onClick={() => openAskKl()}>
           <Eyes />
-          <span>{t('Ask KivaLens')}</span>
+          <span>{t('ask_kivalens')}</span>
         </button>
       )}
       {open && (
-        <div className="ask-kl-panel" role="dialog" aria-label={t('KivaLens AI assistant')}>
+        <div className="ask-kl-panel" role="dialog" aria-label={t('kivalens_ai_assistant')}>
           <div
             className="ask-kl-header"
             onClick={() => closeAskKl()}
-            title={t('Click to minimize')}
+            title={t('click_minimize')}
           >
             <Eyes />
-            <strong className="ask-kl-title">{t('Ask KivaLens')}</strong>
+            <strong className="ask-kl-title">{t('ask_kivalens')}</strong>
             <span className="ask-kl-beta">{t('beta')}</span>
-            <span className="ask-kl-badge">{t('AI')}</span>
-            <button type="button" className="ask-kl-close" aria-label={t('Minimize')} onClick={() => closeAskKl()}>
+            <span className="ask-kl-badge">{t('ai')}</span>
+            <button type="button" className="ask-kl-close" aria-label={t('minimize')} onClick={() => closeAskKl()}>
               ×
             </button>
           </div>
@@ -532,7 +531,7 @@ export default function AskKivaLens() {
                 <ReactMarkdown components={MD_COMPONENTS}>{streaming}</ReactMarkdown>
               </div>
             )}
-            {loading && !streaming && <Ellipses label={t('KivaLens AI is thinking')} />}
+            {loading && !streaming && <Ellipses label={t('kivalens_ai_thinking')} />}
           </div>
           <form
             className="ask-kl-foot"
@@ -545,16 +544,16 @@ export default function AskKivaLens() {
               ref={inputRef}
               type="text"
               value={input}
-              placeholder={t('Ask about finding loans…')}
-              aria-label={t('Message the KivaLens assistant')}
+              placeholder={t('ask_about_finding_loans_ellipsis')}
+              aria-label={t('message_kivalens_assistant')}
               onChange={(e) => setInput(e.target.value)}
             />
             {loading ? (
-              <button type="button" className="ask-kl-send" aria-label={t('Stop')} onClick={stopStream}>
+              <button type="button" className="ask-kl-send" aria-label={t('stop')} onClick={stopStream}>
                 ■
               </button>
             ) : (
-              <button type="submit" className="ask-kl-send" aria-label={t('Send')}>
+              <button type="submit" className="ask-kl-send" aria-label={t('send')}>
                 ↑
               </button>
             )}
@@ -577,10 +576,10 @@ export default function AskKivaLens() {
                 whiteSpace: 'nowrap',
               }}
             >
-              ↺ {t('Reset chat')}
+              ↺ {t('reset_chat')}
             </button>
             <span>
-              {t('Chats are logged')} · <a href="#/privacy">{t('Privacy')}</a>
+              {t('chats_logged')} · <a href="#/privacy">{t('privacy')}</a>
             </span>
           </div>
         </div>

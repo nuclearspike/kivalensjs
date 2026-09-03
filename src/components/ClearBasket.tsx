@@ -24,5 +24,5 @@ export default function ClearBasket() {
     navigate('/basket', { replace: true })
   }, [navigate])
 
-  return <div><span>{t('One moment…')}</span></div>
+  return <div><span>{t('one_moment_ellipsis')}</span></div>
 }

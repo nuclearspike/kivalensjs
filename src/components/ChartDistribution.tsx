@@ -143,13 +143,13 @@ export function ChartDistributionTriple({
   return (
     <div className="row d-none d-md-flex">
       <div className="col-md-4">
-        <ChartDistribution loans={loans} groupBy="country" mode={mode} height={height} title={t('Countries')} />
+        <ChartDistribution loans={loans} groupBy="country" mode={mode} height={height} title={t('countries')} />
       </div>
       <div className="col-md-4">
-        <ChartDistribution loans={loans} groupBy="sector" mode={mode} height={height} title={t('Sectors')} />
+        <ChartDistribution loans={loans} groupBy="sector" mode={mode} height={height} title={t('sectors')} />
       </div>
       <div className="col-md-4">
-        <ChartDistribution loans={loans} groupBy="activity" mode={mode} height={height} title={t('Activities')} />
+        <ChartDistribution loans={loans} groupBy="activity" mode={mode} height={height} title={t('activities')} />
       </div>
     </div>
   )

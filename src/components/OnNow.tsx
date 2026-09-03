@@ -42,7 +42,7 @@ export default function OnNow() {
       <Row className="mb-3">
         <Col md={3}>
           <Form.Group>
-            <Form.Label>{t('Key')}</Form.Label>
+            <Form.Label>{t('key')}</Form.Label>
             <Form.Control
               type="text"
               value={key}
@@ -50,10 +50,10 @@ export default function OnNow() {
             />
           </Form.Group>
           <Button variant="primary" className="mt-2" onClick={refresh}>
-            {t('Go')}
+            {t('go')}
           </Button>
         </Col>
-        <Col>{noResult && <span>{t('Invalid key')}</span>}</Col>
+        <Col>{noResult && <span>{t('invalid_key')}</span>}</Col>
       </Row>
       <Row>
         {onNow.map((onL) => (
@@ -64,7 +64,7 @@ export default function OnNow() {
               alt={onL.lender_id}
             />
             <dl className="row mt-2">
-              <dt className="col-4">{t('Lender')}</dt>
+              <dt className="col-4">{t('lender')}</dt>
               <dd className="col-8">
                 <a
                   href={`https://www.kiva.org/lender/${onL.lender_id}`}
@@ -74,17 +74,17 @@ export default function OnNow() {
                   {onL.lender_id}
                 </a>
               </dd>
-              <dt className="col-4">{t('Install')}</dt>
+              <dt className="col-4">{t('install')}</dt>
               <dd className="col-8">{onL.install}</dd>
-              <dt className="col-4">{t('Uptime')}</dt>
+              <dt className="col-4">{t('uptime')}</dt>
               <dd className="col-8">{onL.uptime}</dd>
-              <dt className="col-4">{t('Name')}</dt>
+              <dt className="col-4">{t('name')}</dt>
               <dd className="col-8">{onL.lender?.name ?? ''}</dd>
-              <dt className="col-4">{t('Since')}</dt>
+              <dt className="col-4">{t('since')}</dt>
               <dd className="col-8">{onL.lender?.member_since ?? ''}</dd>
-              <dt className="col-4">{t('Location')}</dt>
+              <dt className="col-4">{t('location')}</dt>
               <dd className="col-8">{onL.lender?.whereabouts ?? ''}</dd>
-              <dt className="col-4">{t('Loans')}</dt>
+              <dt className="col-4">{t('loans')}</dt>
               <dd className="col-8">{onL.lender?.loan_count ?? ''}</dd>
             </dl>
           </Col>
@@ -92,7 +92,7 @@ export default function OnNow() {
       </Row>
       {on24Count > 0 && (
         <Row>
-          <Col>{t('Online in the last 24 hours: {count}', { count: on24Count })}</Col>
+          <Col>{t('online_last_24_hours_count', { count: on24Count })}</Col>
         </Row>
       )}
     </Container>

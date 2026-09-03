@@ -65,7 +65,7 @@ export default function BasketListItem({ entry, onSelect, selected }: BasketList
           </select>
         ) : (
           <span style={{ fontSize: 11, color: '#c0392b', fontWeight: 600 }}>
-            {t('Fully funded — will be removed on checkout')}
+            {t('fully_funded_removed_checkout')}
           </span>
         )}
       </div>

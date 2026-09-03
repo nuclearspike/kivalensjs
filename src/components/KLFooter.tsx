@@ -8,9 +8,9 @@ export default function KLFooter() {
     <Container>
       <Row style={{ paddingTop: 20, paddingBottom: 50 }}>
         <Col md={12} className="pt-4 text-center">
-          &copy;{new Date().getFullYear()} {t('KivaLens is not supported by Kiva.org. See')}{' '}
-          <Link to="/about">{t('About')}</Link> {t('for contact information')} ·{' '}
-          <Link to="/privacy">{t('Privacy')}</Link>
+          &copy;{new Date().getFullYear()} {t('kivalens_not_supported_kiva_org')}{' '}
+          <Link to="/about">{t('about')}</Link> {t('contact_information')} ·{' '}
+          <Link to="/privacy">{t('privacy')}</Link>
         </Col>
       </Row>
     </Container>

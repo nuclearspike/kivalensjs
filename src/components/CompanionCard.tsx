@@ -38,40 +38,40 @@ export default function CompanionCard() {
 
   return (
     <Card className="mb-3">
-      <Card.Header>{t('KivaLens Companion (browser extension)')}</Card.Header>
+      <Card.Header>{t('kivalens_companion_browser_extension')}</Card.Header>
       <Card.Body>
         <p>
-          {t('The optional KivaLens Companion browser extension securely connects KivaLens to your logged-in Kiva account, so KivaLens can read your exact portfolio, account balances, saved searches, and Auto-Lending settings. Your Kiva login and access token never leave your browser — KivaLens only receives the resulting data.')}
+          {t('optional_kivalens_companion_browser')}
         </p>
 
-        {available === null ? <p style={muted}>{t('Checking for the extension…')}</p> : null}
+        {available === null ? <p style={muted}>{t('checking_extension_ellipsis')}</p> : null}
 
         {available === true ? (
           <Alert variant="success">
-            {t('Connected')}{version ? ` (v${version})` : ''}.{' '}
+            {t('connected')}{version ? ` (v${version})` : ''}.{' '}
             {hasToken
-              ? t('Authenticated with your Kiva session.')
-              : t('Open kiva.org in another tab and log in to authenticate.')}
+              ? t('authenticated_kiva_session')
+              : t('open_kiva_org_another_tab')}
           </Alert>
         ) : null}
 
         {available === false ? (
           <Alert variant="secondary">
-            {t('Not detected. Install the KivaLens Companion extension to enable these features.')}
+            {t('not_detected_install_kivalens_companion')}
           </Alert>
         ) : null}
 
         <p style={{ marginTop: 12, marginBottom: 4 }}>
-          <b>{t('What it unlocks:')}</b>
+          <b>{t('what_unlocks')}</b>
         </p>
         <ul className="spacedList">
-          <li>{t('Exact portfolio breakdowns by country, sector, partner, and gender (instead of estimates).')}</li>
-          <li>{t('Your real account ledger — deposits, donations, repayments, currency, and default losses.')}</li>
-          <li>{t('Auto-detect your Lender ID and, coming soon, synchronize saved searches and Auto-Lending settings.')}</li>
+          <li>{t('exact_portfolio_breakdowns_country')}</li>
+          <li>{t('real_account_ledger_deposits_donations')}</li>
+          <li>{t('auto_detect_lender_id_coming_soon')}</li>
         </ul>
 
         <Button variant="link" size="sm" onClick={() => void refresh()} disabled={busy}>
-          {busy ? t('Checking…') : t('Refresh')}
+          {busy ? t('checking_ellipsis') : t('refresh')}
         </Button>
       </Card.Body>
     </Card>

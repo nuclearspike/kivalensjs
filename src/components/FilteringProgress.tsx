@@ -7,9 +7,9 @@ import {
 } from '../lib/filterReadiness'
 
 const REASON_LABELS: Record<FilterReadinessReason, string> = {
-  'existing-loans': 'your existing loans',
-  'loan-descriptions': 'loan descriptions',
-  'portfolio-balancing': 'portfolio balancing data',
+  'existing-loans': 'existing_loans',
+  'loan-descriptions': 'loan_descriptions',
+  'portfolio-balancing': 'portfolio_balancing_data',
 }
 
 /**
@@ -35,10 +35,10 @@ export default function FilteringProgress() {
       className="not-rounded"
       style={{ marginBottom: 0 }}
     >
-      <strong>{t('Finishing your loan filters…')}</strong>
+      <strong>{t('finishing_loan_filters_ellipsis')}</strong>
       <div style={{ fontSize: 13 }}>
         {t(
-          'Results may change while {dependencies} finish loading. Wait before adding loans to your basket.',
+          'results_may_change_while_dependencies',
           { dependencies },
         )}
       </div>
@@ -47,7 +47,7 @@ export default function FilteringProgress() {
         variant="warning"
         striped
         animated
-        label={t('Filtering…')}
+        label={t('filtering_ellipsis')}
         className="mt-2"
       />
     </Alert>
@@ -63,7 +63,7 @@ export function PortfolioLoansLoadingNotice() {
 
   return (
     <Alert variant="info" role="status" aria-live="polite" className="py-2" style={{ fontSize: 13 }}>
-      {t('Your existing loans are still downloading. Portfolio filters will update when the download finishes.')}
+      {t('existing_loans_still_downloading')}
     </Alert>
   )
 }

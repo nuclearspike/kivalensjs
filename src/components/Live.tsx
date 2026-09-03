@@ -58,45 +58,45 @@ export default function Live() {
     <Container className="py-3">
       <YourLending />
       <Row>
-        <h1>{t('Kiva Lending')}</h1>
+        <h1>{t('kiva_lending')}</h1>
         <p>
-          {startupTime ? `${t('Session started {time}.', { time: relativeTime(startupTime) })} ` : null}
-          {t("Stats are updated from periodic syncs with Kiva's API.")}
+          {startupTime ? `${t('session_started_time', { time: relativeTime(startupTime) })} ` : null}
+          {t('stats_updated_periodic_syncs_kivas')}
         </p>
       </Row>
       <Row>
         <Col md={4}>
-          <h3>{t('Since session start')}</h3>
+          <h3>{t('since_session_start')}</h3>
           <dl className="dl-horizontal" style={{ fontSize: 'large' }}>
-            <dt>{t('New Loans')}</dt>
+            <dt>{t('new_loans')}</dt>
             <dd><AnimInt value={totals.new_loans} /></dd>
 
-            <dt>{t('Fully Funded')}</dt>
+            <dt>{t('fully_funded')}</dt>
             <dd><AnimInt value={totals.funded_loans} /></dd>
 
-            <dt>{t('Expired')}</dt>
+            <dt>{t('expired')}</dt>
             <dd><AnimInt value={totals.expired_loans} /></dd>
 
-            <dt>{t('Lending Total')}</dt>
+            <dt>{t('lending_total')}</dt>
             <dd>$<AnimInt value={totals.funded_amount} /></dd>
           </dl>
         </Col>
         <Col md={4}>
-          <h3>{t('Fundraising Loans')}</h3>
+          <h3>{t('fundraising_loans')}</h3>
           <dl className="dl-horizontal" style={{ fontSize: 'large' }}>
-            <dt>{t('Fundraising')}</dt>
+            <dt>{t('fundraising')}</dt>
             <dd>$<AnimInt value={fundraisingAmount} /></dd>
 
-            <dt>{t('Funded Amount')}</dt>
+            <dt>{t('funded_amount')}</dt>
             <dd>$<AnimInt value={fundedSum} /></dd>
 
-            <dt>{t('In Baskets')}</dt>
+            <dt>{t('baskets')}</dt>
             <dd>$<AnimInt value={basketAmount} /></dd>
 
-            <dt>{t('Still Needed')}</dt>
+            <dt>{t('still_needed')}</dt>
             <dd>$<AnimInt value={stillNeeded} /></dd>
 
-            <dt>{t('Average Funded')}</dt>
+            <dt>{t('average_funded')}</dt>
             <dd><AnimInt value={avgPercentFunded} />%</dd>
           </dl>
         </Col>

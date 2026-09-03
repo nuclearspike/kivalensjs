@@ -96,7 +96,7 @@ export default function Teams() {
         setTeams(loadedTeams as Team[])
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : t('Failed to load your teams.'))
+        setError(err instanceof Error ? err.message : t('failed_load_teams'))
       })
       .finally(() => {
         setLoadingTeams(false)
@@ -143,7 +143,7 @@ export default function Teams() {
         })
         .catch((err) => {
           // Scope graph-fetch failures to the chart pane; never unmount the page.
-          setGraphError(err instanceof Error ? err.message : t('Failed to load team graph data.'))
+          setGraphError(err instanceof Error ? err.message : t('failed_load_team_graph_data'))
         })
         .finally(() => {
           inFlight.current.delete(flightKey)
@@ -194,7 +194,7 @@ export default function Teams() {
     return (
       <Container className="py-3">
         <Alert variant="danger">
-           {t('Please')}{' '}
+           {t('please')}{' '}
           <a
             href="#"
             className="alert-link"
@@ -204,9 +204,9 @@ export default function Teams() {
               showLenderIDModal()
             }}
           >
-             {t('set your Kiva Lender ID')}
+             {t('set_kiva_lender_id_2')}
           </a>{' '}
-           {t('to use this feature.')}
+           {t('use_feature')}
         </Alert>
       </Container>
     )
@@ -222,17 +222,17 @@ export default function Teams() {
 
   return (
     <Container className="py-3">
-      <h1>{t('Compare Teams')}</h1>
-      <p>{t('Select the teams to compare and graphs will appear.')}</p>
+      <h1>{t('compare_teams')}</h1>
+      <p>{t('select_teams_compare_graphs_appear')}</p>
       <Row>
         <Col sm={4}>
           <Card className="mb-3">
-            <Card.Header>{t('Compare')}</Card.Header>
+            <Card.Header>{t('compare')}</Card.Header>
             <Card.Body>
               <Form.Check
                 type="radio"
                 name="graph_type"
-                label={t('Membership')}
+                label={t('membership')}
                 value="team_new_users"
                 checked={graphType === 'team_new_users'}
                 onChange={() => setGraphType('team_new_users')}
@@ -240,7 +240,7 @@ export default function Teams() {
               <Form.Check
                 type="radio"
                 name="graph_type"
-                label={t('Loan Count')}
+                label={t('loan_count')}
                 value="team_loan_count"
                 checked={graphType === 'team_loan_count'}
                 onChange={() => setGraphType('team_loan_count')}
@@ -250,13 +250,13 @@ export default function Teams() {
 
           <Card>
             <Card.Header>
-               {t('Your Teams')}
-              {querying > 0 ? ` — ${t('Waiting on {count} results…', { count: querying })}` : ''}
-              {!querying && loadingTeams ? ` — ${t('Loading teams…')}` : ''}
+               {t('teams_2')}
+              {querying > 0 ? ` — ${t('waiting_count_results_ellipsis', { count: querying })}` : ''}
+              {!querying && loadingTeams ? ` — ${t('loading_teams_ellipsis')}` : ''}
             </Card.Header>
             <Card.Body>
               {teams.length === 0 && !loadingTeams && (
-                <p className="text-muted">{t('No teams loaded yet.')}</p>
+                <p className="text-muted">{t('no_teams_loaded_yet')}</p>
               )}
               <ul className="list-unstyled">
                 {teams.map((team) => (
@@ -313,9 +313,9 @@ export default function Teams() {
               </ResponsiveContainer>
             </div>
           ) : checkedTeamIds.size > 0 ? (
-            <p className="text-muted">{t('Loading chart data for the selected teams…')}</p>
+            <p className="text-muted">{t('loading_chart_data_selected_teams')}</p>
           ) : (
-            <p className="text-muted">{t('Select teams on the left to see comparison charts.')}</p>
+            <p className="text-muted">{t('select_teams_left_see_comparison')}</p>
           )}
         </Col>
       </Row>

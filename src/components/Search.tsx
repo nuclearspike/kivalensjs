@@ -104,28 +104,28 @@ export function Search() {
           <FilteringProgress />
           <ButtonGroup className="top-only d-flex" style={{ marginBottom: 0 }}>
             <Button onClick={toggleCriteria} className="w-50">
-              {t(showCriteria ? 'Hide Criteria' : 'Show Criteria')}
+              {t(showCriteria ? 'hide_criteria' : 'show_criteria')}
             </Button>
             <Button onClick={openBulkAdd} className="w-50" data-aikl="bulk-add">
-              {t('Bulk Add')}
+              {t('bulk_add')}
             </Button>
           </ButtonGroup>
 
           {secondaryStatus ? (
             <Alert variant="warning" className="not-rounded" style={{ marginBottom: 0 }}>
-              {t('More loans are still loading. Carry on.')} {secondaryStatus}
+              {t('more_loans_still_loading_carry')} {secondaryStatus}
             </Alert>
           ) : null}
 
           {backgroundResyncState === 'started' ? (
             <Alert variant="info" className="not-rounded" style={{ marginBottom: 0 }}>
-              {t('Continue using the site while the loans are refreshed…')}
+              {t('continue_using_site_while_loans')}
             </Alert>
           ) : null}
 
           {loanCount > 0 ? (
             <div className="loan-count-bar">
-              {t('Showing {shown} of {total} fundraising loans', {
+              {t('showing_shown_total_fundraising_loans', {
                 shown: numeral(loanCount).format('0,0'),
                 total: numeral(totalFundraising).format('0,0'),
               })}
@@ -151,13 +151,13 @@ export function Search() {
             <Loan loanId={selectedId} />
           ) : (
             <div className="p-3">
-              <h2 style={{ marginTop: 0, color: '#2C8C5E' }}>{t('Welcome to KivaLens')}</h2>
-              <h4>{t('Quick Start')}</h4>
+              <h2 style={{ marginTop: 0, color: '#2C8C5E' }}>{t('welcome_kivalens')}</h2>
+              <h4>{t('quick_start')}</h4>
               <ol style={{ paddingLeft: 18, lineHeight: 1.8 }}>
-                <li>{t('Use the criteria on the left to filter loans')}</li>
-                <li>{t('Click a loan to review details and repayment info')}</li>
-                <li>{t('Click “Lend” on loans you like')}</li>
-                <li>{t('Go to Basket tab to transfer loans to Kiva')}</li>
+                <li>{t('use_criteria_left_filter_loans')}</li>
+                <li>{t('click_loan_review_details_repayment')}</li>
+                <li>{t('click_lend_loans_like')}</li>
+                <li>{t('go_basket_tab_transfer_loans')}</li>
               </ol>
               {aiServerEnabled && !aiWidgetDisabled ? (
                 <button
@@ -178,7 +178,7 @@ export function Search() {
                     cursor: 'pointer',
                   }}
                 >
-                  {t('Need help getting started? Chat with KivaLens AI')}
+                  {t('need_help_getting_started_chat')}
                 </button>
               ) : null}
               {!hasLenderId ? (
@@ -198,13 +198,13 @@ export function Search() {
                       showLenderIDModal()
                     }}
                   >
-                    {t('Set your Lender ID')}
+                    {t('set_lender_id_2')}
                   </a>{' '}
-                  {t('to hide loans you have already funded and enable portfolio balancing.')}
+                  {t('lender_id_purpose_hint')}
                 </div>
               ) : null}
               <div style={{ marginTop: 16 }}>
-                <a href="#/about">{t('Learn more')}</a>
+                <a href="#/about">{t('learn_more')}</a>
               </div>
             </div>
           )}

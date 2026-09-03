@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "i18n:generate": "node scripts/generate-i18n.mjs",
+    "i18n:check": "node scripts/check-i18n.mjs",
     "eval:ai": "node scripts/ai-eval.mjs",
     "eval:ai:dry": "node scripts/ai-eval.mjs --dry-run",
     "preview": "vite preview",

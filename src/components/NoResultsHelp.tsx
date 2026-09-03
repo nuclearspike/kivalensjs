@@ -49,8 +49,8 @@ export function NoResultsHelp() {
   // that, or an exclude filter reads exactly like an include filter.
   const valueOf = (it: { value: string; modifier?: 'all' | 'none' }) => {
     const v = t(it.value)
-    if (it.modifier === 'none') return t('not {value}', { value: v })
-    if (it.modifier === 'all') return t('all of {value}', { value: v })
+    if (it.modifier === 'none') return t('not_value', { value: v })
+    if (it.modifier === 'all') return t('all_value', { value: v })
     return v
   }
 
@@ -70,13 +70,13 @@ export function NoResultsHelp() {
   return (
     <div className="no-results-help">
       <Alert variant="info" className="not-rounded-top" style={{ marginBottom: 0 }}>
-         {t('No loans match your current criteria. Remove a filter below, loosen the criteria, or reset to start over.')}
+         {t('no_loans_match_current_criteria')}
       </Alert>
       <div style={{ background: '#eef5f1', padding: '10px 12px' }}>
         {items.length > 0 ? (
           <>
             <div style={{ fontSize: 12, color: '#557', marginBottom: 4 }}>
-               {t('Your active filters — tap ✕ to remove (the number is how many loans you would get back):')}
+               {t('active_filters_tap_remove_number')}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap' }}>
               {items.map((it) => (
@@ -87,7 +87,7 @@ export function NoResultsHelp() {
                     ...chipBase,
                     borderColor: it.count > 0 ? 'var(--kl-green, #2C8C5E)' : 'rgba(0,0,0,0.15)',
                   }}
-                   title={t('Remove “{label}: {value}” → {count} loans', { label: labelOf(it), value: valueOf(it), count: it.count })}
+                   title={t('remove_label_value_count_loans', { label: labelOf(it), value: valueOf(it), count: it.count })}
                   onClick={() => setCriteria(it.without(lastKnown))}
                 >
                   <span>
@@ -108,7 +108,7 @@ export function NoResultsHelp() {
             </div>
           </>
         ) : (
-          <div style={{ fontSize: 13, color: '#557' }}>{t('No removable filters detected.')}</div>
+          <div style={{ fontSize: 13, color: '#557' }}>{t('no_removable_filters_detected')}</div>
         )}
         <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {aiServerEnabled ? (
@@ -117,15 +117,15 @@ export function NoResultsHelp() {
               variant="success"
               onClick={() =>
                 openAskKl(
-                   t('My search has no matching loans. Break down which of my current filters are causing that, and suggest which to remove or loosen to get results.'),
+                   t('my_search_has_no_matching'),
                 )
               }
             >
-               ✨ {t('Ask KivaLens for a suggestion')}
+               ✨ {t('ask_kivalens_suggestion')}
             </Button>
           ) : null}
           <Button size="sm" variant="outline-secondary" onClick={() => startFresh()}>
-             {t('Reset all filters')}
+             {t('reset_all_filters')}
           </Button>
         </div>
       </div>

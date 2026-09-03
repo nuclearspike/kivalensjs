@@ -29,8 +29,8 @@ export default function LoadingLoansPanel() {
 
     return {
       show: downloading && !progress?.complete,
-      title: progress?.title ?? t('Loading Fundraising Loans from Kiva.org'),
-      progressLabel: progress?.label ?? t('Please Wait...'),
+      title: progress?.title ?? t('loading_fundraising_loans_kiva_org'),
+      progressLabel: progress?.label ?? t('please_wait_ellipsis'),
       idsProgress,
       detailsProgress,
     }

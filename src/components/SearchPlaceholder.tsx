@@ -5,8 +5,8 @@ export function Component() {
   const { t } = useI18n()
   return (
     <Container className="py-4">
-      <h2>{t('Coming Soon')}</h2>
-      <p>{t('This section is under construction.')}</p>
+      <h2>{t('coming_soon')}</h2>
+      <p>{t('section_under_construction')}</p>
     </Container>
   )
 }

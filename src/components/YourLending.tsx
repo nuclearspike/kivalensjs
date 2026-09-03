@@ -87,11 +87,11 @@ export function SliceChart({ sliceBy, label }: { sliceBy: string; label: string 
       <Card.Header>{t(label)}</Card.Header>
       <Card.Body>
         {failed ? (
-          <div className="text-muted">{t("Couldn't load this breakdown.")}</div>
+          <div className="text-muted">{t('couldnt_load_breakdown')}</div>
         ) : !slices ? (
-          <div className="text-muted">{t('Loading…')}</div>
+          <div className="text-muted">{t('loading_ellipsis')}</div>
         ) : slices.length === 0 ? (
-          <div className="text-muted">{t('No data.')}</div>
+          <div className="text-muted">{t('no_data')}</div>
         ) : (
           <ResponsiveContainer width="100%" height={Math.max(170, slices.length * 26)}>
             <BarChart data={slices} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
@@ -100,7 +100,7 @@ export function SliceChart({ sliceBy, label }: { sliceBy: string; label: string 
               <Tooltip
                 formatter={(value, _name, item) => {
                   const p = (item as unknown as { payload?: Slice }).payload
-                  return [t('{count} loans ({percent}%)', { count: String(value), percent: (p?.percent ?? 0).toFixed(1) }), p?.name ?? '']
+                  return [t('count_loans_percent_percent', { count: String(value), percent: (p?.percent ?? 0).toFixed(1) }), p?.name ?? '']
                 }}
               />
               <Bar dataKey="value" fill="#2C8C5E" radius={[0, 4, 4, 0]} />
@@ -118,8 +118,8 @@ export default function YourLending() {
   if (!lenderId) return null
   return (
     <div className="mb-4">
-      <h2>{t('Your Lending')}</h2>
-      <p className="text-muted">{t('How your past Kiva loans break down, from your portfolio data.')}</p>
+      <h2>{t('lending')}</h2>
+      <p className="text-muted">{t('how_past_kiva_loans_break')}</p>
       <Row>
         {SLICES.map((s) => (
           <Col md={4} key={s.key}>

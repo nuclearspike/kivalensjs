@@ -68,13 +68,13 @@ export default function SetLenderIDModal() {
       const status = await companion.getStatus().catch(() => null)
       if (status && !status.hasToken) {
         setCompanionNote(
-          t('The Companion is installed but not authenticated yet. Open kiva.org in another tab and log in, then try again.'),
+          t('companion_installed_but_not'),
         )
         return
       }
       const lender = await companion.detectLender()
       if (!lender) {
-        setCompanionNote(t('Could not read your Kiva account. Make sure you are logged in at kiva.org, then try again.'))
+        setCompanionNote(t('could_not_read_kiva_account'))
         return
       }
       // Pass only the id so the standard pipeline fetches the FULL lender object
@@ -82,7 +82,7 @@ export default function SetLenderIDModal() {
       setLenderId(lender.lender_id)
       closeModal()
     } catch (e) {
-      setCompanionNote(t('Companion error: {message}', { message: e instanceof Error ? e.message : String(e) }))
+      setCompanionNote(t('companion_error_message', { message: e instanceof Error ? e.message : String(e) }))
     } finally {
       setCompanionBusy(false)
     }
@@ -111,11 +111,11 @@ export default function SetLenderIDModal() {
   return (
     <Modal show={show} onHide={closeModal}>
       <Modal.Header closeButton>
-        <Modal.Title>{t('Set Kiva Lender ID')}</Modal.Title>
+        <Modal.Title>{t('set_kiva_lender_id')}</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
-        <Form.Label style={{ marginBottom: 6 }}>{t('Kiva Lender ID')}</Form.Label>
+        <Form.Label style={{ marginBottom: 6 }}>{t('kiva_lender_id')}</Form.Label>
         <Form.Control
           autoFocus
           type="text"
@@ -130,11 +130,11 @@ export default function SetLenderIDModal() {
               void handleSave()
             }
           }}
-          placeholder={t('Letters and numbers only')}
+          placeholder={t('letters_numbers_only')}
         />
         <p style={{ marginTop: 10 }}>
-          {t('Your Kiva Lender ID is not your email address.')}{' '}
-          <KivaLink path="myLenderId">{t("Click here if you don't know yours.")}</KivaLink>
+          {t('kiva_lender_id_not_email')}{' '}
+          <KivaLink path="myLenderId">{t('click_here_if_dont_know')}</KivaLink>
         </p>
 
         {companionEnabled ? (
@@ -143,19 +143,19 @@ export default function SetLenderIDModal() {
             {companionAvailable ? (
               <div>
                 <p style={{ marginBottom: 6 }}>
-                   {t('KivaLens Companion detected. Detect your Lender ID automatically from your logged-in Kiva session — no typing required.')}
+                   {t('kivalens_companion_detected_detect')}
                 </p>
                 <Button
                   variant="outline-primary"
                   onClick={() => void handleDetect()}
                   disabled={companionBusy}
                 >
-                  {companionBusy ? t('Detecting…') : t('Detect with Companion')}
+                  {companionBusy ? t('detecting_ellipsis') : t('detect_companion')}
                 </Button>
               </div>
             ) : (
               <p style={{ marginBottom: 6, color: '#6b7280' }}>
-                 {t('Install the KivaLens Companion extension to auto-detect your Lender ID.')}
+                 {t('install_kivalens_companion_extension')}
               </p>
             )}
             {companionNote ? (
@@ -165,21 +165,21 @@ export default function SetLenderIDModal() {
             ) : null}
           </>
         ) : null}
-        {checking ? <Alert variant="info">{t('Checking with Kiva…')}</Alert> : null}
+        {checking ? <Alert variant="info">{t('checking_kiva_ellipsis')}</Alert> : null}
         {failed || badRegEx ? (
           <Alert variant="danger">
-            {t('Invalid Lender ID')}
-            {badRegEx ? `: ${t('Only letters and numbers up to 24 characters allowed.')}` : ''}
+            {t('invalid_lender_id')}
+            {badRegEx ? `: ${t('only_letters_numbers_up_24')}` : ''}
           </Alert>
         ) : null}
       </Modal.Body>
 
       <Modal.Footer>
         <Button onClick={() => void handleSave()} disabled={badRegEx || !trimmed || checking}>
-           {t('Set Lender ID')}
+           {t('set_lender_id')}
         </Button>
         <Button variant="outline-secondary" onClick={closeModal}>
-           {t('Cancel')}
+           {t('cancel')}
         </Button>
       </Modal.Footer>
     </Modal>

@@ -22,31 +22,31 @@ export default function Donate() {
   const { t } = useI18n()
   return (
     <Container className="py-3">
-      <h1>{t('Donate')}</h1>
-      <h4>{t('KivaLens is now and will always be free to use for everyone. KivaLens is not a non-profit, so your donations are not tax deductible. If you find this site useful and would like to contribute anything to server or development costs, there are a few options. Thanks to everyone who has donated to help keep this running!')}</h4>
+      <h1>{t('donate')}</h1>
+      <h4>{t('kivalens_now_always_free_use')}</h4>
 
-      <DonateItem title={t('PayPal')}>
+      <DonateItem title={t('paypal')}>
         <NewTabLink className="btn btn-outline-secondary" href="https://paypal.me/nuclearspike">
-          {t('PayPal Me')}
+          {t('paypal_me')}
         </NewTabLink>{' '}
-        {t("You're already using PayPal for Kiva, so this will probably be the easiest for most.")}
+        {t('youre_already_using_paypal_kiva')}
       </DonateItem>
 
-      <DonateItem title={t('Kiva Gift Card')}>
+      <DonateItem title={t('kiva_gift_card')}>
         <NewTabLink
           className="btn btn-outline-secondary"
           href="https://www.kiva.org/gifts/kiva-cards?handle=nuclearspike#/lender"
         >
-          {t('Send Kiva Gift Card')}
+          {t('send_kiva_gift_card')}
         </NewTabLink>
       </DonateItem>
 
-      <DonateItem title={t('Amazon Wishlist')}>
+      <DonateItem title={t('amazon_wishlist')}>
         <NewTabLink
           className="btn btn-outline-secondary"
           href="http://www.amazon.com/registry/wishlist/3NRDPJN4K2FS2"
         >
-          {t('Buy something from my wishlist')}
+          {t('buy_something_my_wishlist')}
         </NewTabLink>
       </DonateItem>
     </Container>

@@ -52,7 +52,7 @@ export default function AICallout() {
       style={{ top: pos.top, left: pos.left }}
       onClick={clear}
       role="button"
-      aria-label={t('Dismiss hint')}
+      aria-label={t('dismiss_hint')}
     >
       <div className="ai-callout-arrow" aria-hidden="true">
         {pos.place === 'below' ? '▲' : '▼'}

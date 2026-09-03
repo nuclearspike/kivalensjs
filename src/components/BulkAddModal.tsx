@@ -49,15 +49,15 @@ export default function BulkAddModal({ onHide }: BulkAddModalProps) {
       <div className="modal-dialog" role="document">
         <div className="modal-content">
           <div className="modal-header">
-            <h5 className="modal-title">{t('Bulk Add')}</h5>
-            <button type="button" className="btn-close" onClick={onHide} aria-label={t('Close')} />
+            <h5 className="modal-title">{t('bulk_add')}</h5>
+            <button type="button" className="btn-close" onClick={onHide} aria-label={t('close')} />
           </div>
           <div className="modal-body">
             <p>
-              {t('Mega-Lender Tool: Using the current sort and criteria, this starts at the top of the list and applies the rules below to each loan not already in your basket. Kiva has a maximum basket amount of $10,000.')}
+              {t('mega_lender_tool_using_current_sort')}
             </p>
             <div className="mb-3">
-              <label className="form-label">{t('Max to lend: ${amount}', { amount: maxBasket })}</label>
+              <label className="form-label">{t('max_lend_dollar_amount', { amount: maxBasket })}</label>
               <input
                 type="range"
                 className="form-range"
@@ -69,7 +69,7 @@ export default function BulkAddModal({ onHide }: BulkAddModalProps) {
               />
             </div>
             <div className="mb-3">
-              <label className="form-label">{t('Max per loan: ${amount}', { amount: maxPerLoan })}</label>
+              <label className="form-label">{t('max_per_loan_dollar_amount', { amount: maxPerLoan })}</label>
               <input
                 type="range"
                 className="form-range"
@@ -83,10 +83,10 @@ export default function BulkAddModal({ onHide }: BulkAddModalProps) {
           </div>
           <div className="modal-footer">
             <button className="btn btn-primary" onClick={handleAdd}>
-              {t('Add a bunch!')}
+              {t('add_bunch')}
             </button>
             <button className="btn btn-secondary" onClick={onHide}>
-              {t('Close')}
+              {t('close')}
             </button>
           </div>
         </div>

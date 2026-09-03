@@ -57,16 +57,16 @@ function RepaymentGraphs({ loan }: { loan: KivaLoan }) {
       {/* Repayment info */}
       <div style={{ fontSize: 13, lineHeight: 1.6, marginBottom: 4 }}>
         {loan.terms.repayment_interval && (
-          <div><span style={{ color: '#999' }}>{t('Interval')}:</span> <b>{t(loan.terms.repayment_interval)}</b></div>
+          <div><span style={{ color: '#999' }}>{t('interval')}:</span> <b>{t(loan.terms.repayment_interval)}</b></div>
         )}
         {loan.kls_half_back && loan.kls_half_back_actual != null && (
-          <div><span style={{ color: '#999' }}>{t('{percent}% back', { percent: Math.round(loan.kls_half_back_actual) })}:</span> <b>{date(loan.kls_half_back, { month: 'short', year: 'numeric' })}</b></div>
+          <div><span style={{ color: '#999' }}>{t('percent_percent_back', { percent: Math.round(loan.kls_half_back_actual) })}:</span> <b>{date(loan.kls_half_back, { month: 'short', year: 'numeric' })}</b></div>
         )}
         {loan.kls_75_back && loan.kls_75_back_actual != null && (
-          <div><span style={{ color: '#999' }}>{t('{percent}% back', { percent: Math.round(loan.kls_75_back_actual) })}:</span> <b>{date(loan.kls_75_back, { month: 'short', year: 'numeric' })}</b></div>
+          <div><span style={{ color: '#999' }}>{t('percent_percent_back', { percent: Math.round(loan.kls_75_back_actual) })}:</span> <b>{date(loan.kls_75_back, { month: 'short', year: 'numeric' })}</b></div>
         )}
         {loan.kls_final_repayment && (
-          <div><span style={{ color: '#999' }}>{t('Final')}:</span> <b>{date(loan.kls_final_repayment, { month: 'short', year: 'numeric' })}</b></div>
+          <div><span style={{ color: '#999' }}>{t('final')}:</span> <b>{date(loan.kls_final_repayment, { month: 'short', year: 'numeric' })}</b></div>
         )}
       </div>
 
@@ -85,7 +85,7 @@ function RepaymentGraphs({ loan }: { loan: KivaLoan }) {
           <YAxis dataKey="label" type="category" tick={{ fontSize: 9 }} width={60} interval={0} />
           <Tooltip
             formatter={(value, name) =>
-              name === t('Repayment')
+              name === t('repayment')
                 ? `$${Number(value).toFixed(2)}`
                 : `${Number(value).toFixed(1)}%`
             }
@@ -96,7 +96,7 @@ function RepaymentGraphs({ loan }: { loan: KivaLoan }) {
             xAxisId="amount"
             dataKey="amount"
             fill="#7cb5ec"
-            name={t('Repayment')}
+            name={t('repayment')}
             isAnimationActive={false}
           />
           <Area
@@ -105,7 +105,7 @@ function RepaymentGraphs({ loan }: { loan: KivaLoan }) {
             stroke="#434348"
             fill="#434348"
             fillOpacity={0.75}
-            name={t('Cumulative %')}
+            name={t('cumulative_percent')}
             isAnimationActive={false}
           />
         </ComposedChart>
@@ -200,7 +200,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
   if (!loan) {
     return (
       <div className="p-3">
-        <h3>{t('Loading…')}</h3>
+        <h3>{t('loading_ellipsis')}</h3>
       </div>
     )
   }
@@ -269,7 +269,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
             the borrower name wraps */}
         {inBasket ? (
           <button className="btn btn-danger float_right" onClick={handleRemove}>
-             {t('Remove from Basket')}
+             {t('remove_basket')}
           </button>
         ) : (
           <span
@@ -317,12 +317,12 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
                 cursor: 'pointer',
               }}
             >
-              {t('Lend')}
+              {t('lend')}
             </button>
           </span>
         )}
 
-        <a href={loanUrl} target="_blank" rel="noopener noreferrer" title={t('View on Kiva')}>
+        <a href={loanUrl} target="_blank" rel="noopener noreferrer" title={t('view_kiva')}>
           <span
             style={{
               display: 'inline-block',
@@ -349,7 +349,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
 
       {inBasket && (loan.kl_still_needed ?? 0) === 0 && (
         <div className="alert alert-warning py-1 mb-2">
-           {t('This loan has been fully funded by other lenders on Kiva and will be skipped at checkout.')}
+           {t('loan_has_been_fully_funded')}
         </div>
       )}
 
@@ -360,7 +360,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
             className={`nav-link${activeTab === 1 ? ' active' : ''}`}
             onClick={() => handleTabSelect(1)}
           >
-             {t('Image')}
+             {t('image')}
           </button>
         </li>
         <li className="nav-item">
@@ -368,13 +368,13 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
             className={`nav-link${activeTab === 2 ? ' active' : ''}`}
             onClick={() => handleTabSelect(2)}
           >
-            {t('Details')}
+            {t('details_2')}
           </button>
         </li>
         {loan.partner_id && (
           <li className="nav-item">
             <button className={`nav-link${activeTab === 3 ? ' active' : ''}`} onClick={() => handleTabSelect(3)}>
-              {t('Partner')}
+              {t('partner_2')}
             </button>
           </li>
         )}
@@ -394,14 +394,14 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
             <div className="card mt-2">
               <div className="card-body py-2">
                 {loan.borrowers.length > 1 && (
-                  <p className="text-muted small mb-1">{t('In no particular order')}</p>
+                  <p className="text-muted small mb-1">{t('no_particular_order')}</p>
                 )}
                 <p className="mb-1">
-                   {t('Pictured')}: {pictured.length ? pictured.map(renderBorrowerPill) : t('(none)')}
+                   {t('pictured')}: {pictured.length ? pictured.map(renderBorrowerPill) : t('none')}
                 </p>
                 <p className="mb-0">
-                   {t('Not Pictured')}:{' '}
-                  {notPictured.length ? notPictured.map(renderBorrowerPill) : t('(none)')}
+                   {t('not_pictured')}:{' '}
+                  {notPictured.length ? notPictured.map(renderBorrowerPill) : t('none')}
                 </p>
               </div>
             </div>
@@ -437,7 +437,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
               {/* Left detail column */}
               <div style={{ flex: '1 1 50%', fontSize: 13, lineHeight: 1.6, minWidth: 0 }}>
                 <div>
-                  <div className="detail-label">{t('Matches Saved Searches')}</div>
+                  <div className="detail-label">{t('matches_saved_searches')}</div>
                   <div>
                   {matchingNames.length > 0
                     ? matchingNames.map((name, i) => (
@@ -454,38 +454,38 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
                           </a>
                         </span>
                        ))
-                    : t('(none)')}
+                    : t('none')}
                   </div>
                 </div>
 
                 <div>
-                  <div className="detail-label">{t('Tags')}</div>
-                  <div>{tags.length ? tags.map((tag) => humanize(tag)).join(', ') : t('(none)')}</div>
+                  <div className="detail-label">{t('tags')}</div>
+                  <div>{tags.length ? tags.map((tag) => humanize(tag)).join(', ') : t('none')}</div>
                 </div>
 
                 {themes.length > 0 && (
                   <div>
-                    <div className="detail-label">{t('Themes')}</div>
+                    <div className="detail-label">{t('themes')}</div>
                     <div>{themes.join(', ')}</div>
                   </div>
                 )}
 
                 <div>
                   <div className="detail-label">
-                    {t(loan.borrowers.length === 1 ? 'Borrower' : 'Borrowers')}
+                    {t(loan.borrowers.length === 1 ? 'borrower' : 'borrowers')}
                   </div>
                   <div>
                   {loan.borrowers.length === 1
                     ? loan.kl_percent_women === 100
-                      ? t('Female')
-                      : t('Male')
-                    : t('{count} ({percent}% Female)', { count: loan.borrowers.length, percent: Math.round(loan.kl_percent_women ?? 0) })}
+                      ? t('female')
+                      : t('male')
+                    : t('count_percent_percent_female', { count: loan.borrowers.length, percent: Math.round(loan.kl_percent_women ?? 0) })}
                   </div>
                 </div>
 
                 {loan.kl_posted_date && (
                   <div>
-                    <div className="detail-label">{t('Posted')}</div>
+                    <div className="detail-label">{t('posted')}</div>
                     <div>
                     {date(loan.kl_posted_date, { dateStyle: 'medium', timeStyle: 'short' })} ({timeAgo(loan.posted_date)})
                     </div>
@@ -494,14 +494,14 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
 
                 {loan.status !== 'fundraising' && (
                   <div>
-                    <div className="detail-label">{t('Status')}</div>
+                    <div className="detail-label">{t('status')}</div>
                     <div>{t(humanize(loan.status))}</div>
                   </div>
                 )}
 
                 {loan.status === 'fundraising' && loan.kl_planned_expiration_date && (
                   <div>
-                    <div className="detail-label">{t('Expires')}</div>
+                    <div className="detail-label">{t('expires')}</div>
                     <div>
                     {date(loan.kl_planned_expiration_date, { dateStyle: 'medium', timeStyle: 'short' })} ({timeAgo(loan.planned_expiration_date ?? '')})
                     </div>
@@ -510,7 +510,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
 
                 {loan.terms.disbursal_date && (
                   <div>
-                    <div className="detail-label">{t('Disbursed')}</div>
+                    <div className="detail-label">{t('disbursed')}</div>
                     <div>
                     {date(loan.terms.disbursal_date, { dateStyle: 'medium' })} ({timeAgo(loan.terms.disbursal_date)})
                     </div>
@@ -519,8 +519,8 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
 
                 {loan.status === 'fundraising' && loan.kls_repaid_in != null && (
                   <div>
-                    <div className="detail-label">{t('Final Repayment In')}</div>
-                    <div>{t('{count} months', { count: numeral(loan.kls_repaid_in).format('0.0') })}</div>
+                    <div className="detail-label">{t('final_repayment')}</div>
+                    <div>{t('count_months', { count: numeral(loan.kls_repaid_in).format('0.0') })}</div>
                   </div>
                 )}
 
@@ -528,22 +528,22 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
                   <div style={{ marginTop: 4 }}>
                     {loan.kl_dollars_per_hour && (
                       <div>
-                        <span className="detail-label">{t('$/Hour')}</span>{' '}
+                        <span className="detail-label">{t('dollar_hour_2')}</span>{' '}
                         ${numeral(loan.kl_dollars_per_hour()).format('0.00')}
                       </div>
                     )}
                     <div>
-                      <span className="detail-label">{t('Amount')}</span>{' '}
+                      <span className="detail-label">{t('amount')}</span>{' '}
                       ${numeral(loan.loan_amount).format('0,0')}{' '}
                       <span style={{ color: '#ccc' }}>|</span>{' '}
-                      <span className="detail-label">{t('Funded')}</span>{' '}
+                      <span className="detail-label">{t('funded')}</span>{' '}
                       ${numeral(loan.funded_amount).format('0,0')}
                     </div>
                     <div>
-                      <span className="detail-label">{t('In Baskets')}</span>{' '}
+                      <span className="detail-label">{t('baskets')}</span>{' '}
                       ${numeral(loan.basket_amount).format('0,0')}{' '}
                       <span style={{ color: '#ccc' }}>|</span>{' '}
-                      <span className="detail-label">{t('Still Needed')}</span>{' '}
+                      <span className="detail-label">{t('still_needed')}</span>{' '}
                       ${numeral(loan.kl_still_needed ?? 0).format('0,0')}
                     </div>
                   </div>
@@ -567,7 +567,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
                         onClick={handleTranslate}
                         disabled={translating}
                       >
-                        {translating ? t('Translating…') : t('Translate')}
+                        {translating ? t('translating_ellipsis') : t('translate')}
                       </button>
                     ) : (
                       <button
@@ -575,11 +575,11 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
                         className="btn btn-sm btn-link p-0"
                         onClick={() => setShowOriginal((o) => !o)}
                       >
-                        {showOriginal ? t('Show translation') : t('Show original')}
+                        {showOriginal ? t('show_translation') : t('show_original')}
                       </button>
                     )}
                     {translateError && (
-                      <span className="text-danger small ms-2">{t('Translation failed. Try again.')}</span>
+                      <span className="text-danger small ms-2">{t('translation_failed_try_again')}</span>
                     )}
                   </div>
                 )}
@@ -593,7 +593,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
         {activeTab === 3 && loan.partner_id && (() => {
           const kl = getKivaLoans()
           const partner = kl?.getPartner(loan.partner_id)
-          return partner ? <PartnerDetail partner={partner} /> : <p>{t('Partner data not available.')}</p>
+          return partner ? <PartnerDetail partner={partner} /> : <p>{t('partner_data_not_available')}</p>
         })()}
       </div>
     </div>

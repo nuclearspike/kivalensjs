@@ -151,7 +151,7 @@ function AlertRoot({
         <button
           type="button"
           className="btn-close"
-          aria-label={t('Close alert')}
+          aria-label={t('close_alert')}
           onClick={onClose}
         />
       )}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LOCALES, translate, translateSector } from './index'
+import es from './locales/es'
 
 describe('KivaLens localization', () => {
   it('offers the requested languages in their own language', () => {
@@ -9,7 +10,10 @@ describe('KivaLens localization', () => {
   })
 
   it('interpolates localized chrome', () => {
-    expect(translate('es', 'Showing {shown} of {total} fundraising loans', { shown: 3, total: 10 }))
+    // translate() takes the loaded locale catalog as its 4th arg, matching how
+    // useI18n()'s t() really calls it (I18nProvider passes the async-loaded
+    // catalog once it resolves) — a bare 3-arg call only ever sees English.
+    expect(translate('es', 'showing_shown_total_fundraising_loans', { shown: 3, total: 10 }, es))
       .toBe('Mostrando 3 de 10 préstamos en recaudación')
   })
 

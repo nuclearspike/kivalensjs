@@ -85,7 +85,7 @@ function ModalHeader({
         <button
           type="button"
           className="btn-close"
-          aria-label={t('Close')}
+          aria-label={t('close')}
           onClick={onHide}
         />
       )}

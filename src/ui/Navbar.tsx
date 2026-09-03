@@ -72,7 +72,7 @@ function NavbarToggle({
       className={cx('navbar-toggler', className)}
       aria-controls={ariaControls}
       aria-expanded={expanded}
-      aria-label={t('Toggle navigation')}
+      aria-label={t('toggle_navigation')}
       onClick={toggle}
       {...rest}
     >

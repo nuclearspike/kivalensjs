@@ -25,10 +25,10 @@ export default function Face() {
 
   useEffect(() => {
     if (lenderId) {
-      setMessage(t('Loading loans for {lenderId}…', { lenderId }))
+      setMessage(t('loading_loans_lenderid_ellipsis', { lenderId }))
       // TODO: fetch portfolio via LenderLoans API
       // For now, show placeholder message
-      setMessage(t('Portfolio wall for {lenderId} — loan fetching is not yet implemented.', { lenderId }))
+      setMessage(t('portfolio_wall_lenderid_loan_fetching', { lenderId }))
     } else {
       setMessage(
         <>
@@ -39,9 +39,9 @@ export default function Face() {
               showLenderIDModal()
             }}
           >
-            {t('Set your Lender ID')}
+            {t('set_lender_id_2')}
           </a>{' '}
-          {t('to see your portfolio. Arrow keys move; space toggles magnification.')}
+          {t('portfolio_wall_aria_hint')}
         </>,
       )
     }

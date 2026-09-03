@@ -93,28 +93,34 @@ export interface CriteriaActions {
 // Default saved searches
 // ---------------------------------------------------------------------------
 
+// Object keys here double as the saved-search's persistence identity (zustand
+// `persist` stores `savedSearches` keyed by these strings verbatim) AND its
+// t()-translated display name (SavedSearches.tsx calls t(name) on whatever's
+// in this map, dynamically) — see the `migrate` step below for how an existing
+// user's already-persisted English-keyed defaults are carried forward onto
+// these symbol keys.
 const DEFAULT_SAVED_SEARCHES: Record<string, SavedSearch> = {
-  'Expiring Soon': {
+  expiring_soon: {
     loan: { sort: 'expiring', still_needed_min: 25, expiring_in_days_max: 3 },
     partner: {},
     portfolio: { exclude_portfolio_loans: 'true' },
   },
-  'Pays Back Fast (ex: Short term, pre-disbursed, posted awhile ago)': {
+  pays_back_fast_ex_short: {
     loan: { repaid_in_max: 6, still_needed_min: 25 },
     partner: {},
     portfolio: { exclude_portfolio_loans: 'true' },
   },
-  Popular: {
+  popular: {
     loan: { sort: 'popularity', still_needed_min: 25, dollars_per_hour_min: 50 },
     partner: {},
     portfolio: { exclude_portfolio_loans: 'true' },
   },
-  'Only one more lender needed': {
+  only_one_more_lender_needed: {
     loan: { still_needed_min: 25, still_needed_max: 25 },
     partner: {},
     portfolio: { exclude_portfolio_loans: 'true' },
   },
-  'Large Groups: Evenly Men & Women': {
+  large_groups_evenly_men_women: {
     loan: {
       sort: 'popularity',
       percent_female_min: 40,
@@ -125,7 +131,7 @@ const DEFAULT_SAVED_SEARCHES: Record<string, SavedSearch> = {
     partner: {},
     portfolio: { exclude_portfolio_loans: 'true' },
   },
-  "Countries I Don't Have": {
+  countries_i_dont_have: {
     loan: { limit_to: { enabled: true, count: 1, limit_by: 'Country' } },
     partner: {},
     portfolio: {
@@ -140,7 +146,7 @@ const DEFAULT_SAVED_SEARCHES: Record<string, SavedSearch> = {
       } as BalancerConfig,
     },
   },
-  'Balance Partner Risk': {
+  balance_partner_risk: {
     loan: { limit_to: { enabled: true, count: 1, limit_by: 'Partner' } },
     partner: {},
     portfolio: {
@@ -155,7 +161,7 @@ const DEFAULT_SAVED_SEARCHES: Record<string, SavedSearch> = {
       } as BalancerConfig,
     },
   },
-  'Young Parent': {
+  young_parent: {
     loan: {
       age_min: 20,
       age_max: 23,
@@ -168,6 +174,50 @@ const DEFAULT_SAVED_SEARCHES: Record<string, SavedSearch> = {
     partner: {},
     portfolio: { exclude_portfolio_loans: 'true' },
   },
+}
+
+// Maps each pre-rekey default's English name (its persisted key before this
+// migration) to its new symbol key, so `migrate` below can rename an existing
+// user's untouched defaults without disturbing any search they've renamed,
+// deleted, or added themselves.
+const LEGACY_DEFAULT_NAME_TO_KEY: Record<string, string> = {
+  'Expiring Soon': 'expiring_soon',
+  'Pays Back Fast (ex: Short term, pre-disbursed, posted awhile ago)': 'pays_back_fast_ex_short',
+  Popular: 'popular',
+  'Only one more lender needed': 'only_one_more_lender_needed',
+  'Large Groups: Evenly Men & Women': 'large_groups_evenly_men_women',
+  "Countries I Don't Have": 'countries_i_dont_have',
+  'Balance Partner Risk': 'balance_partner_risk',
+  'Young Parent': 'young_parent',
+}
+
+/**
+ * Renames any of the 8 built-in defaults still keyed by its pre-rekey English
+ * name to its new symbol key, leaving every other entry (a search the user
+ * renamed, deleted, or added themselves) untouched. Never overwrites an entry
+ * already present under the new key. Returns the mapping actually applied
+ * (old name -> new key) alongside the renamed set, so a caller can also fix up
+ * a `lastSwitch` pointer that referenced the old name.
+ */
+function renameLegacyDefaultNames(
+  searches: Record<string, SavedSearch>,
+): Record<string, SavedSearch> {
+  const { renamed } = renameLegacyDefaultNamesWithLog(searches)
+  return renamed
+}
+
+function renameLegacyDefaultNamesWithLog(
+  searches: Record<string, SavedSearch>,
+): { renamed: Record<string, SavedSearch>; nameChanges: Record<string, string> } {
+  const renamed: Record<string, SavedSearch> = {}
+  const nameChanges: Record<string, string> = {}
+  for (const [name, search] of Object.entries(searches)) {
+    const newKey = LEGACY_DEFAULT_NAME_TO_KEY[name]
+    const targetKey = newKey && !(newKey in searches) ? newKey : name
+    if (targetKey !== name) nameChanges[name] = targetKey
+    renamed[targetKey] = search
+  }
+  return { renamed, nameChanges }
 }
 
 // ---------------------------------------------------------------------------
@@ -222,7 +272,7 @@ export const useCriteriaStore = create<CriteriaState & CriteriaActions>()(
       // via merge when present, so this only matters for data that predates it.
       const storedAll = lsj.get<Record<string, SavedSearch>>('all_criteria')
       const initialSavedSearches =
-        Object.keys(storedAll).length > 0 ? storedAll : { ...DEFAULT_SAVED_SEARCHES }
+        Object.keys(storedAll).length > 0 ? renameLegacyDefaultNames(storedAll) : { ...DEFAULT_SAVED_SEARCHES }
 
       // Load last criteria from localStorage
       const storedLast = lsj.get<Criteria>('last_criteria')
@@ -562,7 +612,7 @@ export const useCriteriaStore = create<CriteriaState & CriteriaActions>()(
     }),
     {
       name: 'kivalens-criteria',
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         lastKnown: state.lastKnown,
         savedSearches: state.savedSearches,
@@ -586,6 +636,21 @@ export const useCriteriaStore = create<CriteriaState & CriteriaActions>()(
             p.savedSearches = { ...storedAll, ...(p.savedSearches ?? {}) }
           } else if (!p.savedSearches || Object.keys(p.savedSearches).length === 0) {
             p.savedSearches = { ...DEFAULT_SAVED_SEARCHES }
+          }
+        }
+        if (version < 2 && p.savedSearches) {
+          // The i18n rekey (2026-09) moved default saved-search names from raw
+          // English text to symbol keys (see LEGACY_DEFAULT_NAME_TO_KEY above).
+          // Rename any of the 8 built-in defaults an existing user still has
+          // under its old English name, so it keeps translating correctly
+          // instead of silently falling back to English. Only renames an EXACT,
+          // untouched legacy name, and only if the new key isn't already
+          // present — a search the user renamed, or already has under the new
+          // key, is left alone.
+          const { renamed, nameChanges } = renameLegacyDefaultNamesWithLog(p.savedSearches)
+          p.savedSearches = renamed
+          if (p.lastSwitch && nameChanges[p.lastSwitch]) {
+            p.lastSwitch = nameChanges[p.lastSwitch]
           }
         }
         return p as CriteriaState & CriteriaActions

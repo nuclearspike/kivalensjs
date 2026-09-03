@@ -76,10 +76,10 @@ export default function PartnerDetail({ partner, showStatus = true }: PartnerDet
           style={{ background: '#e8f5e9' }}
         >
           <span>
-            {t('{count} fundraising loans', { count: numeral(loanCount).format('0,0') })}
+            {t('count_fundraising_loans', { count: numeral(loanCount).format('0,0') })}
           </span>
           <Button size="sm" variant="success" onClick={searchLoans}>
-             {t('Show Loans')}
+             {t('show_loans')}
           </Button>
         </div>
       )}
@@ -114,54 +114,54 @@ export default function PartnerDetail({ partner, showStatus = true }: PartnerDet
       <div className="row">
         <div className="col-lg-6">
           <dl className="dl-horizontal">
-            <dt>{t('Rating')}</dt>
+            <dt>{t('rating')}</dt>
             <dd>{partner.rating}</dd>
             {partner.status !== 'active' && (
               <>
-                <dt>{t('Status')}</dt>
+                <dt>{t('status')}</dt>
                 <dd>{t(partner.status)}</dd>
               </>
             )}
-            <dt>{t('Start Date')}</dt>
+            <dt>{t('start_date')}</dt>
             <dd>{date(partner.start_date, { dateStyle: 'medium' })}</dd>
-            <dt>{t(partner.countries?.length === 1 ? 'Country' : 'Countries')}</dt>
+            <dt>{t(partner.countries?.length === 1 ? 'country_2' : 'countries')}</dt>
             <dd>{countryNames}</dd>
-            <dt>{t('Delinquency')}</dt>
+            <dt>{t('delinquency')}</dt>
             <dd>
               {numeral(partner.delinquency_rate).format('0.000')}%{' '}
               {(partner as unknown as { delinquency_rate_note?: string }).delinquency_rate_note}
             </dd>
-            <dt>{t('Loans at Risk Rate')}</dt>
+            <dt>{t('loans_risk_rate')}</dt>
             <dd>{numeral(partner.loans_at_risk_rate).format('0.000')}%</dd>
-            <dt>{t('Default')}</dt>
+            <dt>{t('default')}</dt>
             <dd>
               {numeral(partner.default_rate).format('0.000')}%{' '}
               {(partner as unknown as { default_rate_note?: string }).default_rate_note}
             </dd>
-            <dt>{t('Total Raised')}</dt>
+            <dt>{t('total_raised')}</dt>
             <dd>${numeral((partner as unknown as { total_amount_raised?: number }).total_amount_raised).format('0,0')}</dd>
-            <dt>{t('Loans')}</dt>
+            <dt>{t('loans')}</dt>
             <dd>{numeral(partner.loans_posted).format('0,0')}</dd>
-            <dt>{t('Portfolio Yield')}</dt>
+            <dt>{t('portfolio_yield')}</dt>
             <dd>
               {numeral(partner.portfolio_yield).format('0.0')}%{' '}
               {(partner as unknown as { portfolio_yield_note?: string }).portfolio_yield_note}
             </dd>
-            <dt>{t('Profitability')}</dt>
+            <dt>{t('profitability')}</dt>
             {partner.profitability != null ? (
               <dd>{numeral(partner.profitability).format('0.0')}%</dd>
             ) : (
-              <dd>{t('(unknown)')}</dd>
+              <dd>{t('unknown')}</dd>
             )}
-            <dt>{t('Charges Fees / Interest')}</dt>
-            <dd>{t(partner.charges_fees_and_interest ? 'Yes' : 'No')}</dd>
-            <dt>{t('Avg Loan/Cap Income')}</dt>
+            <dt>{t('charges_fees_interest')}</dt>
+            <dd>{t(partner.charges_fees_and_interest ? 'yes' : 'no')}</dd>
+            <dt>{t('avg_loan_cap_income')}</dt>
             <dd>{numeral(partner.average_loan_size_percent_per_capita_income).format('0.00')}%</dd>
-            <dt>{t('Currency Ex Loss')}</dt>
+            <dt>{t('currency_ex_loss')}</dt>
             <dd>{numeral(partner.currency_exchange_loss_rate).format('0.000')}%</dd>
             {(partner as unknown as { url?: string }).url ? (
               <>
-                <dt>{t('Website')}</dt>
+                <dt>{t('website')}</dt>
                 <dd>
                   <a href={(partner as unknown as { url?: string }).url} target="_blank" rel="noreferrer">
                     {(partner as unknown as { url?: string }).url}
@@ -184,7 +184,7 @@ export default function PartnerDetail({ partner, showStatus = true }: PartnerDet
 
       {sectorData.length > 0 && (
         <div className="mt-3">
-          <h3>{t('Fundraising Loans by Sector')}</h3>
+          <h3>{t('fundraising_loans_sector')}</h3>
           <ResponsiveContainer width="100%" height={Math.max(120, sectorData.length * 30)}>
             <BarChart data={sectorData} layout="vertical" margin={{ left: 8, right: 24, top: 4, bottom: 4 }}>
               <XAxis type="number" hide allowDecimals={false} />
@@ -198,7 +198,7 @@ export default function PartnerDetail({ partner, showStatus = true }: PartnerDet
 
       {partner.kl_sp && partner.kl_sp.length > 0 && partner.social_performance_strengths && (
         <div className="mt-3">
-          <h3>{t('Social Performance Strengths')}</h3>
+          <h3>{t('social_performance_strengths')}</h3>
           <ul>
             {partner.social_performance_strengths.map((sp, i) => (
               <li key={i}>
@@ -213,19 +213,19 @@ export default function PartnerDetail({ partner, showStatus = true }: PartnerDet
 
       {showAtheistResearch && atheistScore && (
         <div className="mt-3">
-          <h3>{t('A+ Team Research')}</h3>
+          <h3>{t('team_research')}</h3>
           <dl className="dl-horizontal">
-            <dt>{t('Secular Rating')}</dt>
+            <dt>{t('secular_rating')}</dt>
             <dd>{atheistScore.secularRating}</dd>
-            <dt>{t('Religious Affiliation')}</dt>
+            <dt>{t('religious_affiliation')}</dt>
             <dd>{atheistScore.religiousAffiliation}</dd>
-            <dt>{t('Comments on Rating')}</dt>
+            <dt>{t('comments_rating')}</dt>
             <dd>{atheistScore.commentsOnSecularRating}</dd>
-            <dt>{t('Social Rating')}</dt>
+            <dt>{t('social_rating')}</dt>
             <dd>{atheistScore.socialRating}</dd>
-            <dt>{t('Comments on Rating')}</dt>
+            <dt>{t('comments_rating')}</dt>
             <dd>{atheistScore.commentsOnSocialRating}</dd>
-            <dt>{t('Review Comments')}</dt>
+            <dt>{t('review_comments')}</dt>
             <dd>{atheistScore.reviewComments}</dd>
           </dl>
         </div>

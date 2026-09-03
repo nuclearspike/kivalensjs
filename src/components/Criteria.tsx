@@ -54,8 +54,8 @@ export function Criteria() {
   )
 
   const handleSaveAs = useCallback(async () => {
-    const name = await showPrompt(t('Enter name for saved search criteria:'), {
-      title: t('Save Search'),
+    const name = await showPrompt(t('enter_name_saved_search_criteria'), {
+      title: t('save_search'),
     })
     if (name?.trim()) {
       saveSearch(name.trim())
@@ -65,9 +65,9 @@ export function Criteria() {
 
   const handleDelete = useCallback(
     async (name: string) => {
-      const ok = await showConfirm(t('Delete saved search “{name}”?', { name: t(name) }), {
-        title: t('Delete Saved Search'),
-        confirmLabel: t('Delete'),
+      const ok = await showConfirm(t('delete_saved_search_name', { name: t(name) }), {
+        title: t('delete_saved_search'),
+        confirmLabel: t('delete'),
         danger: true,
       })
       if (ok) {
@@ -82,12 +82,12 @@ export function Criteria() {
     <div>
       <div style={{ display: 'flex', gap: 4, marginBottom: 8, alignItems: 'center' }}>
         <Button size="sm" onClick={handleClear} style={{ whiteSpace: 'nowrap' }} data-aikl="reset">
-          {t('Reset')}
+          {t('reset')}
         </Button>
 
         <Dropdown onToggle={(isOpen) => { if (isOpen) refreshNames() }}>
           <Dropdown.Toggle size="sm" id="saved-search-dropdown" style={{ flex: 1 }} data-aikl="saved-searches">
-            {lastSwitch ? `‘${t(lastSwitch)}’` : t('Saved Searches')}
+            {lastSwitch ? `‘${t(lastSwitch)}’` : t('saved_searches')}
           </Dropdown.Toggle>
           <Dropdown.Menu style={{ maxHeight: 400, overflowY: 'auto', fontSize: 12 }}>
             {searchNames.map((name) => (
@@ -106,13 +106,13 @@ export function Criteria() {
             {searchNames.length > 0 ? <Dropdown.Divider /> : null}
             {lastSwitch ? (
               <>
-                <Dropdown.Item onClick={() => saveSearch(lastSwitch)}>{t('Re-save “{name}”', { name: t(lastSwitch) })}</Dropdown.Item>
-                <Dropdown.Item onClick={() => handleDelete(lastSwitch)}>{t('Delete “{name}”', { name: t(lastSwitch) })}</Dropdown.Item>
+                <Dropdown.Item onClick={() => saveSearch(lastSwitch)}>{t('re_save_name', { name: t(lastSwitch) })}</Dropdown.Item>
+                <Dropdown.Item onClick={() => handleDelete(lastSwitch)}>{t('delete_name', { name: t(lastSwitch) })}</Dropdown.Item>
               </>
             ) : null}
-            <Dropdown.Item href="#/saved">{t('Manage Saved Searches')}</Dropdown.Item>
+            <Dropdown.Item href="#/saved">{t('manage_saved_searches')}</Dropdown.Item>
             <Dropdown.Divider />
-            <Dropdown.Item onClick={handleSaveAs}>{t('Save Current Criteria As...')}</Dropdown.Item>
+            <Dropdown.Item onClick={handleSaveAs}>{t('save_current_criteria_ellipsis')}</Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
       </div>

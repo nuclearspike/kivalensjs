@@ -51,7 +51,7 @@ export function Component() {
   const isChrome = typeof window !== 'undefined' && /Chrome/.test(navigator.userAgent)
   if (!isChrome) {
     problems.push(
-      t('You are not using Google Chrome Browser. The Kiva Lender Assistant extension is required to push settings to Kiva, and it only works in Chrome.'),
+      t('not_using_google_chrome_browser'),
     )
   }
 
@@ -61,7 +61,7 @@ export function Component() {
     countries.length === totalCountries
   if (allBroad) {
     problems.push(
-      t('Your criteria is so broad that there is nothing to set. Try narrowing your search criteria first.'),
+      t('criteria_so_broad_there_nothing'),
     )
   }
 
@@ -69,7 +69,7 @@ export function Component() {
 
   const handlePush = () => {
     if (noneChecked) {
-      void showAlert(t('Please check at least one box (Partners, Sectors, or Countries) to continue.'))
+      void showAlert(t('please_check_least_one_box'))
       return
     }
     const payload: {
@@ -93,48 +93,48 @@ export function Component() {
         )
       } else {
         void showAlert(
-          t('Chrome extension messaging is not available. Please install the Kiva Lender Assistant extension.'),
+          t('chrome_extension_messaging_not_available'),
         )
       }
     } catch {
       void showAlert(
-        t('Could not communicate with the Kiva Lender Assistant extension. Make sure it is installed and enabled.'),
+        t('could_not_communicate_kiva_lender'),
       )
     }
   }
 
   return (
     <Container className="py-3" style={{ maxWidth: 800 }}>
-      <h3>{t('Push your Auto-Lending preferences to Kiva')}</h3>
+      <h3>{t('push_auto_lending_preferences_kiva')}</h3>
 
       <p>
-        {t('Kiva has offered')}{' '}
-        <KivaLink path="settings/credit">{t('Auto-Lending')}</KivaLink>{' '}
-        {t('for years. It automatically lends your money based on rules you set. If you always select loans yourself, you can ignore this page.')}
+        {t('kiva_has_offered')}{' '}
+        <KivaLink path="settings/credit">{t('auto_lending')}</KivaLink>{' '}
+        {t('auto_lending_active_description')}
       </p>
 
       <p>
-        {t('Use this page to set your Kiva preferences for sectors, countries, and partners from your current KivaLens search criteria.')}
+        {t('use_page_set_kiva_preferences')}
       </p>
 
       <p>
-        {t('As your portfolio and partner statistics change, return here regularly. We recommend creating a saved search specifically for your Auto-Lending preferences.')}
+        {t('portfolio_partner_statistics_change')}
       </p>
 
       <p>
-        {t('Before using this feature, make sure')}{' '}
-        <KivaLink path="settings/credit">{t('Auto-Lending')}</KivaLink>{' '}{t('is enabled on Kiva.')}
+        {t('before_using_feature_make_sure')}{' '}
+        <KivaLink path="settings/credit">{t('auto_lending')}</KivaLink>{' '}{t('enabled_kiva')}
       </p>
 
       <hr />
 
-      <p>{t('By continuing, KivaLens will instruct the Kiva Lender Assistant to:')}</p>
+      <p>{t('continuing_kivalens_instruct_kiva_lender')}</p>
       <ul className="list-unstyled ms-3">
         <li className="mb-1">
-          {t('Open a new tab to your Kiva Auto-Lending settings (you may need to log in).')}
+          {t('open_new_tab_kiva_auto_lending')}
         </li>
         <li className="mb-1">
-          {t('Check that Auto-Lending is turned on, and stop if it is not.')}
+          {t('check_auto_lending_turned_stop_if')}
         </li>
         <li className="mb-2">
           <Form.Check
@@ -143,7 +143,7 @@ export function Component() {
             onChange={(e) => setIncludePartners(e.target.checked)}
             label={
               <span>
-                 {t('Set the {selected}/{total} partners that match the current criteria.', { selected: partnerIds.length, total: totalPartners })}
+                 {t('set_selected_total_partners_match', { selected: partnerIds.length, total: totalPartners })}
               </span>
             }
           />
@@ -155,7 +155,7 @@ export function Component() {
             onChange={(e) => setIncludeSectors(e.target.checked)}
             label={
               <span>
-                 {t('Set the {selected}/{total} sectors that match the current criteria.', { selected: sectors.length, total: totalSectors })}
+                 {t('set_selected_total_sectors_match', { selected: sectors.length, total: totalSectors })}
               </span>
             }
           />
@@ -167,17 +167,17 @@ export function Component() {
             onChange={(e) => setIncludeCountries(e.target.checked)}
             label={
               <span>
-                 {t('Set the {selected}/{total} countries that match the current criteria.', { selected: countries.length, total: totalCountries })}
+                 {t('set_selected_total_countries_match', { selected: countries.length, total: totalCountries })}
               </span>
             }
           />
         </li>
-        <li>{t('Save your new settings.')}</li>
+        <li>{t('save_new_settings')}</li>
       </ul>
 
       {problems.length > 0 && (
         <Alert variant="danger">
-          {t('There are problems preventing you from continuing:')}
+          {t('there_problems_preventing_continuing')}
           <ul className="mb-0 mt-1">
             {problems.map((msg, i) => (
               <li key={i}>{msg}</li>
@@ -191,7 +191,7 @@ export function Component() {
         onClick={handlePush}
         disabled={problems.length > 0 || noneChecked}
       >
-         {t('Set Auto-Lending Options on Kiva')}
+         {t('set_auto_lending_options_kiva')}
       </Button>
     </Container>
   )

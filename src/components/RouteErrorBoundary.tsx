@@ -8,21 +8,21 @@ function describeError(error: unknown, t: (key: string) => string): { title: str
   if (isRouteErrorResponse(error)) {
     return {
       title: `${error.status} ${error.statusText}`,
-      detail: typeof error.data === 'string' ? error.data : t('The page could not be loaded.'),
+      detail: typeof error.data === 'string' ? error.data : t('page_could_not_loaded'),
     }
   }
 
   if (error instanceof Error) {
     return {
-      title: t('Something went wrong'),
-      detail: error.message || t('The page crashed while rendering.'),
+      title: t('something_went_wrong'),
+      detail: error.message || t('page_crashed_while_rendering'),
       stack: error.stack,
     }
   }
 
   return {
-    title: t('Something went wrong'),
-    detail: t('The page crashed while rendering.'),
+    title: t('something_went_wrong'),
+    detail: t('page_crashed_while_rendering'),
   }
 }
 
@@ -41,17 +41,17 @@ export default function RouteErrorBoundary() {
           <p className="mb-3">{detail}</p>
           <div className="d-flex gap-2 flex-wrap">
             <Button variant="light" href="#/search">
-               {t('Back to Search')}
+               {t('back_search')}
             </Button>
             <Button variant="outline-light" onClick={() => window.location.reload()}>
-               {t('Reload Page')}
+               {t('reload_page')}
             </Button>
           </div>
         </Alert>
 
         {showDebug ? (
           <details>
-            <summary>{t('Technical details')}</summary>
+            <summary>{t('technical_details')}</summary>
             <pre className="mt-2 mb-0" style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>
               {stack}
             </pre>

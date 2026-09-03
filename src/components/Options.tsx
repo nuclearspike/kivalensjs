@@ -63,31 +63,31 @@ export default function Options() {
 
   return (
     <Container className="py-3">
-      <h1>{t('Options')}</h1>
+      <h1>{t('options')}</h1>
       <Row>
         <Col md={12}>
           {/* --- Who Are You --- */}
           <Card className="mb-3">
-            <Card.Header>{t('Who are you?')}</Card.Header>
+            <Card.Header>{t('who')}</Card.Header>
             <Card.Body>
               {lenderId ? (
                 <p>
-                  {t('Your Lender ID')}: <b>{lenderId}</b>{' '}
+                  {t('lender_id')}: <b>{lenderId}</b>{' '}
                   <Button variant="link" size="sm" onClick={openLenderIdModal}>
-                    {t('Change')}
+                    {t('change')}
                   </Button>
                 </p>
               ) : (
-                <Button onClick={openLenderIdModal}>{t('Set Kiva Lender ID')}</Button>
+                <Button onClick={openLenderIdModal}>{t('set_kiva_lender_id')}</Button>
               )}
 
-              <p className="ample-padding-top">{t('Your Lender ID enables:')}</p>
+              <p className="ample-padding-top">{t('lender_id_enables')}</p>
               <ul className="spacedList">
-                <li>{t("Exclude Loans I've Made: Hides loans you've already funded so you don't accidentally lend twice to the same borrower.")}</li>
-                <li>{t('Portfolio Balancing: Filter by Partners, Countries, Sectors, and Activities relative to your existing portfolio.')}</li>
-                <li>{t('Basket Pruning: Automatically removes completed loans from your basket when you return to KivaLens.')}</li>
-                <li>{t('Team Comparison: Compare membership and lending across all your teams.')}</li>
-                <li>{t('3D Loan Wall: Visualize your portfolio on the Wall page.')}</li>
+                <li>{t('exclude_loans_ive_made_hides')}</li>
+                <li>{t('portfolio_balancing_filter_partners')}</li>
+                <li>{t('basket_pruning_automatically_removes')}</li>
+                <li>{t('team_comparison_compare_membership')}</li>
+                <li>{t('3d_loan_wall_visualize_portfolio')}</li>
               </ul>
 
               {lenderObj ? (
@@ -103,16 +103,16 @@ export default function Options() {
                   </Col>
                   <Col sm={9} md={10}>
                     <dl className="row mb-0">
-                      <dt className="col-sm-4">{t('Name')}</dt>
+                      <dt className="col-sm-4">{t('name')}</dt>
                       <dd className="col-sm-8">{lenderObj.name}</dd>
 
-                      <dt className="col-sm-4">{t('Loan Count')}</dt>
+                      <dt className="col-sm-4">{t('loan_count')}</dt>
                       <dd className="col-sm-8">{lenderObj.loan_count ?? 0}</dd>
 
-                      <dt className="col-sm-4">{t('Invitees')}</dt>
+                      <dt className="col-sm-4">{t('invitees')}</dt>
                       <dd className="col-sm-8">{lenderObj.invitee_count ?? 0}</dd>
 
-                      <dt className="col-sm-4">{t('Invitation Link')}</dt>
+                      <dt className="col-sm-4">{t('invitation_link')}</dt>
                       <dd className="col-sm-8">
                         <a
                           href={`https://www.kiva.org/invitedby/${lenderObj.lender_id}`}
@@ -123,22 +123,22 @@ export default function Options() {
                         </a>
                       </dd>
 
-                      <dt className="col-sm-4">{t('Joined')}</dt>
+                      <dt className="col-sm-4">{t('joined')}</dt>
                       <dd className="col-sm-8">
-                         {lenderObj.member_since ? relativeTime(lenderObj.member_since) : t('(unknown)')}
+                         {lenderObj.member_since ? relativeTime(lenderObj.member_since) : t('unknown')}
                       </dd>
 
-                      <dt className="col-sm-4">{t('Location')}</dt>
-                      <dd className="col-sm-8">{lenderObj.whereabouts ?? t('(unknown)')}</dd>
+                      <dt className="col-sm-4">{t('location')}</dt>
+                      <dd className="col-sm-8">{lenderObj.whereabouts ?? t('unknown')}</dd>
 
-                      <dt className="col-sm-4">{t('Lender Page')}</dt>
+                      <dt className="col-sm-4">{t('lender_page')}</dt>
                       <dd className="col-sm-8">
                         <a
                           href={`https://www.kiva.org/lender/${lenderObj.lender_id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                           {t('Your Lender Page')}
+                           {t('lender_page_2')}
                         </a>
                       </dd>
                     </dl>
@@ -153,10 +153,10 @@ export default function Options() {
 
           {/* --- Display --- */}
           <Card className="mb-3">
-            <Card.Header>{t('Display')}</Card.Header>
+            <Card.Header>{t('display')}</Card.Header>
             <Card.Body>
               <Form.Group className="mb-3">
-                <Form.Label>{t('Default Lending Amount')}</Form.Label>
+                <Form.Label>{t('default_lending_amount')}</Form.Label>
                 <div>
                   <select
                     value={opts.default_lend_amount}
@@ -173,7 +173,7 @@ export default function Options() {
               </Form.Group>
               <Form.Check
                 type="checkbox"
-                label={t('Show distribution graphs when selecting criteria options')}
+                label={t('show_distribution_graphs_when_selecting')}
                 checked={!opts.hide_criteria_graphs}
                 onChange={(e) => setOpts({ hide_criteria_graphs: !e.target.checked })}
               />
@@ -182,54 +182,54 @@ export default function Options() {
 
           {/* --- External Research --- */}
           <Card className="mb-3">
-            <Card.Header>{t('External Research')}</Card.Header>
+            <Card.Header>{t('external_research')}</Card.Header>
             <Card.Body>
               <Form.Check
                 type="checkbox"
-                label={t("Merge A+ Team's MFI Research Data for Secular, Social, and Religion ratings")}
+                label={t('merge_teams_mfi_research_data')}
                 checked
                 disabled
                 readOnly
               />
               <p className="mt-2">
-                {t('KivaLens combines field-partner research from the')}{' '}
+                {t('about_research_credit')}{' '}
                 <a href="https://www.kiva.org/team/aplus" target="_blank" rel="noreferrer">A+ Team</a>{' '}
-                {t('with data from')}{' '}
+                {t('data')}{' '}
                 <a
                   href="https://docs.google.com/spreadsheets/d/1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0/edit#gid=1"
                   target="_blank"
                   rel="noreferrer"
-                  title={t('View Google Doc')}
+                  title={t('view_google_doc')}
                 >
-                  {t('this Google Doc')}
+                  {t('google_doc')}
                 </a>.{' '}
-                {t('This adds Secular and Social score sliders, a Religion filter, and rating details on partner pages. A score of 1 is low; for the Secular score, it indicates a religion-based organization. Partners absent from the research remain in results by default.')}
+                {t('adds_secular_social_score_sliders')}
               </p>
             </Card.Body>
           </Card>
 
           {/* --- Debug / Beta --- */}
           <Card className="mb-3">
-            <Card.Header>{t('Debug / Beta Testing')}</Card.Header>
+            <Card.Header>{t('debug_beta_testing')}</Card.Header>
             <Card.Body>
               <Form.Check
                 type="checkbox"
                 className="mb-2"
-                label={t('Show me features that are being beta-tested')}
+                label={t('show_me_features_being_beta_tested')}
                 checked={opts.betaTester}
                 onChange={(e) => setOpts({ betaTester: e.target.checked })}
               />
               <Form.Check
                 type="checkbox"
                 className="mb-2"
-                label={t("Download loans from Kiva's server instead of KivaLens (slower, use only if experiencing problems)")}
+                label={t('download_loans_kivas_server_instead')}
                 checked={opts.loansFromKiva}
                 onChange={(e) => setOpts({ loansFromKiva: e.target.checked })}
               />
               <Form.Check
                 type="checkbox"
                 className="mb-2"
-                label={t('Output debugging messages to the console')}
+                label={t('output_debugging_messages_console')}
                 checked={opts.debugging}
                 onChange={(e) => setOpts({ debugging: e.target.checked })}
               />
@@ -238,11 +238,11 @@ export default function Options() {
 
           {/* --- AI Assistant --- */}
           <Card className="mb-3">
-            <Card.Header>{t('AI Assistant')}</Card.Header>
+            <Card.Header>{t('ai_assistant')}</Card.Header>
             <Card.Body>
               <Form.Check
                 type="checkbox"
-                label={t('Show the Ask KivaLens AI assistant (the chat bubble in the corner)')}
+                label={t('show_ask_kivalens_ai_assistant')}
                 checked={!aiWidgetDisabled}
                 onChange={(e) => setAiWidgetDisabled(!e.target.checked)}
               />

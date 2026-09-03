@@ -18,7 +18,7 @@ export default function Outdated() {
 
   return (
     <Container>
-      <h4>{t('Outdated Link…')}</h4>
+      <h4>{t('outdated_link_ellipsis')}</h4>
     </Container>
   )
 }

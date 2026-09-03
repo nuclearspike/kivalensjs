@@ -13,7 +13,7 @@ import { useI18n } from '../i18n'
 // ---------------------------------------------------------------------------
 
 function validateCriteria(obj: unknown, t: Translate): string | null {
-  if (!obj || typeof obj !== 'object') return t('Invalid JSON: not an object')
+  if (!obj || typeof obj !== 'object') return t('invalid_json_not_object')
   const o = obj as Record<string, unknown>
   // Single named search
   if (o.name && typeof o.name === 'string' && (o.loan || o.partner || o.portfolio)) return null
@@ -21,22 +21,22 @@ function validateCriteria(obj: unknown, t: Translate): string | null {
   if (o.loan || o.partner || o.portfolio) return null
   // Array of named searches
   if (Array.isArray(obj)) {
-    if (obj.length === 0) return t('Empty array')
+    if (obj.length === 0) return t('empty_array')
     for (let i = 0; i < obj.length; i++) {
       const v = obj[i] as Record<string, unknown> | null
-      if (!v || typeof v !== 'object') return t('Item {index}: not an object', { index: i })
-      if (!v.loan && !v.partner && !v.portfolio) return t('Item {index}: missing loan/partner/portfolio', { index: i })
+      if (!v || typeof v !== 'object') return t('item_index_not_object', { index: i })
+      if (!v.loan && !v.partner && !v.portfolio) return t('item_index_missing_loan_partner', { index: i })
     }
     return null
   }
   // Named collection {name: {loan:{}, ...}}
   const keys = Object.keys(o)
-  if (keys.length === 0) return t('No saved searches found in JSON')
+  if (keys.length === 0) return t('no_saved_searches_found_json')
   for (const key of keys) {
     const v = o[key]
-    if (!v || typeof v !== 'object') return t('Invalid search “{name}”: not an object', { name: key })
+    if (!v || typeof v !== 'object') return t('invalid_search_name_not_object', { name: key })
     const vr = v as Record<string, unknown>
-    if (!vr.loan && !vr.partner && !vr.portfolio) return t('Invalid search “{name}”: missing loan/partner/portfolio', { name: key })
+    if (!vr.loan && !vr.partner && !vr.portfolio) return t('invalid_search_name_missing_loan', { name: key })
   }
   return null
 }
@@ -70,33 +70,33 @@ function summarizeCriteria(
   const loan = crit.loan as Record<string, unknown> | undefined
   if (loan) {
     if (loan.sector) items.push({
-      label: t('Sectors'),
+      label: t('sectors'),
       value: String(loan.sector).split(',').map((value) => sector(value.trim())).join(', '),
     })
-    if (loan.country_code) items.push({ label: t('Countries'), value: String(loan.country_code) })
-    if (loan.activity) items.push({ label: t('Activities'), value: String(loan.activity) })
-    if (loan.tags) items.push({ label: t('Tags'), value: String(loan.tags) })
-    if (loan.themes) items.push({ label: t('Themes'), value: String(loan.themes) })
+    if (loan.country_code) items.push({ label: t('countries'), value: String(loan.country_code) })
+    if (loan.activity) items.push({ label: t('activities'), value: String(loan.activity) })
+    if (loan.tags) items.push({ label: t('tags'), value: String(loan.tags) })
+    if (loan.themes) items.push({ label: t('themes'), value: String(loan.themes) })
     if (loan.repaid_in_min || loan.repaid_in_max)
-      items.push({ label: t('Repaid In'), value: t('{min} – {max} months', { min: String(loan.repaid_in_min ?? t('Min')), max: String(loan.repaid_in_max ?? t('Max')) }) })
+      items.push({ label: t('repaid'), value: t('min_max_months', { min: String(loan.repaid_in_min ?? t('min')), max: String(loan.repaid_in_max ?? t('max')) }) })
     if (loan.still_needed_min || loan.still_needed_max)
-      items.push({ label: t('Still Needed'), value: `$${loan.still_needed_min ?? 0} – $${loan.still_needed_max ?? t('Max')}` })
-    if (loan.sort) items.push({ label: t('Sort'), value: t(String(loan.sort)) })
-    if (loan.name) items.push({ label: t('Name search'), value: String(loan.name) })
-    if (loan.use) items.push({ label: t('Use or Description'), value: String(loan.use) })
+      items.push({ label: t('still_needed'), value: `$${loan.still_needed_min ?? 0} – $${loan.still_needed_max ?? t('max')}` })
+    if (loan.sort) items.push({ label: t('sort'), value: t(String(loan.sort)) })
+    if (loan.name) items.push({ label: t('name_search_2'), value: String(loan.name) })
+    if (loan.use) items.push({ label: t('use_description'), value: String(loan.use) })
   }
   const partner = crit.partner as Record<string, unknown> | undefined
   if (partner) {
-    if (partner.region) items.push({ label: t('Regions'), value: String(partner.region) })
-    if (partner.religion) items.push({ label: t('Religion'), value: String(partner.religion) })
+    if (partner.region) items.push({ label: t('regions'), value: String(partner.region) })
+    if (partner.religion) items.push({ label: t('religion'), value: String(partner.religion) })
   }
   if (crit.portfolio) {
     if (crit.portfolio.exclude_portfolio_loans === 'true')
-      items.push({ label: t('Portfolio'), value: t('Excluding my loans') })
+      items.push({ label: t('portfolio'), value: t('excluding_my_loans') })
     const balancers = ['pb_sector', 'pb_country', 'pb_activity', 'pb_partner'] as const
     for (const b of balancers) {
       const bal = crit.portfolio[b]
-      if (bal?.enabled) items.push({ label: t('Balancing'), value: t(b.replace('pb_', '')) })
+      if (bal?.enabled) items.push({ label: t('balancing'), value: t(b.replace('pb_', '')) })
     }
   }
   return items
@@ -180,9 +180,9 @@ export function SavedSearches() {
 
   const handleDelete = useCallback(
     async (name: string) => {
-      const ok = await showConfirm(t('Delete saved search “{name}”?', { name: t(name) }), {
-        title: t('Delete Saved Search'),
-        confirmLabel: t('Delete'),
+      const ok = await showConfirm(t('delete_saved_search_name', { name: t(name) }), {
+        title: t('delete_saved_search'),
+        confirmLabel: t('delete'),
         danger: true,
       })
       if (ok) {
@@ -249,7 +249,7 @@ export function SavedSearches() {
 
   const handleExportSelected = useCallback(() => {
     if (checkedNames.length === 0) {
-      void showAlert(t('No searches checked.'))
+      void showAlert(t('no_searches_checked'))
       return
     }
     const data: Record<string, SavedSearch | undefined> = {}
@@ -265,7 +265,7 @@ export function SavedSearches() {
 
   const handleShareSelected = useCallback(async () => {
     if (checkedNames.length === 0) {
-      void showAlert(t('No searches checked.'))
+      void showAlert(t('no_searches_checked'))
       return
     }
     const arr = checkedNames.map((name) => {
@@ -279,11 +279,11 @@ export function SavedSearches() {
     const shareUrl = `${window.location.origin}/#/saved?importSS=${encoded}`
     if (navigator.clipboard) {
       void navigator.clipboard.writeText(shareUrl)
-      void showAlert(t('Share link copied to clipboard! Send this link to other KivaLens users.'), {
-        title: t('Share'),
+      void showAlert(t('share_link_copied_clipboard_send'), {
+        title: t('share'),
       })
     } else {
-      void showPrompt(t('Copy this share link:'), { title: t('Share'), defaultValue: shareUrl, multiline: true })
+      void showPrompt(t('copy_share_link'), { title: t('share'), defaultValue: shareUrl, multiline: true })
     }
   }, [checkedNames, getSavedSearch, t])
 
@@ -294,9 +294,9 @@ export function SavedSearches() {
     const data = JSON.stringify({ ...crit, name: selected }, null, 2)
     if (navigator.clipboard) {
       void navigator.clipboard.writeText(data)
-      void showAlert(t('Copied to clipboard!'))
+      void showAlert(t('copied_clipboard'))
     } else {
-      void showPrompt(t('Copy this JSON:'), { title: t('Copy JSON'), defaultValue: data, multiline: true })
+      void showPrompt(t('copy_json_2'), { title: t('copy_json'), defaultValue: data, multiline: true })
     }
   }, [selected, getSavedSearch, t])
 
@@ -326,9 +326,9 @@ export function SavedSearches() {
             })
           }
           refreshList()
-           void showAlert(t('Import successful!'))
+           void showAlert(t('import_successful'))
         } catch (ex) {
-          void showAlert(t('Invalid JSON file: {message}', { message: ex instanceof Error ? ex.message : String(ex) }))
+          void showAlert(t('invalid_json_file_message', { message: ex instanceof Error ? ex.message : String(ex) }))
         }
       }
       reader.readAsText(file)
@@ -354,7 +354,7 @@ export function SavedSearches() {
         }
       }
     } catch (ex) {
-      if (text.trim().length > 0) error = t('Invalid JSON: {message}', { message: ex instanceof Error ? ex.message : String(ex) })
+      if (text.trim().length > 0) error = t('invalid_json_message', { message: ex instanceof Error ? ex.message : String(ex) })
     }
     setImportJSON(text)
     setImportValid(valid)
@@ -372,7 +372,7 @@ export function SavedSearches() {
         })
       } else if (isSingleSearch(obj)) {
         const name = importName.trim()
-        if (!name) { void showAlert(t('Please enter a name for this search.')); return }
+        if (!name) { void showAlert(t('please_enter_name_search')); return }
         useCriteriaStore.getState().savedSearches[name] = stripName(obj as Record<string, unknown>) as unknown as SavedSearch
       } else {
         const o = obj as Record<string, unknown>
@@ -383,7 +383,7 @@ export function SavedSearches() {
       refreshList()
       setShowImportModal(false)
     } catch (ex) {
-      void showAlert(t('Error: {message}', { message: ex instanceof Error ? ex.message : String(ex) }))
+      void showAlert(t('error_message', { message: ex instanceof Error ? ex.message : String(ex) }))
     }
   }, [importJSON, importName, refreshList, t])
 
@@ -396,11 +396,11 @@ export function SavedSearches() {
     <div>
       <Row>
         <Col md={4}>
-          <h4 style={{ marginTop: 5, marginBottom: 8 }}>{t('Saved Searches')} ({searches.length})</h4>
+          <h4 style={{ marginTop: 5, marginBottom: 8 }}>{t('saved_searches')} ({searches.length})</h4>
           <div style={{ marginBottom: 6 }}>
             <ButtonGroup size="sm">
-              <Button onClick={handleSelectAll}>{t('Select All')}</Button>
-              <Button onClick={handleSelectNone}>{t('Select None')}</Button>
+              <Button onClick={handleSelectAll}>{t('select_all')}</Button>
+              <Button onClick={handleSelectNone}>{t('select_none')}</Button>
             </ButtonGroup>
           </div>
           <div style={{ height: 'calc(100vh - 230px)', overflowY: 'auto' }}>
@@ -430,23 +430,23 @@ export function SavedSearches() {
               ))}
             </ListGroup>
             {searches.length === 0 ? (
-              <p style={{ color: '#999', padding: 12 }}>{t('No saved searches yet.')}</p>
+              <p style={{ color: '#999', padding: 12 }}>{t('no_saved_searches_yet')}</p>
             ) : null}
           </div>
           <div style={{ paddingTop: 8, borderTop: '1px solid #ddd' }}>
             <ButtonGroup size="sm" className="mb-1">
-              <Button onClick={handleExportAll}>{t('Export All')}</Button>
+              <Button onClick={handleExportAll}>{t('export_all')}</Button>
               <Button onClick={handleExportSelected} disabled={checkedNames.length === 0}>
-                {t('Export Checked ({count})', { count: checkedNames.length })}
+                {t('export_checked_count', { count: checkedNames.length })}
               </Button>
               <Button onClick={handleShareSelected} disabled={checkedNames.length === 0}>
-                {t('Share Checked')}
+                {t('share_checked')}
               </Button>
             </ButtonGroup>
             <div>
               <ButtonGroup size="sm">
                 <Button style={{ position: 'relative', overflow: 'hidden' }}>
-                   {t('Import File…')}
+                   {t('import_file_ellipsis')}
                   <input
                     type="file"
                     accept=".json"
@@ -455,7 +455,7 @@ export function SavedSearches() {
                   />
                 </Button>
                 <Button onClick={() => setShowImportModal(true)}>
-                   {t('Import JSON…')}
+                   {t('import_json_ellipsis')}
                 </Button>
               </ButtonGroup>
             </div>
@@ -476,8 +476,8 @@ export function SavedSearches() {
                       onKeyDown={(e) => { if (e.key === 'Enter') handleDoRename() }}
                       autoFocus
                     />
-                    <Button size="sm" variant="primary" onClick={handleDoRename} className="ms-2">{t('Save')}</Button>
-                    <Button size="sm" onClick={() => setRenaming(false)} className="ms-1">{t('Cancel')}</Button>
+                    <Button size="sm" variant="primary" onClick={handleDoRename} className="ms-2">{t('save')}</Button>
+                    <Button size="sm" onClick={() => setRenaming(false)} className="ms-1">{t('cancel')}</Button>
                   </span>
                 ) : (
                    t(selected)
@@ -486,20 +486,20 @@ export function SavedSearches() {
 
               <div style={{ marginBottom: 16 }}>
                 <span style={{ fontSize: 18, fontWeight: 600, color: '#2C8C5E' }}>
-                  {t('{count} matching loans', { count: numeral(matchingCount).format('0,0') })}
+                  {t('count_matching_loans', { count: numeral(matchingCount).format('0,0') })}
                 </span>
               </div>
 
               <ButtonGroup className="mb-3">
-                <Button variant="primary" onClick={() => handleShowLoans(selected)}>{t('Show Loans')}</Button>
-                {!renaming ? <Button onClick={handleStartRename}>{t('Rename')}</Button> : null}
-                <Button onClick={handleCopyJSON}>{t('Copy JSON')}</Button>
-                <Button variant="danger" onClick={() => handleDelete(selected)}>{t('Delete')}</Button>
+                <Button variant="primary" onClick={() => handleShowLoans(selected)}>{t('show_loans')}</Button>
+                {!renaming ? <Button onClick={handleStartRename}>{t('rename')}</Button> : null}
+                <Button onClick={handleCopyJSON}>{t('copy_json')}</Button>
+                <Button variant="danger" onClick={() => handleDelete(selected)}>{t('delete')}</Button>
               </ButtonGroup>
 
               {summary.length > 0 ? (
                 <Card>
-                  <Card.Header>{t('Criteria Summary')}</Card.Header>
+                  <Card.Header>{t('criteria_summary')}</Card.Header>
                   <Card.Body>
                     <dl className="row mb-0">
                       {summary.map((item, i) => (
@@ -514,15 +514,15 @@ export function SavedSearches() {
               ) : (
                 <Card>
                   <Card.Body>
-                    <p style={{ color: '#999', marginBottom: 0 }}>{t('No specific criteria set (matches all loans)')}</p>
+                    <p style={{ color: '#999', marginBottom: 0 }}>{t('no_specific_criteria_set_matches')}</p>
                   </Card.Body>
                 </Card>
               )}
             </div>
           ) : (
             <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>
-              <h3>{t('Select a saved search')}</h3>
-              <p>{t('Browse, rename, share, export, and import your saved searches.')}</p>
+              <h3>{t('select_saved_search')}</h3>
+              <p>{t('browse_rename_share_export_import')}</p>
             </div>
           )}
         </Col>
@@ -531,16 +531,16 @@ export function SavedSearches() {
       {/* Import JSON Modal */}
       <Modal show={showImportModal} onHide={() => setShowImportModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>{t('Import Saved Search from JSON')}</Modal.Title>
+          <Modal.Title>{t('import_saved_search_json')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <p>{t('Paste a saved search JSON below. Get this from “Copy JSON” on any saved search to share with teammates.')}</p>
+          <p>{t('paste_saved_search_json_below')}</p>
           {isSingle ? (
             <div className="mb-2">
-              <Form.Label>{t('Name for this search:')}</Form.Label>
+              <Form.Label>{t('name_search')}</Form.Label>
               <Form.Control
                 type="text"
-                placeholder={t('Enter a name…')}
+                placeholder={t('enter_name_ellipsis')}
                 value={importName}
                 onChange={(e) => setImportName(e.target.value)}
               />
@@ -549,14 +549,14 @@ export function SavedSearches() {
           <Form.Control
             as="textarea"
             rows={10}
-            placeholder={t('Paste JSON here…')}
+            placeholder={t('paste_json_here_ellipsis')}
             value={importJSON}
             onChange={(e) => handleImportJSONChange(e.target.value)}
             style={{ fontFamily: 'monospace', fontSize: 12 }}
           />
           {importValid ? (
             <Alert variant="success" className="mt-2 mb-0">
-               {t('Valid criteria detected')}
+               {t('valid_criteria_detected')}
             </Alert>
           ) : null}
           {importError ? (
@@ -571,9 +571,9 @@ export function SavedSearches() {
             onClick={handleDoImportJSON}
             disabled={!importValid || (isSingle && !importName.trim())}
           >
-             {t('Import')}
+             {t('import')}
           </Button>
-          <Button onClick={() => setShowImportModal(false)}>{t('Cancel')}</Button>
+          <Button onClick={() => setShowImportModal(false)}>{t('cancel')}</Button>
         </Modal.Footer>
       </Modal>
     </div>

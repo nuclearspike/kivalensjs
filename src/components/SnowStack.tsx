@@ -77,7 +77,7 @@ export function Component() {
   const storeLoans = useLoanStore((s) => s.loans)
 
   const [images, setImages] = useState<WallImage[]>([])
-  const [message, setMessage] = useState(() => t('Loading…'))
+  const [message, setMessage] = useState(() => t('loading_ellipsis'))
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(Math.floor(ROWS / 2))
   const [magnify, setMagnify] = useState(false)
@@ -106,14 +106,14 @@ export function Component() {
 
     if (lenderId) {
       setLoading(true)
-      setMessage(t('Loading loans for {lenderId}…', { lenderId }))
+      setMessage(t('loading_loans_lenderid_ellipsis', { lenderId }))
       new LenderLoans(lenderId, { max_pages: 10 })
         .start()
         .then((loans: Array<{ id: number; name?: string; image?: { id: number } }>) => {
           if (unmounted) return
           setImages(loans.map(loanToWallImage).filter((i): i is WallImage => i !== null))
           setMessage(
-            t('{lenderId}’s portfolio (up to 200): arrow keys move; space toggles magnification.', {
+            t('lenderid_s_portfolio_up_200', {
               lenderId,
             }),
           )
@@ -122,7 +122,7 @@ export function Component() {
         .catch((err: unknown) => {
           if (unmounted) return
           setMessage(
-            t('Failed to load loans for {lenderId}: {error}', {
+            t('failed_load_loans_lenderid_error', {
               lenderId,
               error: err instanceof Error ? err.message : String(err),
             }),
@@ -149,11 +149,11 @@ export function Component() {
           .map(loanToWallImage)
           .filter((i): i is WallImage => i !== null),
       )
-      setMessage(t('Fundraising loans: arrow keys move; space toggles magnification.'))
+      setMessage(t('fundraising_loans_arrow_keys_move'))
       setLoading(false)
     } else {
       setLoading(true)
-      setMessage(t('Loading…'))
+      setMessage(t('loading_ellipsis'))
     }
 
     return () => {

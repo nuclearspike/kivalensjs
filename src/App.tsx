@@ -18,7 +18,7 @@ function RouteLoading() {
   const { t } = useI18n()
   return (
     <div className="d-flex align-items-center justify-content-center text-muted" style={{ height: '100vh' }}>
-      {t('Loading…')}
+      {t('loading_ellipsis')}
     </div>
   )
 }

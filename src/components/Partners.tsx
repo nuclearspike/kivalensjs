@@ -20,77 +20,77 @@ interface SelectOption {
 type PartnerFilters = Record<string, unknown>
 
 const COUNTRY_OPTIONS: SelectOption[] = [
-  { value: 'AF', label: 'Afghanistan' }, { value: 'AL', label: 'Albania' }, { value: 'AM', label: 'Armenia' },
-  { value: 'AZ', label: 'Azerbaijan' }, { value: 'BJ', label: 'Benin' }, { value: 'BO', label: 'Bolivia' },
-  { value: 'BA', label: 'Bosnia and Herzegovina' }, { value: 'BR', label: 'Brazil' },
-  { value: 'BF', label: 'Burkina Faso' }, { value: 'BI', label: 'Burundi' }, { value: 'KH', label: 'Cambodia' },
-  { value: 'CM', label: 'Cameroon' }, { value: 'TD', label: 'Chad' }, { value: 'CL', label: 'Chile' },
-  { value: 'CN', label: 'China' }, { value: 'CO', label: 'Colombia' }, { value: 'CG', label: 'Congo' },
-  { value: 'CD', label: 'Congo (Dem. Rep.)' }, { value: 'CR', label: 'Costa Rica' },
-  { value: 'CI', label: "Cote D'Ivoire" }, { value: 'DO', label: 'Dominican Republic' },
-  { value: 'EC', label: 'Ecuador' }, { value: 'EG', label: 'Egypt' }, { value: 'SV', label: 'El Salvador' },
-  { value: 'GE', label: 'Georgia' }, { value: 'GH', label: 'Ghana' }, { value: 'GT', label: 'Guatemala' },
-  { value: 'GN', label: 'Guinea' }, { value: 'HT', label: 'Haiti' }, { value: 'HN', label: 'Honduras' },
-  { value: 'IN', label: 'India' }, { value: 'ID', label: 'Indonesia' }, { value: 'IQ', label: 'Iraq' },
-  { value: 'IL', label: 'Israel' }, { value: 'JO', label: 'Jordan' }, { value: 'KE', label: 'Kenya' },
-  { value: 'XK', label: 'Kosovo' }, { value: 'KG', label: 'Kyrgyzstan' }, { value: 'LA', label: 'Laos' },
-  { value: 'LB', label: 'Lebanon' }, { value: 'LR', label: 'Liberia' }, { value: 'MG', label: 'Madagascar' },
-  { value: 'MW', label: 'Malawi' }, { value: 'ML', label: 'Mali' }, { value: 'MX', label: 'Mexico' },
-  { value: 'MD', label: 'Moldova' }, { value: 'MN', label: 'Mongolia' }, { value: 'MZ', label: 'Mozambique' },
-  { value: 'MM', label: 'Myanmar (Burma)' }, { value: 'NA', label: 'Namibia' }, { value: 'NP', label: 'Nepal' },
-  { value: 'NI', label: 'Nicaragua' }, { value: 'NE', label: 'Niger' }, { value: 'NG', label: 'Nigeria' },
-  { value: 'PK', label: 'Pakistan' }, { value: 'PS', label: 'Palestine' }, { value: 'PA', label: 'Panama' },
-  { value: 'PG', label: 'Papua New Guinea' }, { value: 'PY', label: 'Paraguay' }, { value: 'PE', label: 'Peru' },
-  { value: 'PH', label: 'Philippines' }, { value: 'PR', label: 'Puerto Rico' }, { value: 'RW', label: 'Rwanda' },
-  { value: 'WS', label: 'Samoa' }, { value: 'SN', label: 'Senegal' }, { value: 'SL', label: 'Sierra Leone' },
-  { value: 'SB', label: 'Solomon Islands' }, { value: 'SO', label: 'Somalia' },
-  { value: 'ZA', label: 'South Africa' }, { value: 'SS', label: 'South Sudan' },
-  { value: 'LK', label: 'Sri Lanka' }, { value: 'SR', label: 'Suriname' }, { value: 'TJ', label: 'Tajikistan' },
-  { value: 'TZ', label: 'Tanzania' }, { value: 'TH', label: 'Thailand' },
-  { value: 'TL', label: 'Timor-Leste' }, { value: 'TG', label: 'Togo' }, { value: 'TO', label: 'Tonga' },
-  { value: 'TR', label: 'Turkey' }, { value: 'UG', label: 'Uganda' }, { value: 'UA', label: 'Ukraine' },
-  { value: 'US', label: 'United States' }, { value: 'VN', label: 'Vietnam' },
-  { value: 'VU', label: 'Vanuatu' }, { value: 'YE', label: 'Yemen' }, { value: 'ZM', label: 'Zambia' },
-  { value: 'ZW', label: 'Zimbabwe' },
+  { value: 'AF', label: 'afghanistan' }, { value: 'AL', label: 'albania' }, { value: 'AM', label: 'armenia' },
+  { value: 'AZ', label: 'azerbaijan' }, { value: 'BJ', label: 'benin' }, { value: 'BO', label: 'bolivia' },
+  { value: 'BA', label: 'bosnia_herzegovina' }, { value: 'BR', label: 'brazil' },
+  { value: 'BF', label: 'burkina_faso' }, { value: 'BI', label: 'burundi' }, { value: 'KH', label: 'cambodia' },
+  { value: 'CM', label: 'cameroon' }, { value: 'TD', label: 'chad' }, { value: 'CL', label: 'chile' },
+  { value: 'CN', label: 'china' }, { value: 'CO', label: 'colombia' }, { value: 'CG', label: 'congo' },
+  { value: 'CD', label: 'congo_dem_rep' }, { value: 'CR', label: 'costa_rica' },
+  { value: 'CI', label: 'cote_divoire' }, { value: 'DO', label: 'dominican_republic' },
+  { value: 'EC', label: 'ecuador' }, { value: 'EG', label: 'egypt' }, { value: 'SV', label: 'el_salvador' },
+  { value: 'GE', label: 'georgia' }, { value: 'GH', label: 'ghana' }, { value: 'GT', label: 'guatemala' },
+  { value: 'GN', label: 'guinea' }, { value: 'HT', label: 'haiti' }, { value: 'HN', label: 'honduras' },
+  { value: 'IN', label: 'india' }, { value: 'ID', label: 'indonesia' }, { value: 'IQ', label: 'iraq' },
+  { value: 'IL', label: 'israel' }, { value: 'JO', label: 'jordan' }, { value: 'KE', label: 'kenya' },
+  { value: 'XK', label: 'kosovo' }, { value: 'KG', label: 'kyrgyzstan' }, { value: 'LA', label: 'laos' },
+  { value: 'LB', label: 'lebanon' }, { value: 'LR', label: 'liberia' }, { value: 'MG', label: 'madagascar' },
+  { value: 'MW', label: 'malawi' }, { value: 'ML', label: 'mali' }, { value: 'MX', label: 'mexico' },
+  { value: 'MD', label: 'moldova' }, { value: 'MN', label: 'mongolia' }, { value: 'MZ', label: 'mozambique' },
+  { value: 'MM', label: 'myanmar_burma' }, { value: 'NA', label: 'namibia' }, { value: 'NP', label: 'nepal' },
+  { value: 'NI', label: 'nicaragua' }, { value: 'NE', label: 'niger' }, { value: 'NG', label: 'nigeria' },
+  { value: 'PK', label: 'pakistan' }, { value: 'PS', label: 'palestine' }, { value: 'PA', label: 'panama' },
+  { value: 'PG', label: 'papua_new_guinea' }, { value: 'PY', label: 'paraguay' }, { value: 'PE', label: 'peru' },
+  { value: 'PH', label: 'philippines' }, { value: 'PR', label: 'puerto_rico' }, { value: 'RW', label: 'rwanda' },
+  { value: 'WS', label: 'samoa' }, { value: 'SN', label: 'senegal' }, { value: 'SL', label: 'sierra_leone' },
+  { value: 'SB', label: 'solomon_islands' }, { value: 'SO', label: 'somalia' },
+  { value: 'ZA', label: 'south_africa' }, { value: 'SS', label: 'south_sudan' },
+  { value: 'LK', label: 'sri_lanka' }, { value: 'SR', label: 'suriname' }, { value: 'TJ', label: 'tajikistan' },
+  { value: 'TZ', label: 'tanzania' }, { value: 'TH', label: 'thailand' },
+  { value: 'TL', label: 'timor_leste' }, { value: 'TG', label: 'togo' }, { value: 'TO', label: 'tonga' },
+  { value: 'TR', label: 'turkey' }, { value: 'UG', label: 'uganda' }, { value: 'UA', label: 'ukraine' },
+  { value: 'US', label: 'united_states' }, { value: 'VN', label: 'vietnam' },
+  { value: 'VU', label: 'vanuatu' }, { value: 'YE', label: 'yemen' }, { value: 'ZM', label: 'zambia' },
+  { value: 'ZW', label: 'zimbabwe' },
 ]
 
 const REGION_OPTIONS: SelectOption[] = [
-  { value: 'na', label: 'North America' }, { value: 'ca', label: 'Central America' },
-  { value: 'sa', label: 'South America' }, { value: 'af', label: 'Africa' },
-  { value: 'as', label: 'Asia' }, { value: 'me', label: 'Middle East' },
-  { value: 'ee', label: 'Eastern Europe' }, { value: 'oc', label: 'Oceania' },
-  { value: 'we', label: 'Western Europe' },
+  { value: 'na', label: 'north_america' }, { value: 'ca', label: 'central_america' },
+  { value: 'sa', label: 'south_america' }, { value: 'af', label: 'africa' },
+  { value: 'as', label: 'asia' }, { value: 'me', label: 'middle_east' },
+  { value: 'ee', label: 'eastern_europe' }, { value: 'oc', label: 'oceania' },
+  { value: 'we', label: 'western_europe' },
 ]
 
 const SOCIAL_PERFORMANCE_OPTIONS: SelectOption[] = [
-  { value: '1', label: 'Anti-Poverty Focus' },
-  { value: '3', label: 'Client Voice' },
-  { value: '5', label: 'Entrepreneurial Support' },
-  { value: '6', label: 'Facilitation of Savings' },
-  { value: '4', label: 'Family and Community Empowerment' },
-  { value: '7', label: 'Innovation' },
-  { value: '2', label: 'Vulnerable Group Focus' },
+  { value: '1', label: 'anti_poverty_focus' },
+  { value: '3', label: 'client_voice' },
+  { value: '5', label: 'entrepreneurial_support' },
+  { value: '6', label: 'facilitation_savings' },
+  { value: '4', label: 'family_community_empowerment' },
+  { value: '7', label: 'innovation' },
+  { value: '2', label: 'vulnerable_group_focus' },
 ]
 
 const RELIGION_OPTIONS: SelectOption[] = [
-  { value: 'Secular', label: 'Secular' }, { value: 'Christian', label: 'Christian' },
-  { value: 'Christian Influence', label: 'Christian Influence' }, { value: 'Muslim', label: 'Muslim' },
-  { value: 'Hindu', label: 'Hindu' }, { value: 'Jewish', label: 'Jewish' },
-  { value: 'Buddhist', label: 'Buddhist' }, { value: 'Other', label: 'Other' },
-  { value: 'Unknown', label: 'Unknown' },
+  { value: 'Secular', label: 'secular' }, { value: 'Christian', label: 'christian' },
+  { value: 'Christian Influence', label: 'christian_influence' }, { value: 'Muslim', label: 'muslim' },
+  { value: 'Hindu', label: 'hindu' }, { value: 'Jewish', label: 'jewish' },
+  { value: 'Buddhist', label: 'buddhist' }, { value: 'Other', label: 'other' },
+  { value: 'Unknown', label: 'unknown_2' },
 ]
 
 const STATUS_MULTI_OPTIONS: SelectOption[] = [
-  { value: 'active', label: 'Active' },
-  { value: 'paused', label: 'Paused' },
-  { value: 'inactive', label: 'Inactive' },
-  { value: 'closed', label: 'Closed' },
+  { value: 'active', label: 'active' },
+  { value: 'paused', label: 'paused' },
+  { value: 'inactive', label: 'inactive' },
+  { value: 'closed', label: 'closed' },
 ]
 
 const CHARGES_OPTIONS: SelectOption[] = [
-  { value: '', label: 'Show All' },
-  { value: 'true', label: 'Only partners that charge fees & interest' },
-  { value: 'false', label: 'Only partners that do NOT charge fees & interest' },
+  { value: '', label: 'show_all' },
+  { value: 'true', label: 'only_partners_charge_fees_interest' },
+  { value: 'false', label: 'only_partners_not_charge_fees' },
 ]
 
 const statusBg: Record<string, string | undefined> = {
@@ -107,19 +107,19 @@ const statusVariant: Record<string, string> = {
 }
 
 const PARTNER_SLIDERS: Record<string, { min: number; max: number; step?: number; label: string }> = {
-  partner_risk_rating: { min: 0, max: 5, step: 0.5, label: 'Risk Rating (stars)' },
-  partner_arrears: { min: 0, max: 100, step: 0.1, label: 'Delinq Rate (%)' },
-  loans_at_risk_rate: { min: 0, max: 100, label: 'Loans at Risk (%)' },
-  partner_default: { min: 0, max: 30, step: 0.1, label: 'Default Rate (%)' },
-  portfolio_yield: { min: 0, max: 100, step: 0.1, label: 'Portfolio Yield (%)' },
-  profit: { min: -100, max: 100, step: 0.1, label: 'Profit (%)' },
-  currency_exchange_loss_rate: { min: 0, max: 10, step: 0.1, label: 'Currency Exchange Loss (%)' },
-  average_loan_size_percent_per_capita_income: { min: 0, max: 300, label: 'Average Loan/Capita Income' },
-  years_on_kiva: { min: 0, max: 12, step: 0.25, label: 'Years on Kiva' },
-  loans_posted: { min: 0, max: 20000, step: 50, label: 'Loans Posted' },
-  fundraising_loan_count: { min: 0, max: 200, step: 1, label: 'Fundraising Loans' },
-  secular_rating: { min: 1, max: 4, step: 1, label: 'Secular Rating' },
-  social_rating: { min: 1, max: 4, step: 1, label: 'Social Rating' },
+  partner_risk_rating: { min: 0, max: 5, step: 0.5, label: 'risk_rating_stars' },
+  partner_arrears: { min: 0, max: 100, step: 0.1, label: 'delinq_rate_percent' },
+  loans_at_risk_rate: { min: 0, max: 100, label: 'loans_risk_percent' },
+  partner_default: { min: 0, max: 30, step: 0.1, label: 'default_rate_percent' },
+  portfolio_yield: { min: 0, max: 100, step: 0.1, label: 'portfolio_yield_percent' },
+  profit: { min: -100, max: 100, step: 0.1, label: 'profit_percent' },
+  currency_exchange_loss_rate: { min: 0, max: 10, step: 0.1, label: 'currency_exchange_loss_percent' },
+  average_loan_size_percent_per_capita_income: { min: 0, max: 300, label: 'average_loan_capita_income' },
+  years_on_kiva: { min: 0, max: 12, step: 0.25, label: 'years_kiva' },
+  loans_posted: { min: 0, max: 20000, step: 50, label: 'loans_posted' },
+  fundraising_loan_count: { min: 0, max: 200, step: 1, label: 'fundraising_loans' },
+  secular_rating: { min: 1, max: 4, step: 1, label: 'secular_rating' },
+  social_rating: { min: 1, max: 4, step: 1, label: 'social_rating' },
 }
 
 function csvToOptions(csv: unknown, options: SelectOption[]) {
@@ -160,9 +160,9 @@ function AanDropdown({
         {t(selected)}
       </Dropdown.Toggle>
       <Dropdown.Menu>
-        {canAll ? <Dropdown.Item onClick={() => onChange('all')}>{t('All of these')}</Dropdown.Item> : null}
-        <Dropdown.Item onClick={() => onChange('any')}>{t('Any of these')}</Dropdown.Item>
-        <Dropdown.Item onClick={() => onChange('none')}>{t('None of these')}</Dropdown.Item>
+        {canAll ? <Dropdown.Item onClick={() => onChange('all')}>{t('all_these')}</Dropdown.Item> : null}
+        <Dropdown.Item onClick={() => onChange('any')}>{t('any_these')}</Dropdown.Item>
+        <Dropdown.Item onClick={() => onChange('none')}>{t('none_these')}</Dropdown.Item>
       </Dropdown.Menu>
     </Dropdown>
   )
@@ -240,8 +240,8 @@ export function RangeRow({
   const actualMin = minVal != null && !isNaN(Number(minVal)) ? Number(minVal) : min
   const actualMax = maxVal != null && !isNaN(Number(maxVal)) ? Number(maxVal) : max
   const { t } = useI18n()
-  const displayMin = minVal == null ? t('Min') : actualMin
-  const displayMax = maxVal == null ? t('Max') : actualMax
+  const displayMin = minVal == null ? t('min') : actualMin
+  const displayMax = maxVal == null ? t('max') : actualMax
 
   return (
     <FilterRow
@@ -325,7 +325,7 @@ function PartnerListItem({
             ) : null}
             {partner.rating ? (
               <span className="partner-pill partner-pill-good">
-                {t('{count} stars', { count: partner.rating })}
+                {t('count_stars', { count: partner.rating })}
               </span>
             ) : null}
           </div>
@@ -472,13 +472,13 @@ export function Component() {
               type="text"
               size="sm"
               className="mb-2"
-              placeholder={t('Search by name...')}
+              placeholder={t('search_name_ellipsis')}
               value={nameSearch}
               onChange={(e) => setNameSearch(e.target.value)}
             />
 
             <FilterRow
-              label={t('Status')}
+              label={t('status')}
               aan={
                 <AanDropdown
                   value={String(filters.status_all_any_none ?? 'any')}
@@ -498,7 +498,7 @@ export function Component() {
             </FilterRow>
 
             <FilterRow
-              label={t('Countries')}
+              label={t('countries')}
               aan={
                 <AanDropdown
                   
@@ -519,7 +519,7 @@ export function Component() {
             </FilterRow>
 
             <FilterRow
-              label={t('Region')}
+              label={t('region_2')}
               aan={
                 <AanDropdown
                   
@@ -540,7 +540,7 @@ export function Component() {
             </FilterRow>
 
             <FilterRow
-              label={t('Social Performance')}
+              label={t('social_performance_2')}
               aan={
                 <AanDropdown
                   canAll
@@ -560,7 +560,7 @@ export function Component() {
               />
             </FilterRow>
 
-            <FilterRow label={t('Charges Interest')}>
+            <FilterRow label={t('charges_interest')}>
               <Form.Select
                 size="sm"
                 value={String(filters.charges_fees_and_interest ?? '')}
@@ -575,7 +575,7 @@ export function Component() {
             </FilterRow>
 
             <FilterRow
-              label={t('Religion')}
+              label={t('religion')}
               hint={RELIGION_HELP}
               aan={
                 <AanDropdown
@@ -620,13 +620,13 @@ export function Component() {
         <div className="col-md-3">
           <div className="d-flex justify-content-between align-items-center mb-1">
             <span className="small text-muted">
-               {t('Showing {shown} of {total} partners', {
+               {t('showing_shown_total_partners', {
                  shown: numeral(filtered.length).format('0,0'),
                  total: numeral(totalCount).format('0,0'),
                })}
             </span>
             <Button size="sm" variant="outline-secondary" onClick={clearCriteria}>
-              {t('Reset')}
+              {t('reset')}
             </Button>
           </div>
           <div style={{ maxHeight: 'calc(100vh - 110px)', overflowY: 'auto' }}>
@@ -650,9 +650,9 @@ export function Component() {
             </div>
           ) : (
             <div className="text-center text-muted" style={{ paddingTop: 60 }}>
-              <h3>{t('Select a partner from the list')}</h3>
+              <h3>{t('select_partner_list')}</h3>
               <p>
-                {t('Browse all {count} partners, including inactive and paused ones.', {
+                {t('browse_all_count_partners_including', {
                   count: numeral(totalCount).format('0,0'),
                 })}
               </p>
