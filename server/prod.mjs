@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { createState, startRefresh, handleApi, handleProxy, handleRss } from './klCore.mjs'
 import { handleChat } from './aiChat.mjs'
 import { closeCache } from './klCache.mjs'
+import { canonicalRedirect } from './canonicalUrl.mjs'
 
 const PORT = process.env.PORT || 3000
 const DIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
@@ -176,11 +177,12 @@ const refreshTimer = startRefresh(state, log)
 const server = http.createServer((req, res) => {
   setSecurityHeaders(res)
 
-  // Force HTTPS behind Heroku's TLS-terminating router.
-  const proto = req.headers['x-forwarded-proto']
-  if (proto === 'http') {
+  // One permanent redirect to the canonical origin (https://www.kivalens.org)
+  // for plain-HTTP and bare-apex requests; see canonicalUrl.mjs.
+  const location = canonicalRedirect(req)
+  if (location) {
     res.statusCode = 301
-    res.setHeader('Location', `https://${req.headers.host}${req.url}`)
+    res.setHeader('Location', location)
     res.end()
     return
   }
