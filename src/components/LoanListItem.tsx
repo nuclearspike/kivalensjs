@@ -15,7 +15,7 @@ interface LoanListItemProps {
  * Compact card for a single loan in the search results list.
  */
 export default function LoanListItem({ loan }: LoanListItemProps) {
-  const { sector, t } = useI18n()
+  const { data, sector } = useI18n()
   const inBasket = useLoanStore((s) => s.inBasket(loan.id))
   const addToBasket = useLoanStore((s) => s.addToBasket)
   const selectedId = useLoanStore((s) => s.selectedId)
@@ -46,9 +46,9 @@ export default function LoanListItem({ loan }: LoanListItemProps) {
       <div className="details">
         <div className="loan-name">{loan.name}</div>
         <div className="loan-meta">
-          <span className="loan-tag">{t(loan.location.country)}</span>
+          <span className="loan-tag">{data(loan.location.country)}</span>
           <span className="loan-tag">{sector(loan.sector)}</span>
-          <span className="loan-tag d-none d-lg-inline">{t(loan.activity)}</span>
+          <span className="loan-tag d-none d-lg-inline">{data(loan.activity)}</span>
         </div>
         <div className="loan-use d-none d-lg-block">{loan.use}</div>
       </div>

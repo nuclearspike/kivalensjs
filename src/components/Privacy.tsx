@@ -6,7 +6,7 @@ import { useI18n } from '../i18n'
 // of its own. The notable data flow is the "Ask KivaLens" assistant, whose
 // conversations are logged for analytics/debugging/improvement.
 export default function Privacy() {
-  const { t, date } = useI18n()
+  const { t, tx, date } = useI18n()
   return (
     <Container className="py-3" style={{ maxWidth: 820 }}>
       <h1>{t('kivalens_privacy_policy')}</h1>
@@ -89,8 +89,7 @@ export default function Privacy() {
 
       <h3>{t('choices')}</h3>
       <p>
-        {t('use_most_kivalens_without_lender')}{' '}
-        <Link to="/options">{t('options')}</Link>.{' '}
+        {tx('use_most_without_lender_id', { options: <Link to="/options">{t('options')}</Link> })}{' '}
         {t('clearing_browser_storage_removes_local')}
       </p>
 
@@ -104,7 +103,7 @@ export default function Privacy() {
 
       <h3>{t('contact')}</h3>
       <p>
-        {t('questions_about_privacy_see')} <Link to="/about">{t('about')}</Link> {t('contact_information_2')}
+        {tx('privacy_questions_see_about', { about: <Link to="/about">{t('about')}</Link> })}
       </p>
     </Container>
   )

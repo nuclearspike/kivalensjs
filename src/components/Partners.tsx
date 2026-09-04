@@ -5,7 +5,6 @@ import { Container, Button, Badge, ListGroup, Form, Row, Col, Dropdown, OverlayT
 import Select from './KLSelect'
 import { PARTNER_SLIDER_HELP, RELIGION_HELP, RangeExactControl } from './CriteriaTabs'
 import Slider from 'rc-slider'
-import numeral from 'numeral'
 import type { Partner } from '../types'
 import { useLoanStore } from '../stores'
 import { getKivaLoans } from '../api/kiva'
@@ -346,7 +345,7 @@ function PartnerListItem({
 }
 
 export function Component() {
-  const { t } = useI18n()
+  const { t, number } = useI18n()
   const loans = useLoanStore((s) => s.loans)
   const downloading = useLoanStore((s) => s.downloading)
 
@@ -621,8 +620,8 @@ export function Component() {
           <div className="d-flex justify-content-between align-items-center mb-1">
             <span className="small text-muted">
                {t('showing_shown_total_partners', {
-                 shown: numeral(filtered.length).format('0,0'),
-                 total: numeral(totalCount).format('0,0'),
+                 shown: number(filtered.length),
+                 total: number(totalCount),
                })}
             </span>
             <Button size="sm" variant="outline-secondary" onClick={clearCriteria}>
@@ -653,7 +652,7 @@ export function Component() {
               <h3>{t('select_partner_list')}</h3>
               <p>
                 {t('browse_all_count_partners_including', {
-                  count: numeral(totalCount).format('0,0'),
+                  count: number(totalCount),
                 })}
               </p>
             </div>

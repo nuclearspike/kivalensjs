@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { Col, Row, Button, ButtonGroup, ListGroup, Card, Modal, Alert, Form } from '../ui'
-import numeral from 'numeral'
 import { useCriteriaStore, useLoanStore } from '../stores'
 import { showAlert, showConfirm, showPrompt } from '../lib/dialog'
 import { getKivaLoans } from '../api/kiva'
@@ -107,7 +106,7 @@ function summarizeCriteria(
 // ---------------------------------------------------------------------------
 
 export function SavedSearches() {
-  const { t, sector } = useI18n()
+  const { t, sector, number } = useI18n()
   const getSavedSearchNames = useCriteriaStore((s) => s.getSavedSearchNames)
   const getSavedSearch = useCriteriaStore((s) => s.getSavedSearch)
   const renameSearch = useCriteriaStore((s) => s.renameSearch)
@@ -486,7 +485,7 @@ export function SavedSearches() {
 
               <div style={{ marginBottom: 16 }}>
                 <span style={{ fontSize: 18, fontWeight: 600, color: '#2C8C5E' }}>
-                  {t('count_matching_loans', { count: numeral(matchingCount).format('0,0') })}
+                  {t('count_matching_loans', { count: number(matchingCount) })}
                 </span>
               </div>
 

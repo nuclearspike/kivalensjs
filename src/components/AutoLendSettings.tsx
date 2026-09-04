@@ -14,7 +14,7 @@ function KivaLink({ path, children }: { path: string; children: React.ReactNode 
 }
 
 export function Component() {
-  const { t } = useI18n()
+  const { t, tx } = useI18n()
   const lastCriteria = useCriteriaStore((s) => s.getLastCriteria)
   const criteria = useCriteriaStore((s) => s.lastKnown)
 
@@ -108,9 +108,7 @@ export function Component() {
       <h3>{t('push_auto_lending_preferences_kiva')}</h3>
 
       <p>
-        {t('kiva_has_offered')}{' '}
-        <KivaLink path="settings/credit">{t('auto_lending')}</KivaLink>{' '}
-        {t('auto_lending_active_description')}
+        {tx('auto_lending_intro', { autoLending: <KivaLink path="settings/credit">{t('auto_lending')}</KivaLink> })}
       </p>
 
       <p>
@@ -122,8 +120,7 @@ export function Component() {
       </p>
 
       <p>
-        {t('before_using_feature_make_sure')}{' '}
-        <KivaLink path="settings/credit">{t('auto_lending')}</KivaLink>{' '}{t('enabled_kiva')}
+        {tx('before_using_ensure_auto_lending', { autoLending: <KivaLink path="settings/credit">{t('auto_lending')}</KivaLink> })}
       </p>
 
       <hr />

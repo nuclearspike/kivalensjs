@@ -34,7 +34,7 @@ function EmailLink({
 }
 
 export default function About() {
-  const { t } = useI18n()
+  const { t, tx } = useI18n()
   const hasLenderId = Boolean(useUtilsStore((s) => s.lenderId))
 
   return (
@@ -45,8 +45,7 @@ export default function About() {
         <Tab eventKey="getting-started" title={t('getting_started')}>
           <h3>{t('what_kivalens')}</h3>
           <p>
-            {t('kivalens_free_tool_powerful_ways')}{' '}
-            <KivaLink path="">Kiva.org</KivaLink>.{' '}
+            {tx('kivalens_free_tool_on', { kiva: <KivaLink path="">Kiva.org</KivaLink> })}{' '}
             {t('find_loans_country_sector_repayment')}
           </p>
 
@@ -54,8 +53,7 @@ export default function About() {
             <>
               <h3>{t('what_kiva')}</h3>
               <p>
-                <KivaLink path="invitedby/nuclearspike">Kiva</KivaLink>{' '}
-                {t('kiva_nonprofit_blurb')}
+                {tx('kiva_nonprofit_description', { kiva: <KivaLink path="invitedby/nuclearspike">Kiva</KivaLink> })}
               </p>
             </>
           ) : null}
@@ -78,22 +76,24 @@ export default function About() {
 
           <h3>{t('set_up_lender_id')}</h3>
           <p>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault()
-                showLenderIDModal()
-              }}
-            >
-               {t('set_kiva_lender_id_3')}
-            </a>{' '}
-             {t('lender_id_benefit_hint')}
+            {tx('set_lender_id_benefit', {
+              link: (
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    showLenderIDModal()
+                  }}
+                >
+                  {t('set_kiva_lender_id_3')}
+                </a>
+              ),
+            })}
           </p>
 
           <h3>{t('save_searches')}</h3>
           <p>
-            {t('found_useful_set_filters_save')}{' '}
-            <Link to="/saved">{t('saved')}</Link> {t('tab')}
+            {tx('found_useful_filters_save', { savedTab: <Link to="/saved">{t('saved')}</Link> })}
           </p>
         </Tab>
 
@@ -120,16 +120,13 @@ export default function About() {
 
           <h3>{t('team_research')}</h3>
           <p>
-            {t('partner_detail_research_credit')}{' '}
-            <KivaLink path="team/aplus">A+ Team</KivaLink>.{' '}
+            {tx('research_credit_aplus', { aplus: <KivaLink path="team/aplus">A+ Team</KivaLink> })}{' '}
             {t('includes_secular_social_ratings_plus')}
           </p>
 
           <h3>{t('rss_feeds')}</h3>
           <p>
-            {t('set_criteria_use_rss_tab')}{' '}
-            <NewTabLink href="https://www.ifttt.com">IFTTT</NewTabLink>{' '}
-            {t('notify_on_new_matches_hint')}
+            {tx('rss_set_criteria_or_ifttt', { ifttt: <NewTabLink href="https://www.ifttt.com">IFTTT</NewTabLink> })}
           </p>
 
           <h3>{t('reducing_risk')}</h3>
@@ -156,31 +153,22 @@ export default function About() {
 
           <h3>{t('questions_problems')}</h3>
           <p>
-             {t('data_comes')}{' '}
-             <NewTabLink href="https://build.kiva.org/api">
-              {t('kivas_public_api')}
-            </NewTabLink>
-             . {t('questions_about_loan_data_contact')}{' '}
-            <KivaLink path="help">{t('kivas_help_center')}</KivaLink>. {t('kivalens_bugs')}{' '}
-            <NewTabLink href="https://github.com/nuclearspike/kivalens/issues">
-               {t('open_issue_github')}
-            </NewTabLink>{' '}
-             {t('or')}{' '}
-            <EmailLink
-               subject={t('kivalens_bug')}
-              body={t('bug_report_template')}
-            >
-               {t('email_me')}
-            </EmailLink>
-             . {t('join')}{' '}
-            <KivaLink path="team/kivalens">{t('kivalens_lending_team')}</KivaLink> {t('discussion_announcements')}
+            {tx('data_sources_and_contact', {
+              api: <NewTabLink href="https://build.kiva.org/api">{t('kivas_public_api')}</NewTabLink>,
+              helpCenter: <KivaLink path="help">{t('kivas_help_center')}</KivaLink>,
+              issue: <NewTabLink href="https://github.com/nuclearspike/kivalens/issues">{t('open_issue_github')}</NewTabLink>,
+              email: (
+                <EmailLink subject={t('kivalens_bug')} body={t('bug_report_template')}>
+                  {t('email_me')}
+                </EmailLink>
+              ),
+              team: <KivaLink path="team/kivalens">{t('kivalens_lending_team')}</KivaLink>,
+            })}
           </p>
           <p>
-             {t('kivalens_open_source')}{' '}
-            <NewTabLink href="https://github.com/nuclearspike/kivalens">
-               {t('browse_code_github')}
-            </NewTabLink>
-            .
+            {tx('open_source_browse_code', {
+              code: <NewTabLink href="https://github.com/nuclearspike/kivalens">{t('browse_code_github')}</NewTabLink>,
+            })}
           </p>
         </Tab>
       </Tabs>

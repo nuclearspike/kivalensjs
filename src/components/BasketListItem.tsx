@@ -16,7 +16,7 @@ interface BasketListItemProps {
  * amount dropdown (via lendAmountOptions), and a remove button.
  */
 export default function BasketListItem({ entry, onSelect, selected }: BasketListItemProps) {
-  const { sector, t } = useI18n()
+  const { data, sector, t } = useI18n()
   const setBasketAmount = useLoanStore((s) => s.setBasketAmount)
   const loan = entry.loan
 
@@ -45,9 +45,9 @@ export default function BasketListItem({ entry, onSelect, selected }: BasketList
       <div className="details">
         <div className="loan-name">{loan.name}</div>
         <div className="loan-meta">
-          <span className="loan-tag">{t(loan.location.country)}</span>
+          <span className="loan-tag">{data(loan.location.country)}</span>
           <span className="loan-tag">{sector(loan.sector)}</span>
-          <span className="loan-tag d-none d-lg-inline">{t(loan.activity)}</span>
+          <span className="loan-tag d-none d-lg-inline">{data(loan.activity)}</span>
         </div>
         {options.length > 0 ? (
           <select

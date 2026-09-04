@@ -5,7 +5,6 @@ import Select from './KLSelect'
 import type { MultiValue, SingleValue } from 'react-select'
 import Slider from 'rc-slider'
 // rc-slider base CSS is imported globally in main.tsx
-import numeral from 'numeral'
 import { useCriteriaStore, useLoanStore, useUtilsStore } from '../stores'
 import { showLenderIDModal } from '../lib/showLenderIdModal'
 import type { Criteria, BalancerConfig, KivaLoan, Partner } from '../types'
@@ -15,6 +14,7 @@ import { lsj } from '../lib/localStorage'
 import { humanize } from '../lib/utils'
 import { PORTFOLIO_BALANCER_FILTER_DEPENDENCY_PREFIX } from '../lib/filterReadiness'
 import { useI18n } from '../i18n'
+import { LIMIT_BY_LABEL_KEY } from '../lib/criteriaActive'
 import { PortfolioLoansLoadingNotice } from './FilteringProgress'
 
 // ---------------------------------------------------------------------------
@@ -945,12 +945,6 @@ function LimitResultRow({
 }) {
   const { t } = useI18n()
   const v = value ?? { enabled: false, count: 1, limit_by: 'Partner' }
-  // `limit_by`'s VALUE ('Partner'/'Country'/'Sector'/'Activity') is persisted
-  // criteria data (see DEFAULT_SAVED_SEARCHES) and must stay exactly as-is;
-  // only its DISPLAY label is translated, via this fixed lookup.
-  const LIMIT_BY_LABEL_KEY: Record<string, string> = {
-    Partner: 'partner_2', Country: 'country_2', Sector: 'sector_2', Activity: 'activity_2',
-  }
 
   return (
     <Row className="mb-2">
@@ -1013,7 +1007,7 @@ function BalancingRow({
   value: BalancerConfig | undefined
   onChange: (val: BalancerConfig) => void
 }) {
-  const { t, sector, date } = useI18n()
+  const { t, sector, date, percent } = useI18n()
   const fetchBalancerData = useCriteriaStore((s) => s.fetchBalancerData)
   const setFilterDependencyLoading = useLoanStore((s) => s.setFilterDependencyLoading)
   const dependencyKey = `${PORTFOLIO_BALANCER_FILTER_DEPENDENCY_PREFIX}${name}`
@@ -1192,7 +1186,7 @@ function BalancingRow({
                     <ul style={{ overflowY: 'auto', maxHeight: 200, fontSize: 12, marginTop: 4 }}>
                       {slices.map((slice, i) => (
                         <li key={i}>
-                          {numeral(slice.percent).format('0.000')}%:{' '}
+                          {percent(slice.percent, 3)}:{' '}
                           {meta.sliceBy === 'sector' && slice.name ? sector(slice.name) : slice.name}
                         </li>
                       ))}
@@ -1487,7 +1481,7 @@ function PortfolioCriteriaPanel({
   criteria: Criteria
   onUpdate: (group: 'loan' | 'partner' | 'portfolio', key: string, value: unknown) => void
 }) {
-  const { t } = useI18n()
+  const { t, tx } = useI18n()
   const portfolio = criteria.portfolio as Record<string, unknown>
   const lenderId = useUtilsStore((s) => s.lenderId)
 
@@ -1495,17 +1489,20 @@ function PortfolioCriteriaPanel({
     <>
       {!lenderId && (
         <Alert variant="warning" className="py-2" style={{ fontSize: 13 }}>
-          <a
-            href="#"
-            className="alert-link"
-            onClick={(e) => {
-              e.preventDefault()
-              showLenderIDModal()
-            }}
-          >
-            {t('set_lender_id_2')}
-          </a>{' '}
-          {t('lender_id_required_notice')}
+          {tx('set_lender_id_required', {
+            link: (
+              <a
+                href="#"
+                className="alert-link"
+                onClick={(e) => {
+                  e.preventDefault()
+                  showLenderIDModal()
+                }}
+              >
+                {t('set_lender_id_2')}
+              </a>
+            ),
+          })}
         </Alert>
       )}
       <PortfolioLoansLoadingNotice />
@@ -1556,7 +1553,7 @@ function NewTabLink({ href, children }: { href: string; children: React.ReactNod
 }
 
 function RSSPanel({ criteria }: { criteria: Criteria }) {
-  const { t } = useI18n()
+  const { t, tx } = useI18n()
   const prepForRSS = useCriteriaStore((s) => s.prepForRSS)
   const lenderId = useUtilsStore((s) => s.lenderId)
   const [rssName, setRssName] = useState('')
@@ -1582,8 +1579,7 @@ function RSSPanel({ criteria }: { criteria: Criteria }) {
     <Row className="ample-padding-top">
       <Col lg={12}>
         <p>
-          {t('rss_feed_lets_follow_matching')}{' '}
-          <NewTabLink href="http://www.ifttt.com">IFTTT (If This Then That)</NewTabLink>.{' '}
+          {tx('rss_feed_follow_via', { ifttt: <NewTabLink href="http://www.ifttt.com">IFTTT (If This Then That)</NewTabLink> })}{' '}
           {t('create_many_feeds_want_use')}{' '}
           <NewTabLink href="https://ifttt.com/recipes/147561-rss-feed-to-email">
             {t('create_ifttt_recipe_email_when')}
@@ -1644,9 +1640,7 @@ function RSSPanel({ criteria }: { criteria: Criteria }) {
           <Card.Header>{t('rss_link')}</Card.Header>
           <Card.Body>
             <p>
-              {t('rss_url_copy_hint')}{' '}
-              <NewTabLink href="http://www.ifttt.com">IFTTT</NewTabLink>{' '}
-              {t('rss_trigger_description')}
+              {tx('rss_url_copy_or_ifttt', { ifttt: <NewTabLink href="http://www.ifttt.com">IFTTT</NewTabLink> })}
             </p>
             <textarea
               style={{ width: '100%', height: 150 }}

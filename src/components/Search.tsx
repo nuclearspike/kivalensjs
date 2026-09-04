@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { Container, Col, Row, Alert, ButtonGroup, Button } from '../ui'
-import numeral from 'numeral'
 import { useLoanStore, useUtilsStore } from '../stores'
 import { Criteria } from './Criteria'
 import LoanListItem from './LoanListItem'
@@ -20,7 +19,7 @@ import { useI18n } from '../i18n'
 // ---------------------------------------------------------------------------
 
 export function Search() {
-  const { t } = useI18n()
+  const { t, tx, number } = useI18n()
   const filteredLoans = useLoanStore((s) => s.filteredLoans)
   const downloading = useLoanStore((s) => s.downloading)
   const secondaryStatus = useLoanStore((s) => s.secondaryStatus)
@@ -126,8 +125,8 @@ export function Search() {
           {loanCount > 0 ? (
             <div className="loan-count-bar">
               {t('showing_shown_total_fundraising_loans', {
-                shown: numeral(loanCount).format('0,0'),
-                total: numeral(totalFundraising).format('0,0'),
+                shown: number(loanCount),
+                total: number(totalFundraising),
               })}
             </div>
           ) : null}
@@ -191,16 +190,19 @@ export function Search() {
                     border: '1px solid #d4edda',
                   }}
                 >
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      showLenderIDModal()
-                    }}
-                  >
-                    {t('set_lender_id_2')}
-                  </a>{' '}
-                  {t('lender_id_purpose_hint')}
+                  {tx('set_lender_id_purpose', {
+                    link: (
+                      <a
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          showLenderIDModal()
+                        }}
+                      >
+                        {t('set_lender_id_2')}
+                      </a>
+                    ),
+                  })}
                 </div>
               ) : null}
               <div style={{ marginTop: 16 }}>

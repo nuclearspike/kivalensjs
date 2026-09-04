@@ -1,7 +1,8 @@
 import { useLocation, Link } from 'react-router-dom'
 import { Navbar, Nav, Badge, Container } from '../ui'
 import { useLoanStore, useUtilsStore } from '../stores'
-import { LOCALES, useI18n, type Locale } from '../i18n'
+import { browserLanguageTags, matchLocale, useI18n, type Locale } from '../i18n'
+import LanguageMenu from './LanguageMenu'
 
 // "Switch to <language>" written IN each target language — the browser-language
 // suggestion button is always shown in the language it offers, not the current UI.
@@ -12,9 +13,13 @@ const SWITCH_LABELS: Record<Locale, string> = {
   de: 'Auf Deutsch wechseln',
   it: "Passa all'italiano",
   nl: 'Overschakelen naar Nederlands',
+  'pt-BR': 'Mudar para português',
+  ja: '日本語に切り替える',
+  'zh-Hans': '切换到简体中文',
 }
-const SUPPORTED_CODES = new Set<string>(LOCALES.map((l) => l.code))
-const browserLocale = typeof navigator !== 'undefined' ? (navigator.language || '').split('-')[0] : ''
+// Region-aware: a pt-BR or zh-CN browser resolves to a supported locale here,
+// where a bare split('-')[0] would yield 'pt' / 'zh' and never match.
+const browserLocale = matchLocale(browserLanguageTags())
 
 export default function KLNav() {
   const location = useLocation()
@@ -63,37 +68,14 @@ export default function KLNav() {
               {t('about')}
             </Nav.Link>
           </Nav>
-          <label
-            className="d-flex align-items-center gap-1 ms-lg-2 my-2 my-lg-0"
-            title={t('choose_language')}
-          >
-            <span aria-hidden="true">🌐</span>
-            <span className="visually-hidden">{t('choose_language')}</span>
-            <select
-              value={locale}
-              onChange={(event) => setLocale(event.target.value as Locale)}
-              aria-label={t('choose_language')}
-              style={{
-                color: '#fff',
-                background: '#23352f',
-                border: '1px solid rgba(255,255,255,.35)',
-                borderRadius: 4,
-                padding: '3px 24px 3px 7px',
-                fontSize: 13,
-              }}
-            >
-              {LOCALES.map((option) => (
-                <option key={option.code} value={option.code}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-          {browserLocale !== locale && SUPPORTED_CODES.has(browserLocale) && (
+          <LanguageMenu />
+          {browserLocale && browserLocale !== locale && (
             <button
               type="button"
               className="btn btn-sm btn-outline-light ms-2 my-2 my-lg-0"
-              onClick={() => setLocale(browserLocale as Locale)}
+              onClick={() => setLocale(browserLocale)}
             >
-              {SWITCH_LABELS[browserLocale as Locale]}
+              {SWITCH_LABELS[browserLocale]}
             </button>
           )}
         </Navbar.Collapse>

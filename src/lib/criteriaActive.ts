@@ -1,6 +1,14 @@
 import type { Criteria, BalancerConfig } from '../types'
 import { humanize } from './utils'
 
+// `limit_by`'s VALUE ('Partner' / 'Country' / 'Sector' / 'Activity') is persisted
+// criteria data and must stay exactly as-is; this maps it to the catalog key
+// for its DISPLAY label. Shared with CriteriaTabs' LimitResultRow so the two
+// can't drift.
+export const LIMIT_BY_LABEL_KEY: Record<string, string> = {
+  Partner: 'partner_2', Country: 'country_2', Sector: 'sector_2', Activity: 'activity_2',
+}
+
 /**
  * One active filter the user can remove with a single click. `without` returns a
  * NEW Criteria with this filter dropped, so the caller can both preview the
@@ -31,37 +39,38 @@ function modifierOf(raw: unknown): 'all' | 'none' | undefined {
   return m === 'none' || m === 'all' ? m : undefined
 }
 
+// Values are catalog keys (src/i18n/locales/en.ts), rendered via t(label).
 const LOAN_MULTI: Record<string, string> = {
-  sector: 'Sector',
-  activity: 'Activity',
-  country_code: 'Country',
-  themes: 'Theme',
-  tags: 'Tag',
+  sector: 'sector_2',
+  activity: 'activity_2',
+  country_code: 'country_2',
+  themes: 'theme',
+  tags: 'tag',
 }
 const LOAN_RANGE: Record<string, string> = {
-  age: 'Age',
-  percent_female: '% Women',
-  still_needed: 'Still needed ($)',
-  loan_amount: 'Loan amount ($)',
-  repaid_in: 'Repaid in (mo)',
-  borrower_count: 'Borrowers',
-  percent_funded: '% Funded',
-  expiring_in_days: 'Expiring (days)',
-  disbursal_in_days: 'Disbursal (days)',
-  dollars_per_hour: '$/hour',
+  age: 'age',
+  percent_female: 'percent_women',
+  still_needed: 'still_needed_dollar',
+  loan_amount: 'loan_amount_dollar',
+  repaid_in: 'repaid_mo',
+  borrower_count: 'borrowers',
+  percent_funded: 'percent_funded',
+  expiring_in_days: 'expiring_days',
+  disbursal_in_days: 'disbursal_days',
+  dollars_per_hour: 'dollar_hour',
 }
 const LOAN_SINGLE: Record<string, string> = {
-  bonus_credit_eligibility: 'Bonus credit',
-  repayment_interval: 'Repayment',
-  currency_exchange_loss_liability: 'Currency loss',
+  bonus_credit_eligibility: 'bonus_credit',
+  repayment_interval: 'repayment',
+  currency_exchange_loss_liability: 'currency_loss',
 }
 const PARTNER_FIELD: Record<string, string> = {
-  region: 'Region',
-  social_performance: 'Social performance',
-  religion: 'Religion',
-  partners: 'Field partner',
-  direct: 'MFI / Direct',
-  charges_fees_and_interest: 'Charges fees',
+  region: 'region_2',
+  social_performance: 'social_performance',
+  religion: 'religion',
+  partners: 'field_partner',
+  direct: 'mfi_direct',
+  charges_fees_and_interest: 'charges_fees',
 }
 
 function clone(c: Criteria): Criteria {
@@ -132,7 +141,7 @@ export function activeCriteria(c: Criteria): ActiveCrit[] {
   for (const k of ['name', 'use']) {
     const v = loan[k]
     if (typeof v === 'string' && v.trim()) {
-      out.push({ id: `loan.${k}`, label: k === 'name' ? 'Name' : 'Use/Description', value: v, without: (cc) => { const n = clone(cc); delete n.loan[k]; return n } })
+      out.push({ id: `loan.${k}`, label: k === 'name' ? 'name' : 'use_description_2', value: v, without: (cc) => { const n = clone(cc); delete n.loan[k]; return n } })
     }
   }
 
@@ -142,8 +151,8 @@ export function activeCriteria(c: Criteria): ActiveCrit[] {
     const n = Number(lt.count)
     out.push({
       id: 'loan.limit_to',
-      label: 'Limit to {count} per {group}',
-      labelParams: { count: Number.isFinite(n) && n > 0 ? n : 1, group: lt.limit_by || 'Partner' },
+      label: 'limit_count_per_group',
+      labelParams: { count: Number.isFinite(n) && n > 0 ? n : 1, group: LIMIT_BY_LABEL_KEY[lt.limit_by ?? ''] ?? 'partner_2' },
       value: 'on',
       without: (cc) => { const c2 = clone(cc); delete c2.loan.limit_to; return c2 },
     })
@@ -172,13 +181,13 @@ export function activeCriteria(c: Criteria): ActiveCrit[] {
 
   // portfolio: exclude loans I funded
   if (portfolio.exclude_portfolio_loans === 'true') {
-    out.push({ id: 'portfolio.exclude', label: 'Exclude loans I funded', value: 'on', without: (cc) => { const n = clone(cc); n.portfolio = { ...n.portfolio, exclude_portfolio_loans: 'false' }; return n } })
+    out.push({ id: 'portfolio.exclude', label: 'exclude_loans_i_funded', value: 'on', without: (cc) => { const n = clone(cc); n.portfolio = { ...n.portfolio, exclude_portfolio_loans: 'false' }; return n } })
   }
   // portfolio balancers
   for (const pb of ['pb_sector', 'pb_country', 'pb_activity', 'pb_partner', 'pb_region', 'pb_gender'] as const) {
     const b = portfolio[pb] as BalancerConfig | undefined
     if (b && b.enabled) {
-      out.push({ id: `portfolio.${pb}`, label: `Balancer: ${pb.replace('pb_', '')}`, value: 'on', without: (cc) => { const n = clone(cc); n.portfolio = { ...n.portfolio, [pb]: { ...b, enabled: false } }; return n } })
+      out.push({ id: `portfolio.${pb}`, label: `balancer_${pb.replace('pb_', '')}`, value: 'on', without: (cc) => { const n = clone(cc); n.portfolio = { ...n.portfolio, [pb]: { ...b, enabled: false } }; return n } })
     }
   }
 

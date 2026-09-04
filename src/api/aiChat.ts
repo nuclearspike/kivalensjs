@@ -2,6 +2,8 @@
 // streams `data: {json}\n\n` frames; we parse them across chunk boundaries and
 // hand each event to onEvent. All AI calls happen server-side; this just relays.
 
+import type { Locale } from '../i18n'
+
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
@@ -42,7 +44,7 @@ export interface ChartSpec {
 export interface StreamChatBody {
   messages: ChatMessage[]
   /** Selected UI locale; the server instructs the model to answer in it. */
-  locale?: 'en' | 'es' | 'fr' | 'de' | 'it' | 'nl'
+  locale?: Locale
   lenderId?: string | null
   criteria?: unknown
   /** What the user currently sees in the result header ("Showing X of Y"). */

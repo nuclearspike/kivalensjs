@@ -46,7 +46,7 @@ function usePersistedOptions(): [OptionsState, (patch: Partial<OptionsState>) =>
 }
 
 export default function Options() {
-  const { t, relativeTime } = useI18n()
+  const { t, tx, relativeTime } = useI18n()
   const [opts, setOpts] = usePersistedOptions()
   const lenderObj = useUtilsStore((s) => s.lenderObj)
   const lenderId = useUtilsStore((s) => s.lenderId)
@@ -192,17 +192,19 @@ export default function Options() {
                 readOnly
               />
               <p className="mt-2">
-                {t('about_research_credit')}{' '}
-                <a href="https://www.kiva.org/team/aplus" target="_blank" rel="noreferrer">A+ Team</a>{' '}
-                {t('data')}{' '}
-                <a
-                  href="https://docs.google.com/spreadsheets/d/1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0/edit#gid=1"
-                  target="_blank"
-                  rel="noreferrer"
-                  title={t('view_google_doc')}
-                >
-                  {t('google_doc')}
-                </a>.{' '}
+                {tx('research_credit_aplus_data', {
+                  aplus: <a href="https://www.kiva.org/team/aplus" target="_blank" rel="noreferrer">A+ Team</a>,
+                  doc: (
+                    <a
+                      href="https://docs.google.com/spreadsheets/d/1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0/edit#gid=1"
+                      target="_blank"
+                      rel="noreferrer"
+                      title={t('view_google_doc')}
+                    >
+                      {t('google_doc')}
+                    </a>
+                  ),
+                })}{' '}
                 {t('adds_secular_social_score_sliders')}
               </p>
             </Card.Body>

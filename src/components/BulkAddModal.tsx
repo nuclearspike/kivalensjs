@@ -13,7 +13,7 @@ interface BulkAddModalProps {
  * Respects Kiva's $10,000 basket maximum.
  */
 export default function BulkAddModal({ onHide }: BulkAddModalProps) {
-  const { t } = useI18n()
+  const { t, currency } = useI18n()
   const filteredLoans = useLoanStore((s) => s.filteredLoans)
   const basket = useLoanStore((s) => s.basket)
   const inBasket = useLoanStore((s) => s.inBasket)
@@ -57,7 +57,7 @@ export default function BulkAddModal({ onHide }: BulkAddModalProps) {
               {t('mega_lender_tool_using_current_sort')}
             </p>
             <div className="mb-3">
-              <label className="form-label">{t('max_lend_dollar_amount', { amount: maxBasket })}</label>
+              <label className="form-label">{t('max_lend_dollar_amount', { amount: currency(maxBasket) })}</label>
               <input
                 type="range"
                 className="form-range"
@@ -69,7 +69,7 @@ export default function BulkAddModal({ onHide }: BulkAddModalProps) {
               />
             </div>
             <div className="mb-3">
-              <label className="form-label">{t('max_per_loan_dollar_amount', { amount: maxPerLoan })}</label>
+              <label className="form-label">{t('max_per_loan_dollar_amount', { amount: currency(maxPerLoan) })}</label>
               <input
                 type="range"
                 className="form-range"

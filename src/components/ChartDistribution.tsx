@@ -63,7 +63,7 @@ export default function ChartDistribution({
   height = 250,
   title,
 }: ChartDistributionProps) {
-  const { sector } = useI18n()
+  const { sector, percent: formatPercent } = useI18n()
   const data = useMemo(() => {
     const grouped = groupLoans(loans, field)
     return field === 'sector'
@@ -106,7 +106,7 @@ export default function ChartDistribution({
               nameKey="name"
               label={(props: { name?: string; percent?: number }) =>
                 (props.percent ?? 0) > 0.04
-                  ? `${props.name ?? ''} ${((props.percent ?? 0) * 100).toFixed(0)}%`
+                  ? `${props.name ?? ''} ${formatPercent((props.percent ?? 0) * 100, 0)}`
                   : ''
               }
               labelLine={false}

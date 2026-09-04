@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { activeCriteria } from './criteriaActive'
 import { translate, type Locale } from '../i18n'
 import type { Criteria } from '../types'
+import en from '../i18n/locales/en'
+import es from '../i18n/locales/es'
+import fr from '../i18n/locales/fr'
+import de from '../i18n/locales/de'
+import itCatalog from '../i18n/locales/it'
+import nl from '../i18n/locales/nl'
+import ptBR from '../i18n/locales/pt-BR'
+import ja from '../i18n/locales/ja'
+import zhHans from '../i18n/locales/zh-Hans'
 
 // The active-filter summary is what users trust to explain why they see the
 // loans they see, so a wrong chip is a lie about their own search. It had no
@@ -16,13 +25,14 @@ describe('activeCriteria — limit_to (diversification cap)', () => {
     // Regression: a user capping 32 loans per partner saw "Limit to 1 per Partner".
     const a = byId(crit({ loan: { limit_to: { enabled: true, count: 32, limit_by: 'Partner' } } }), 'loan.limit_to')
     expect(a).toBeDefined()
-    expect(a!.label).toBe('Limit to {count} per {group}')
-    expect(a!.labelParams).toEqual({ count: 32, group: 'Partner' })
+    expect(a!.label).toBe('limit_count_per_group')
+    // The group param is the DISPLAY key for the persisted limit_by value.
+    expect(a!.labelParams).toEqual({ count: 32, group: 'partner_2' })
   })
 
   it('carries the grouping field through', () => {
     const a = byId(crit({ loan: { limit_to: { enabled: true, count: 5, limit_by: 'Country' } } }), 'loan.limit_to')
-    expect(a!.labelParams).toEqual({ count: 5, group: 'Country' })
+    expect(a!.labelParams).toEqual({ count: 5, group: 'country_2' })
   })
 
   it.each([
@@ -37,7 +47,7 @@ describe('activeCriteria — limit_to (diversification cap)', () => {
 
   it('defaults the group to Partner when unset', () => {
     const a = byId(crit({ loan: { limit_to: { enabled: true, count: 4 } } }), 'loan.limit_to')
-    expect(a!.labelParams).toEqual({ count: 4, group: 'Partner' })
+    expect(a!.labelParams).toEqual({ count: 4, group: 'partner_2' })
   })
 
   it('is not listed when disabled', () => {
@@ -170,7 +180,7 @@ describe('activeCriteria — general contract', () => {
 
   it('lists free-text filters', () => {
     expect(byId(crit({ loan: { name: 'maria' } }), 'loan.name')!.value).toBe('maria')
-    expect(byId(crit({ loan: { use: 'bakery' } }), 'loan.use')!.label).toBe('Use/Description')
+    expect(byId(crit({ loan: { use: 'bakery' } }), 'loan.use')!.label).toBe('use_description_2')
   })
 
   it('ignores blank free text', () => {
@@ -179,30 +189,42 @@ describe('activeCriteria — general contract', () => {
 })
 
 describe('activeCriteria — chip labels localize with their params', () => {
-  const locales: Locale[] = ['en', 'es', 'fr', 'de', 'it', 'nl']
+  // Each locale's REAL catalog is passed, the way I18nProvider's t() does it:
+  // without it translate() only ever sees English, and every non-English case
+  // here would pass vacuously through the raw-key + interpolation fallback.
+  const catalogs: Record<Locale, Record<string, string>> = {
+    en, es, fr, de, it: itCatalog, nl, 'pt-BR': ptBR, ja, 'zh-Hans': zhHans,
+  }
+  const locales = Object.keys(catalogs) as Locale[]
+  const has = (loc: Locale, key: string) => (loc === 'en' ? en : catalogs[loc])[key] !== undefined
 
   it.each(locales)('renders the real cap (not a literal placeholder) in %s', (loc) => {
     const a = byId(crit({ loan: { limit_to: { enabled: true, count: 32, limit_by: 'Partner' } } }), 'loan.limit_to')!
+    expect(has(loc, a.label), `${loc} lacks ${a.label}`).toBe(true)
+    expect(has(loc, String(a.labelParams!.group)), `${loc} lacks ${a.labelParams!.group}`).toBe(true)
     const params = Object.fromEntries(
-      Object.entries(a.labelParams!).map(([k, v]) => [k, typeof v === 'string' ? translate(loc, v) : v]),
+      Object.entries(a.labelParams!).map(([k, v]) => [k, typeof v === 'string' ? translate(loc, v, {}, catalogs[loc]) : v]),
     )
-    const text = translate(loc, a.label, params)
+    const text = translate(loc, a.label, params, catalogs[loc])
     expect(text).toContain('32')
     expect(text).not.toContain('{count}')
     expect(text).not.toContain('{group}')
+    expect(text).not.toContain('partner_2')
   })
 
   it.each(locales)('renders the exclude wrapper in %s', (loc) => {
-    const text = translate(loc, 'not {value}', { value: 'Retail' })
+    expect(has(loc, 'not_value')).toBe(true)
+    const text = translate(loc, 'not_value', { value: 'Retail' }, catalogs[loc])
     expect(text).toContain('Retail')
     expect(text).not.toContain('{value}')
-    // Must not silently fall back to the raw key.
-    if (loc !== 'en') expect(text).not.toBe('not {value}')
+    expect(text).not.toBe('not_value')
   })
 
   it.each(locales)('renders the all-of wrapper in %s', (loc) => {
-    const text = translate(loc, 'all of {value}', { value: '#Parent' })
+    expect(has(loc, 'all_value')).toBe(true)
+    const text = translate(loc, 'all_value', { value: '#Parent' }, catalogs[loc])
     expect(text).toContain('#Parent')
     expect(text).not.toContain('{value}')
+    expect(text).not.toBe('all_value')
   })
 })

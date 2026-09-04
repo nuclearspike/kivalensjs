@@ -10,7 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import numeral from 'numeral'
 import { useLoanStore, useCriteriaStore, useUtilsStore } from '../stores'
 import { translateText } from '../api/aiChat'
 import type { KivaLoan } from '../types'
@@ -37,7 +36,7 @@ interface RepaymentChartDatum {
 
 
 function RepaymentGraphs({ loan }: { loan: KivaLoan }) {
-  const { t, date } = useI18n()
+  const { t, data: dataLabel, date, currency, percent } = useI18n()
   const data: RepaymentChartDatum[] = useMemo(() => {
     if (!loan.kl_repayments?.length) return []
     const maxAmount = Math.max(...loan.kl_repayments.map((p) => p.amount), 1)
@@ -57,7 +56,7 @@ function RepaymentGraphs({ loan }: { loan: KivaLoan }) {
       {/* Repayment info */}
       <div style={{ fontSize: 13, lineHeight: 1.6, marginBottom: 4 }}>
         {loan.terms.repayment_interval && (
-          <div><span style={{ color: '#999' }}>{t('interval')}:</span> <b>{t(loan.terms.repayment_interval)}</b></div>
+          <div><span style={{ color: '#999' }}>{t('interval')}:</span> <b>{dataLabel(loan.terms.repayment_interval)}</b></div>
         )}
         {loan.kls_half_back && loan.kls_half_back_actual != null && (
           <div><span style={{ color: '#999' }}>{t('percent_percent_back', { percent: Math.round(loan.kls_half_back_actual) })}:</span> <b>{date(loan.kls_half_back, { month: 'short', year: 'numeric' })}</b></div>
@@ -86,8 +85,8 @@ function RepaymentGraphs({ loan }: { loan: KivaLoan }) {
           <Tooltip
             formatter={(value, name) =>
               name === t('repayment')
-                ? `$${Number(value).toFixed(2)}`
-                : `${Number(value).toFixed(1)}%`
+                ? currency(value, 2)
+                : percent(value, 1)
             }
           />
           {/* Highcharts default palette, as rendered by the original app */}
@@ -119,7 +118,7 @@ function RepaymentGraphs({ loan }: { loan: KivaLoan }) {
 // ---------------------------------------------------------------------------
 
 export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
-  const { t, sector, date, relativeTime, locale } = useI18n()
+  const { t, data, sector, date, relativeTime, locale, number, currency } = useI18n()
   const { id } = useParams<{ id: string }>()
   const loanId = loanIdProp ?? parseInt(id ?? '0', 10)
   const getLoan = useLoanStore((s) => s.getLoan)
@@ -430,7 +429,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
             </div>
 
             <p className="fw-bold mb-2">
-              {t(loan.location.country)} | {sector(loan.sector)} | {t(loan.activity)} | {loan.use}
+              {data(loan.location.country)} | {sector(loan.sector)} | {data(loan.activity)} | {loan.use}
             </p>
 
             <div className="d-flex gap-3">
@@ -495,7 +494,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
                 {loan.status !== 'fundraising' && (
                   <div>
                     <div className="detail-label">{t('status')}</div>
-                    <div>{t(humanize(loan.status))}</div>
+                    <div>{data(humanize(loan.status))}</div>
                   </div>
                 )}
 
@@ -520,7 +519,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
                 {loan.status === 'fundraising' && loan.kls_repaid_in != null && (
                   <div>
                     <div className="detail-label">{t('final_repayment')}</div>
-                    <div>{t('count_months', { count: numeral(loan.kls_repaid_in).format('0.0') })}</div>
+                    <div>{t('count_months', { count: number(loan.kls_repaid_in, 1) })}</div>
                   </div>
                 )}
 
@@ -529,22 +528,22 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
                     {loan.kl_dollars_per_hour && (
                       <div>
                         <span className="detail-label">{t('dollar_hour_2')}</span>{' '}
-                        ${numeral(loan.kl_dollars_per_hour()).format('0.00')}
+                        {currency(loan.kl_dollars_per_hour(), 2)}
                       </div>
                     )}
                     <div>
                       <span className="detail-label">{t('amount')}</span>{' '}
-                      ${numeral(loan.loan_amount).format('0,0')}{' '}
+                      {currency(loan.loan_amount)}{' '}
                       <span style={{ color: '#ccc' }}>|</span>{' '}
                       <span className="detail-label">{t('funded')}</span>{' '}
-                      ${numeral(loan.funded_amount).format('0,0')}
+                      {currency(loan.funded_amount)}
                     </div>
                     <div>
                       <span className="detail-label">{t('baskets')}</span>{' '}
-                      ${numeral(loan.basket_amount).format('0,0')}{' '}
+                      {currency(loan.basket_amount)}{' '}
                       <span style={{ color: '#ccc' }}>|</span>{' '}
                       <span className="detail-label">{t('still_needed')}</span>{' '}
-                      ${numeral(loan.kl_still_needed ?? 0).format('0,0')}
+                      {currency(loan.kl_still_needed ?? 0)}
                     </div>
                   </div>
                 )}

@@ -17,7 +17,7 @@ function randomBetween(low: number, high: number): number {
  * Placeholder implementation -- full version needs the LenderLoans API client.
  */
 export default function Face() {
-  const { t } = useI18n()
+  const { t, tx } = useI18n()
   const lenderId = useUtilsStore((s) => s.lenderId)
   const lenderDataVersion = useUtilsStore((s) => s.lenderDataVersion)
   const [images, _setImages] = useState<PortfolioImage[]>([])
@@ -31,21 +31,22 @@ export default function Face() {
       setMessage(t('portfolio_wall_lenderid_loan_fetching', { lenderId }))
     } else {
       setMessage(
-        <>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault()
-              showLenderIDModal()
-            }}
-          >
-            {t('set_lender_id_2')}
-          </a>{' '}
-          {t('portfolio_wall_aria_hint')}
-        </>,
+        tx('set_lender_id_to_see_portfolio', {
+          link: (
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                showLenderIDModal()
+              }}
+            >
+              {t('set_lender_id_2')}
+            </a>
+          ),
+        }),
       )
     }
-  }, [lenderDataVersion, lenderId, t])
+  }, [lenderDataVersion, lenderId, t, tx])
 
   const renderedImages = useMemo(
     () =>

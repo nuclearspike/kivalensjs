@@ -9,9 +9,14 @@ import fr from './locales/fr'
 import de from './locales/de'
 import itCatalog from './locales/it'
 import nl from './locales/nl'
+import ptBR from './locales/pt-BR'
+import ja from './locales/ja'
+import zhHans from './locales/zh-Hans'
 
-const locales: Locale[] = ['es', 'fr', 'de', 'it', 'nl']
-const catalogs: Record<Locale, Record<string, string>> = { en, es, fr, de, it: itCatalog, nl }
+const locales: Locale[] = ['es', 'fr', 'de', 'it', 'nl', 'pt-BR', 'ja', 'zh-Hans']
+const catalogs: Record<Locale, Record<string, string>> = { en, es, fr, de, it: itCatalog, nl, 'pt-BR': ptBR, ja, 'zh-Hans': zhHans }
+
+const placeholders = (s: string) => new Set([...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]))
 
 function sourceFiles(root: string): string[] {
   return readdirSync(root).flatMap((name) => {
@@ -71,10 +76,12 @@ function literalTranslationKeys(path: string): string[] {
   const file = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, path.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
   const keys = new Set<string>()
   const visit = (node: ts.Node) => {
+    // t() returns a string; tx() interpolates React elements into the same
+    // catalog text. Both name a key in their first argument.
     if (
       ts.isCallExpression(node) &&
       ts.isIdentifier(node.expression) &&
-      node.expression.text === 't' &&
+      (node.expression.text === 't' || node.expression.text === 'tx') &&
       node.arguments.length > 0
     ) {
       const arg = node.arguments[0]
@@ -105,7 +112,7 @@ function literalTranslationKeys(path: string): string[] {
 }
 
 describe('localization catalog coverage', () => {
-  it('keeps all six locale catalogs in exact key parity with non-empty values', () => {
+  it('keeps every locale catalog in exact key and {placeholder} parity with non-empty values', () => {
     const enKeys = Object.keys(en).sort()
     expect(new Set(enKeys).size).toBe(enKeys.length) // no duplicate keys
     for (const locale of locales) {
@@ -113,6 +120,10 @@ describe('localization catalog coverage', () => {
       expect(Object.keys(catalog).sort(), `${locale}.ts key set differs from en.ts`).toEqual(enKeys)
       for (const [key, value] of Object.entries(catalog)) {
         expect(value.trim().length, `${locale}.ts['${key}'] is empty`).toBeGreaterThan(0)
+        // A translation that drops or invents a {placeholder} renders a literal
+        // "{count}" or silently loses the value it carried.
+        expect([...placeholders(value)].sort(), `${locale}.ts['${key}'] placeholders differ from en.ts`)
+          .toEqual([...placeholders(en[key])].sort())
       }
     }
   })

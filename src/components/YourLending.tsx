@@ -17,7 +17,7 @@ const SLICES: { key: string; label: string }[] = [
 ]
 
 export function SliceChart({ sliceBy, label }: { sliceBy: string; label: string }) {
-  const { t, sector } = useI18n()
+  const { t, sector, number, percent } = useI18n()
   const fetchBalancerData = useCriteriaStore((s) => s.fetchBalancerData)
   const lenderId = useUtilsStore((s) => s.lenderId)
   const [slices, setSlices] = useState<Slice[] | null>(null)
@@ -100,7 +100,7 @@ export function SliceChart({ sliceBy, label }: { sliceBy: string; label: string 
               <Tooltip
                 formatter={(value, _name, item) => {
                   const p = (item as unknown as { payload?: Slice }).payload
-                  return [t('count_loans_percent_percent', { count: String(value), percent: (p?.percent ?? 0).toFixed(1) }), p?.name ?? '']
+                  return [t('count_loans_percent_percent', { count: number(value), percent: percent(p?.percent ?? 0, 1) }), p?.name ?? '']
                 }}
               />
               <Bar dataKey="value" fill="#2C8C5E" radius={[0, 4, 4, 0]} />

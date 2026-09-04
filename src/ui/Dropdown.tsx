@@ -14,6 +14,7 @@ import { cx } from './types'
 type DropdownContextValue = {
   open: boolean
   setOpen: (open: boolean) => void
+  closeToToggle: () => void
   anchorRef: RefObject<HTMLDivElement | null>
   menuRef: RefObject<HTMLDivElement | null>
   align: 'start' | 'end'
@@ -22,12 +23,15 @@ type DropdownContextValue = {
 const DropdownContext = createContext<DropdownContextValue>({
   open: false,
   setOpen: () => {},
+  closeToToggle: () => {},
   anchorRef: { current: null },
   menuRef: { current: null },
   align: 'start',
 })
 
-type DropdownProps = ComponentPropsWithoutRef<'div'> & {
+// The DOM's own onToggle (the <details>/popover toggle event) is dropped so the
+// prop carries only this dropdown's open state.
+type DropdownProps = Omit<ComponentPropsWithoutRef<'div'>, 'onToggle'> & {
   onToggle?: (isOpen: boolean) => void
   align?: 'start' | 'end'
   children?: ReactNode
@@ -49,6 +53,14 @@ function DropdownRoot({
     onToggle?.(next)
   }
 
+  // Closing from the keyboard or by choosing an item returns focus to the toggle
+  // (the WAI-ARIA menu-button pattern). Closing by clicking elsewhere does not:
+  // focus belongs wherever the user clicked.
+  const closeToToggle = () => {
+    setOpen(false)
+    rootRef.current?.querySelector<HTMLElement>('.dropdown-toggle')?.focus()
+  }
+
   useEffect(() => {
     if (!open) return
 
@@ -56,15 +68,25 @@ function DropdownRoot({
       const target = e.target as Node
       const inRoot = rootRef.current?.contains(target)
       const inMenu = menuRef.current?.contains(target) // menu is portaled outside root
-      if (!inRoot && !inMenu) {
-        setOpenState(false)
-        onToggle?.(false)
-      }
+      if (!inRoot && !inMenu) setOpen(false)
     }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setOpenState(false)
-        onToggle?.(false)
+        closeToToggle()
+        return
+      }
+      // Tab leaves a role="menu" (its items are one tab stop, not a sequence),
+      // whether focus is on an item or still on the toggle; the browser's default
+      // action then continues from the toggle. A dropdown holding form controls
+      // keeps Tab moving within it.
+      const menu = menuRef.current
+      const active = document.activeElement
+      if (
+        e.key === 'Tab' &&
+        menu?.getAttribute('role') === 'menu' &&
+        (menu.contains(active) || rootRef.current?.contains(active))
+      ) {
+        closeToToggle()
       }
     }
 
@@ -79,7 +101,7 @@ function DropdownRoot({
 
   return (
     <DropdownContext.Provider
-      value={{ open, setOpen, anchorRef: rootRef, menuRef, align: _align ?? 'start' }}
+      value={{ open, setOpen, closeToToggle, anchorRef: rootRef, menuRef, align: _align ?? 'start' }}
     >
       <div ref={rootRef} className={cx('dropdown', className)} {...rest}>
         {children}
@@ -177,7 +199,7 @@ function DropdownItem({
   href,
   ...rest
 }: DropdownItemProps) {
-  const { setOpen } = useContext(DropdownContext)
+  const { closeToToggle } = useContext(DropdownContext)
   const Component: ElementType = as ?? (href ? 'a' : 'button')
   const extra: Record<string, unknown> = {}
   if (Component === 'button') {
@@ -196,7 +218,7 @@ function DropdownItem({
       )}
       onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
         onClick?.(e)
-        setOpen(false)
+        closeToToggle()
       }}
       {...extra}
       {...rest}

@@ -1,13 +1,13 @@
 import { useMemo } from 'react'
 import { Container, Row, Col } from '../ui'
-import numeral from 'numeral'
 import { useLoanStore } from '../stores'
 import { useI18n } from '../i18n'
 import { getKivaLoans } from '../api/kiva'
 import YourLending from './YourLending'
 
 function AnimInt({ value }: { value: number }) {
-  return <span>{numeral(Math.round(value)).format('0,0')}</span>
+  const { number } = useI18n()
+  return <span>{number(Math.round(value))}</span>
 }
 
 /**

@@ -1284,9 +1284,26 @@ export const RESPONSES_TOOL_DEFS = TOOL_DEFS.map(({ function: fn }) => ({
 export { validateCriteria, execTool }
 
 // --- system prompt ----------------------------------------------------------
+// The one list of UI locales the server knows, keyed by the client's locale
+// code, valued by the language name the model is told to answer in. The chat
+// whitelist and the description translator both derive from it — keep it in
+// step with src/i18n/index.tsx's LOCALES.
+const LOCALE_LANGUAGE = {
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  de: 'German',
+  it: 'Italian',
+  nl: 'Dutch',
+  'pt-BR': 'Brazilian Portuguese',
+  ja: 'Japanese',
+  'zh-Hans': 'Simplified Chinese',
+}
+const isKnownLocale = (code) => typeof code === 'string' && Object.hasOwn(LOCALE_LANGUAGE, code)
+
 export function buildSystemPrompt(state, lenderId, criteria, extra = {}) {
   const { vocab, countries } = getTaxonomy(state)
-  const language = ({ en: 'English', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian', nl: 'Dutch' })[extra.locale] || 'English'
+  const language = (isKnownLocale(extra.locale) && LOCALE_LANGUAGE[extra.locale]) || 'English'
   const countryList = countries.map((c) => `${c.code} (${c.name})`).join(', ')
   const total = (state.allLoans || []).length
   const directCount = (state.allLoans || []).filter((l) => l.partner_id == null).length
@@ -1473,7 +1490,7 @@ async function runChat(state, payload, res, signal) {
     selectedLoanId: payload.selectedLoanId,
     basket: Array.isArray(payload.basket) ? payload.basket : [],
     savedSearches: Array.isArray(payload.savedSearches) ? payload.savedSearches : [],
-    locale: ['en', 'es', 'fr', 'de', 'it', 'nl'].includes(payload.locale) ? payload.locale : 'en',
+    locale: isKnownLocale(payload.locale) ? payload.locale : 'en',
   })
   const input = sanitizeHistory(payload.messages)
   const sctx = {
@@ -1635,7 +1652,8 @@ function handleDigestTest(req, res) {
 // One-shot AI translation of a loan's English description into the UI language.
 // Cached on disk by (lang, sha1(text)) since descriptions are static per loan, so
 // repeat views (and repeat users) never re-spend. Budget-gated like the chat.
-const LANG_NAMES = { es: 'Spanish', fr: 'French', de: 'German', it: 'Italian', nl: 'Dutch' }
+// Every UI locale except English (translating English into English is a no-op).
+const LANG_NAMES = Object.fromEntries(Object.entries(LOCALE_LANGUAGE).filter(([code]) => code !== 'en'))
 const TRANSLATE_TTL_MS = 365 * 24 * 60 * 60 * 1000
 
 function handleTranslate(req, res) {
@@ -1659,7 +1677,9 @@ function handleTranslate(req, res) {
     try { payload = JSON.parse(body || '{}') } catch { return respond(400, { error: 'bad_json' }) }
     const text = typeof payload.text === 'string' ? payload.text.trim() : ''
     const lang = String(payload.lang || '')
-    const langName = LANG_NAMES[lang]
+    // hasOwn, not a bare index: a request for lang '__proto__' must 400, not
+    // resolve to Object.prototype and reach the model as "[object Object]".
+    const langName = Object.hasOwn(LANG_NAMES, lang) ? LANG_NAMES[lang] : undefined
     if (!text || !langName) return respond(400, { error: 'bad_request' })
     if (text.length > 8000) return respond(413, { error: 'text_too_long' })
     const client = getClient()

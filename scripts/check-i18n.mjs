@@ -30,7 +30,7 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
-const LOCALES = ['en', 'es', 'fr', 'de', 'it', 'nl']
+const LOCALES = ['en', 'es', 'fr', 'de', 'it', 'nl', 'pt-BR', 'ja', 'zh-Hans']
 const SECONDARY = LOCALES.filter((l) => l !== 'en')
 
 // Suffix marking a variable declaration as containing user-facing label/help
@@ -122,10 +122,12 @@ function referencedKeys(root, enKeys) {
       }
     }
     const visit = (node) => {
+      // t() returns a string; tx() interpolates React elements into the same
+      // catalog text. Both name a key in their first argument.
       if (
         ts.isCallExpression(node) &&
         ts.isIdentifier(node.expression) &&
-        node.expression.text === 't' &&
+        (node.expression.text === 't' || node.expression.text === 'tx') &&
         node.arguments.length > 0
       ) {
         const arg = node.arguments[0]
@@ -234,6 +236,27 @@ for (const locale of LOCALES) {
   if (extra.length) {
     fail(`${locale}.ts has ${extra.length} orphaned key(s) not present in en.ts:`)
     for (const k of extra.slice(0, 20)) console.error(`    ${k}`)
+  }
+}
+
+// 3b. Every {placeholder} in the English text must appear in each translation,
+//     and none invented — a dropped placeholder renders a literal "{count}" or
+//     silently loses the value it carried.
+const placeholders = (s) => new Set([...String(s ?? '').matchAll(/\{(\w+)\}/g)].map((m) => m[1]))
+for (const locale of SECONDARY) {
+  const cat = catalogs[locale]
+  const mismatched = []
+  for (const k of enKeys) {
+    const want = placeholders(catalogs.en[k])
+    const got = placeholders(cat[k])
+    if (want.size !== got.size || [...want].some((p) => !got.has(p))) {
+      mismatched.push(`${k}: en has {${[...want].join(', ')}}, ${locale} has {${[...got].join(', ')}}`)
+    }
+  }
+  if (mismatched.length) {
+    fail(`${locale}.ts has ${mismatched.length} key(s) whose {placeholders} don't match en.ts:`)
+    for (const m of mismatched.slice(0, 20)) console.error(`    ${m}`)
+    if (mismatched.length > 20) console.error(`    ...and ${mismatched.length - 20} more`)
   }
 }
 

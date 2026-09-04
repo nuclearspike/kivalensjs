@@ -10,7 +10,7 @@ import { useI18n } from '../i18n'
 // causing zero results, with the count each removal would yield and a one-click
 // remove, plus an "Ask KivaLens" suggestion shortcut.
 export function NoResultsHelp() {
-  const { t } = useI18n()
+  const { t, data } = useI18n()
   const lastKnown = useCriteriaStore((s) => s.lastKnown)
   const setCriteria = useCriteriaStore((s) => s.setCriteria)
   const startFresh = useCriteriaStore((s) => s.startFresh)
@@ -48,7 +48,10 @@ export function NoResultsHelp() {
   // 'none' EXCLUDES the listed values and 'all' requires every one of them — show
   // that, or an exclude filter reads exactly like an include filter.
   const valueOf = (it: { value: string; modifier?: 'all' | 'none' }) => {
-    const v = t(it.value)
+    // Values are Kiva data vocabulary (sector / activity / tag names, or a
+    // comma-joined list of them), translated by their canonical English name;
+    // anything else (a range like "20 – 40", a country code) passes through.
+    const v = it.value.split(', ').map((part) => data(part)).join(', ')
     if (it.modifier === 'none') return t('not_value', { value: v })
     if (it.modifier === 'all') return t('all_value', { value: v })
     return v

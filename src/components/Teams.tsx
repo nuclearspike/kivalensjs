@@ -10,7 +10,6 @@ import {
   Tooltip,
   Legend,
 } from 'recharts'
-import numeral from 'numeral'
 import { req } from '../api/kivajs/req'
 import { LenderTeams } from '../api/kivajs/LenderTeams'
 import { useUtilsStore } from '../stores'
@@ -53,7 +52,7 @@ function formatTooltipLabel(value: number, locale: Locale) {
  * Lets lenders compare Kiva lending teams via membership and loan count charts.
  */
 export default function Teams() {
-  const { t, locale } = useI18n()
+  const { t, tx, locale, number } = useI18n()
   const lenderId = useUtilsStore((s) => s.lenderId)
   // When the user sets their Lender ID via the in-page modal link below, reload
   // once it lands so this tab (and the nav) re-initialize with portfolio data.
@@ -194,19 +193,21 @@ export default function Teams() {
     return (
       <Container className="py-3">
         <Alert variant="danger">
-           {t('please')}{' '}
-          <a
-            href="#"
-            className="alert-link"
-            onClick={(e) => {
-              e.preventDefault()
-              reloadAfterLenderSet.current = true
-              showLenderIDModal()
-            }}
-          >
-             {t('set_kiva_lender_id_2')}
-          </a>{' '}
-           {t('use_feature')}
+          {tx('please_set_lender_id_to_use', {
+            link: (
+              <a
+                href="#"
+                className="alert-link"
+                onClick={(e) => {
+                  e.preventDefault()
+                  reloadAfterLenderSet.current = true
+                  showLenderIDModal()
+                }}
+              >
+                {t('set_kiva_lender_id_2')}
+              </a>
+            ),
+          })}
         </Alert>
       </Container>
     )
@@ -291,7 +292,7 @@ export default function Teams() {
                   <YAxis />
                   <Tooltip
                      labelFormatter={(value) => formatTooltipLabel(Number(value), locale)}
-                    formatter={(value) => numeral(Number(value ?? 0)).format('0,0')}
+                    formatter={(value) => number(value ?? 0)}
                   />
                   <Legend />
                   {Array.from(checkedTeamIds).map((teamId, index) => {

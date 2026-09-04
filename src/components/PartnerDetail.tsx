@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Button } from '../ui'
-import numeral from 'numeral'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
 import type { Partner } from '../types'
 import { useLoanStore, useCriteriaStore } from '../stores'
@@ -29,7 +28,7 @@ function KivaLink({ path, children }: { path: string; children: React.ReactNode 
 }
 
 export default function PartnerDetail({ partner, showStatus = true }: PartnerDetailProps) {
-  const { t, sector, date } = useI18n()
+  const { t, sector, date, number, currency, percent } = useI18n()
   const navigate = useNavigate()
   const loans = useLoanStore((s) => s.loans)
   const setCriteria = useCriteriaStore((s) => s.setCriteria)
@@ -76,7 +75,7 @@ export default function PartnerDetail({ partner, showStatus = true }: PartnerDet
           style={{ background: '#e8f5e9' }}
         >
           <span>
-            {t('count_fundraising_loans', { count: numeral(loanCount).format('0,0') })}
+            {t('count_fundraising_loans', { count: number(loanCount) })}
           </span>
           <Button size="sm" variant="success" onClick={searchLoans}>
              {t('show_loans')}
@@ -128,37 +127,37 @@ export default function PartnerDetail({ partner, showStatus = true }: PartnerDet
             <dd>{countryNames}</dd>
             <dt>{t('delinquency')}</dt>
             <dd>
-              {numeral(partner.delinquency_rate).format('0.000')}%{' '}
+              {percent(partner.delinquency_rate, 3)}{' '}
               {(partner as unknown as { delinquency_rate_note?: string }).delinquency_rate_note}
             </dd>
             <dt>{t('loans_risk_rate')}</dt>
-            <dd>{numeral(partner.loans_at_risk_rate).format('0.000')}%</dd>
+            <dd>{percent(partner.loans_at_risk_rate, 3)}</dd>
             <dt>{t('default')}</dt>
             <dd>
-              {numeral(partner.default_rate).format('0.000')}%{' '}
+              {percent(partner.default_rate, 3)}{' '}
               {(partner as unknown as { default_rate_note?: string }).default_rate_note}
             </dd>
             <dt>{t('total_raised')}</dt>
-            <dd>${numeral((partner as unknown as { total_amount_raised?: number }).total_amount_raised).format('0,0')}</dd>
+            <dd>{currency((partner as unknown as { total_amount_raised?: number }).total_amount_raised)}</dd>
             <dt>{t('loans')}</dt>
-            <dd>{numeral(partner.loans_posted).format('0,0')}</dd>
+            <dd>{number(partner.loans_posted)}</dd>
             <dt>{t('portfolio_yield')}</dt>
             <dd>
-              {numeral(partner.portfolio_yield).format('0.0')}%{' '}
+              {percent(partner.portfolio_yield, 1)}{' '}
               {(partner as unknown as { portfolio_yield_note?: string }).portfolio_yield_note}
             </dd>
             <dt>{t('profitability')}</dt>
             {partner.profitability != null ? (
-              <dd>{numeral(partner.profitability).format('0.0')}%</dd>
+              <dd>{percent(partner.profitability, 1)}</dd>
             ) : (
               <dd>{t('unknown')}</dd>
             )}
             <dt>{t('charges_fees_interest')}</dt>
             <dd>{t(partner.charges_fees_and_interest ? 'yes' : 'no')}</dd>
             <dt>{t('avg_loan_cap_income')}</dt>
-            <dd>{numeral(partner.average_loan_size_percent_per_capita_income).format('0.00')}%</dd>
+            <dd>{percent(partner.average_loan_size_percent_per_capita_income, 2)}</dd>
             <dt>{t('currency_ex_loss')}</dt>
-            <dd>{numeral(partner.currency_exchange_loss_rate).format('0.000')}%</dd>
+            <dd>{percent(partner.currency_exchange_loss_rate, 3)}</dd>
             {(partner as unknown as { url?: string }).url ? (
               <>
                 <dt>{t('website')}</dt>

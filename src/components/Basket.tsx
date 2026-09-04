@@ -9,7 +9,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import numeral from 'numeral'
 import { Button, ButtonGroup } from '../ui'
 import { useLoanStore, useUtilsStore } from '../stores'
 import { showConfirm } from '../lib/dialog'
@@ -32,7 +31,7 @@ interface BasketRepaymentDatum {
 
 
 function BasketRepaymentChart({ entries }: { entries: BasketEntry[] }) {
-  const { t, date } = useI18n()
+  const { t, date, currency } = useI18n()
   const { data, skippedCount } = useMemo(() => {
     const monthMap = new Map<string, { amount: number; date: number }>()
     let skipped = 0
@@ -89,7 +88,7 @@ function BasketRepaymentChart({ entries }: { entries: BasketEntry[] }) {
 
   const chartHeight = Math.max(300, Math.min(data.length * 22, 900))
 
-  const dollar = (v: number | string) => `$${numeral(Number(v)).format('0,0[.]00')}`
+  const dollar = (v: number | string) => currency(v, { min: 0, max: 2 })
 
   return (
     <div className="card mb-3">
@@ -132,7 +131,7 @@ function BasketRepaymentChart({ entries }: { entries: BasketEntry[] }) {
               height={20}
             />
             <YAxis dataKey="label" type="category" tick={{ fontSize: 9 }} width={60} interval={0} />
-            <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
+            <Tooltip formatter={(value) => currency(value, 2)} />
             <Legend
               verticalAlign="bottom"
               height={28}
@@ -167,7 +166,7 @@ function BasketRepaymentChart({ entries }: { entries: BasketEntry[] }) {
  * Checkout builds a Kiva URL and submits the basket via a hidden form POST.
  */
 export default function Basket() {
-  const { t } = useI18n()
+  const { t, number, currency } = useI18n()
   const getBasket = useLoanStore((s) => s.getBasket)
   const clearBasket = useLoanStore((s) => s.clearBasket)
   const removeFromBasket = useLoanStore((s) => s.removeFromBasket)
@@ -443,7 +442,7 @@ export default function Basket() {
         <div className="card mb-3">
           <div className="card-body">
             <h3 style={{ margin: '0 0 8px' }}>
-              {t('basket_count_loans_dollar_amount', { count: basketCount, amount: amountSum })}
+              {t('basket_count_loans_dollar_amount', { count: number(basketCount), amount: currency(amountSum, { min: 0, max: 2 }) })}
             </h3>
             <form
               id="kiva-basket-form"
