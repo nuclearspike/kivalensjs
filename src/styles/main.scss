@@ -31,7 +31,10 @@ body {
 // Navbar (react-bootstrap Navbar)
 // ============================================================
 .navbar {
-  margin-bottom: $kl-spacing-sm;
+  // No bottom margin: the active tab's white meets the page's white, so the
+  // tab reads as attached to the page. The page container (.kl-main) owns the
+  // gap between the bar and the content.
+  margin-bottom: 0;
   min-height: $kl-navbar-height;
   background-color: $kl-navbar-bg !important;
   border: none;
@@ -41,7 +44,7 @@ body {
     padding: 5px $kl-spacing-lg;
     font-weight: 600;
     font-size: 15px;
-    height: $kl-navbar-height;
+    min-height: $kl-navbar-height;
     line-height: 22px;
     color: #fff !important;
   }
@@ -89,6 +92,11 @@ body {
     margin-bottom: 0;
     padding: 4px 8px;
   }
+}
+
+// The routed page. Owns the gap below the navbar (the bar itself has none).
+.kl-main {
+  padding-top: $kl-spacing-sm;
 }
 
 // ============================================================

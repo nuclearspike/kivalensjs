@@ -187,6 +187,36 @@
     .navbar-toggler {
       display: none;
     }
+
+    // Tabs fill the bar. Every tab stretches from the bar's top edge to its
+    // bottom edge, so the active tab is flush with the page below it whatever
+    // else sits in the bar (a taller button on the right must not float the
+    // tabs in a band of bar colour). Non-tab items stay vertically centred.
+    > .container,
+    > .container-fluid {
+      align-items: stretch;
+    }
+
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      height: auto;
+    }
+
+    .navbar-collapse,
+    .navbar-nav {
+      align-items: stretch;
+    }
+
+    .navbar-nav .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.3em;
+    }
+
+    .navbar-collapse > :not(.navbar-nav) {
+      align-self: center;
+    }
   }
 }
 

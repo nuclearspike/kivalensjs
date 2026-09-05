@@ -34,6 +34,37 @@ $spacers: (
 .me-auto { margin-right: auto !important; }
 .mx-auto { margin-left: auto !important; margin-right: auto !important; }
 
+// Responsive spacing (my-lg-0, ms-lg-2, pt-md-3 ...) at the md and lg breakpoints,
+// same scale as above. Declared after the base classes so the breakpoint wins.
+@mixin spacing-utilities($bp) {
+  @each $k, $v in $spacers {
+    .m-#{$bp}-#{$k} { margin: $v !important; }
+    .mt-#{$bp}-#{$k} { margin-top: $v !important; }
+    .mb-#{$bp}-#{$k} { margin-bottom: $v !important; }
+    .ms-#{$bp}-#{$k} { margin-left: $v !important; }
+    .me-#{$bp}-#{$k} { margin-right: $v !important; }
+    .mx-#{$bp}-#{$k} { margin-left: $v !important; margin-right: $v !important; }
+    .my-#{$bp}-#{$k} { margin-top: $v !important; margin-bottom: $v !important; }
+    .p-#{$bp}-#{$k} { padding: $v !important; }
+    .pt-#{$bp}-#{$k} { padding-top: $v !important; }
+    .pb-#{$bp}-#{$k} { padding-bottom: $v !important; }
+    .ps-#{$bp}-#{$k} { padding-left: $v !important; }
+    .pe-#{$bp}-#{$k} { padding-right: $v !important; }
+    .px-#{$bp}-#{$k} { padding-left: $v !important; padding-right: $v !important; }
+    .py-#{$bp}-#{$k} { padding-top: $v !important; padding-bottom: $v !important; }
+  }
+  .ms-#{$bp}-auto { margin-left: auto !important; }
+  .me-#{$bp}-auto { margin-right: auto !important; }
+}
+
+@media (min-width: $breakpoint-md) {
+  @include spacing-utilities(md);
+}
+
+@media (min-width: $breakpoint-lg) {
+  @include spacing-utilities(lg);
+}
+
 // --- display ---
 .d-none { display: none !important; }
 .d-block { display: block !important; }

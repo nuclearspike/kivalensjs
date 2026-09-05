@@ -35,7 +35,9 @@ function AppLayout() {
         <AskKivaLens />
       </Suspense>
       <AICallout />
-      <Outlet />
+      <main className="kl-main">
+        <Outlet />
+      </main>
       <KLFooter />
       <ScrollRestoration />
     </div>
