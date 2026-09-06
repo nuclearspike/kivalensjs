@@ -6,6 +6,7 @@ import { getKivaLoans } from '../api/kiva'
 import type { Criteria } from '../types'
 import type { SavedSearch } from '../stores/criteriaStore'
 import { useI18n } from '../i18n'
+import { summarizeCriteria, type Translate } from '../lib/summarizeCriteria'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,54 +53,6 @@ function stripName(obj: Record<string, unknown>): Record<string, unknown> {
   return copy
 }
 
-interface SummaryItem {
-  label: string
-  value: string
-}
-
-type Translate = (key: string, params?: Record<string, string | number>) => string
-
-function summarizeCriteria(
-  crit: SavedSearch | undefined,
-  t: Translate,
-  sector: (englishSector: string) => string,
-): SummaryItem[] {
-  if (!crit) return []
-  const items: SummaryItem[] = []
-  const loan = crit.loan as Record<string, unknown> | undefined
-  if (loan) {
-    if (loan.sector) items.push({
-      label: t('sectors'),
-      value: String(loan.sector).split(',').map((value) => sector(value.trim())).join(', '),
-    })
-    if (loan.country_code) items.push({ label: t('countries'), value: String(loan.country_code) })
-    if (loan.activity) items.push({ label: t('activities'), value: String(loan.activity) })
-    if (loan.tags) items.push({ label: t('tags'), value: String(loan.tags) })
-    if (loan.themes) items.push({ label: t('themes'), value: String(loan.themes) })
-    if (loan.repaid_in_min || loan.repaid_in_max)
-      items.push({ label: t('repaid'), value: t('min_max_months', { min: String(loan.repaid_in_min ?? t('min')), max: String(loan.repaid_in_max ?? t('max')) }) })
-    if (loan.still_needed_min || loan.still_needed_max)
-      items.push({ label: t('still_needed'), value: `$${loan.still_needed_min ?? 0} – $${loan.still_needed_max ?? t('max')}` })
-    if (loan.sort) items.push({ label: t('sort'), value: t(String(loan.sort)) })
-    if (loan.name) items.push({ label: t('name_search_2'), value: String(loan.name) })
-    if (loan.use) items.push({ label: t('use_description'), value: String(loan.use) })
-  }
-  const partner = crit.partner as Record<string, unknown> | undefined
-  if (partner) {
-    if (partner.region) items.push({ label: t('regions'), value: String(partner.region) })
-    if (partner.religion) items.push({ label: t('religion'), value: String(partner.religion) })
-  }
-  if (crit.portfolio) {
-    if (crit.portfolio.exclude_portfolio_loans === 'true')
-      items.push({ label: t('portfolio'), value: t('excluding_my_loans') })
-    const balancers = ['pb_sector', 'pb_country', 'pb_activity', 'pb_partner'] as const
-    for (const b of balancers) {
-      const bal = crit.portfolio[b]
-      if (bal?.enabled) items.push({ label: t('balancing'), value: t(b.replace('pb_', '')) })
-    }
-  }
-  return items
-}
 
 // ---------------------------------------------------------------------------
 // Main component

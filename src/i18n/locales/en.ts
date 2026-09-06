@@ -2,6 +2,12 @@
 // A key here with no counterpart in a sibling locale file is a real gap;
 // see scripts/generate-i18n.mjs (parity check).
 const catalog: Record<string, string> = {
+  'loan_status_check_failed': "We couldn’t verify this loan’s current status or details. Retry, or check the loan on Kiva.",
+  'loan_status_funded': "Fully funded — this loan is no longer accepting contributions.",
+  'loan_status_expired': "This loan has expired and is no longer accepting contributions.",
+  'loan_status_unavailable': "This loan is no longer publicly available on Kiva.",
+  'repayment_public_unavailable': "Kiva does not currently provide a public repayment schedule for this loan.",
+  'retry_loan_details': "Retry",
   '3d_loan_wall_visualize_portfolio': '3D Loan Wall: Visualize your portfolio on the Wall page.',
   '4_completely_secular_3_secular': '4 Completely secular; 3 Secular but some religious influence; 2 Nonsecular but lends without regard to belief; 1 Nonsecular with a religious agenda.',
   '4_excellent_proactive_social_programs': '4 Excellent, proactive social programs; 3 Good initiatives in most areas; 2 Social goals but few initiatives; 1 No attention to social goals.',
@@ -67,7 +73,7 @@ const catalog: Record<string, string> = {
   'azerbaijan': 'Azerbaijan',
   'back_search': 'Back to Search',
   'bakery': 'Bakery',
-  'balance_lending_across_partners': 'Balance your lending across partners, countries, sectors, and activities. Diversify to reduce risk or find new areas to lend in.',
+  'balance_lending_across_partners': 'Balance your lending across partners, countries, regions, sectors, activities, and gender. Diversify to reduce risk or find new areas to lend in.',
   'balance_partner_risk': 'Balance Partner Risk',
   'balancer_activity': 'Balancer: activity',
   'balancer_country': 'Balancer: country',

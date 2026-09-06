@@ -153,6 +153,12 @@ export interface PortfolioCriteria {
   pb_gender?: BalancerConfig
 }
 
+// Every portfolio balancer, in the order the Portfolio tab lists them. Anything
+// that enumerates balancers (summaries, chips, presets) iterates this, so a
+// balancer added here shows up everywhere.
+export const PORTFOLIO_BALANCERS = ['pb_partner', 'pb_country', 'pb_region', 'pb_sector', 'pb_activity', 'pb_gender'] as const
+export type PortfolioBalancerKey = (typeof PORTFOLIO_BALANCERS)[number]
+
 export interface BalancerConfig {
   enabled: boolean
   hideshow?: string
