@@ -7,7 +7,7 @@ import Slider from 'rc-slider'
 // rc-slider base CSS is imported globally in main.tsx
 import { useCriteriaStore, useLoanStore, useUtilsStore } from '../stores'
 import { showLenderIDModal } from '../lib/showLenderIdModal'
-import type { Criteria, BalancerConfig, KivaLoan, Partner } from '../types'
+import { PORTFOLIO_BALANCERS, type Criteria, type BalancerConfig, type KivaLoan, type Partner, type PortfolioBalancerKey } from '../types'
 import type { BalancerResult } from '../stores/criteriaStore'
 import { getKivaLoans } from '../api/kiva'
 import { lsj } from '../lib/localStorage'
@@ -387,9 +387,11 @@ interface BalancerMeta {
   key?: string
 }
 
-// Options list per criteria key — used to map a clicked distribution bar's
-// display name back to the stored option value.
-const BALANCER_OPTIONS: Record<string, BalancerMeta> = {
+// Options list per balancer key — used to map a clicked distribution bar's
+// display name back to the stored option value. Keyed by PortfolioBalancerKey
+// so a balancer added to PORTFOLIO_BALANCERS must get an entry here; the
+// Portfolio tab renders in PORTFOLIO_BALANCERS order, not in this object's.
+const BALANCER_OPTIONS: Record<PortfolioBalancerKey, BalancerMeta> = {
   pb_partner: { label: 'partners', sliceBy: 'partner', key: 'id' },
   pb_country: { label: 'countries', sliceBy: 'country' },
   pb_region: { label: 'regions', sliceBy: 'region' },
@@ -1519,11 +1521,11 @@ function PortfolioCriteriaPanel({
         <Card.Body>
           <p style={{ fontSize: 13 }}>{t('balance_lending_across_partners')}</p>
 
-          {Object.entries(BALANCER_OPTIONS).map(([key, meta]) => (
+          {PORTFOLIO_BALANCERS.map((key) => (
             <BalancingRow
               key={key}
               name={key}
-              meta={meta}
+              meta={BALANCER_OPTIONS[key]}
               value={portfolio[key] as BalancerConfig | undefined}
               onChange={(val) => onUpdate('portfolio', key, val)}
             />
