@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import dotenv from 'dotenv'
-import { klDevServer } from './server/klDevPlugin'
+import { klDevServer } from './server/klDevPlugin.ts'
 
 // Load .env.local into process.env so the dev plugin (which runs the same
 // server code as prod) can read OPENAI_API_KEY. The key is server-only and is
