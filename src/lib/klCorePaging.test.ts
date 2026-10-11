@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { createState, prepareData, startRefresh, loansFilterable, awaitLoansFilterable, rehydrateWarmCache, snapshotOf } from '../../server/klCore.mjs'
+import { createState, prepareData, startRefresh, loansFilterable, awaitLoansFilterable, rehydrateWarmCache, snapshotOf, processListed, carryOver, processLoan } from '../../server/klCore.mjs'
 import { storyPrint } from '../../server/borrowerAgeAI.mjs'
 import { configureRuntime, memoryCache, resetRuntime } from '../../server/runtime.mjs'
 import { filterLoans } from '../../server/loanFilter.mjs'
@@ -587,7 +587,7 @@ describe('stopping the refresh', () => {
 })
 
 describe('a refresh that fails', () => {
-  it('drops only a malformed detail entry: the batch publishes and its other loans keep their details', async () => {
+  it('drops only a malformed detail entry: the batch publishes, its other loans keep their details, and that loan waits for its own', async () => {
     const listing = [[loan(1), loan(2)], [loan(3)]]
     const base = fakeKiva(() => listing)
     globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
@@ -600,10 +600,10 @@ describe('a refresh that fails', () => {
     await prepareData(state, silent)
 
     expect(state.batch).toBe(1)
-    expect(ids(state)).toEqual([1, 2, 3])
+    // Loan 1 has no detail and no batch has held it: it is not served from the listing.
+    expect(ids(state)).toEqual([2, 3])
     const byId = new Map(state.allLoans.map((l: { id: number; description?: { texts?: { en?: string } } }) => [l.id, l]))
     expect(byId.get(2)?.description?.texts?.en).toBe('From the detail call.')
-    expect(byId.get(1)?.description?.texts?.en).toBe('A farmer.') // the listing's own data
   })
 
   it('lets a malformed detail cost only its own loan: the others\' funding truth survives', async () => {
@@ -626,17 +626,28 @@ describe('a refresh that fails', () => {
     expect(state.recentlyFunded.map((e: { id: number }) => e.id)).toEqual([1])
   })
 
-  it('serves a loan from the listing when its detail cannot be processed', async () => {
+  it('serves a loan whose detail cannot be processed as the batch before held it, and leaves it out of a first batch', async () => {
     const base = fakeKiva(() => [[loan(1), loan(2), loan(3)]])
+    let broken = true
     globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
-      if (/\/loans\/1,2,3\.json/.test(url))
+      if (broken && /\/loans\/1,2,3\.json/.test(url))
         return { ok: true, status: 200, json: async () => ({ loans: [loan(1), { ...loan(2), posted_date: { toString: null } }, loan(3)] }) } as unknown as Response
       return base(url, init)
     }) as unknown as typeof fetch
     const state = createState()
     await prepareData(state, silent)
     expect(state.batch).toBe(1)
+    expect(ids(state)).toEqual([1, 3]) // no batch has held loan 2 with its details
+
+    broken = false
+    await prepareData(state, silent)
     expect(ids(state)).toEqual([1, 2, 3])
+
+    broken = true
+    await prepareData(state, silent)
+    expect(state.batch).toBe(3)
+    expect(ids(state)).toEqual([1, 2, 3]) // as batch 2 held it
+    expect(state.allLoans.find((l: { id: number }) => l.id === 2)).toMatchObject({ posted_date: '2026-06-01T00:00:00Z', description: { texts: { en: 'A farmer.' } } })
   })
 
   it('believes a detail that says the loan closed, even when the rest of it cannot be processed', async () => {
@@ -703,7 +714,7 @@ describe('a refresh that fails', () => {
     expect(reported.some((m) => m.startsWith('A+ data: fetch failed (Error: HTTP 404)'))).toBe(true)
   })
 
-  it('keeps going past a batch with bad details: every batch is fetched and every loan published', async () => {
+  it('keeps going past a batch with bad details: every batch is fetched and every other loan published', async () => {
     const listing = Array.from({ length: 10 }, (_, p) => Array.from({ length: 50 }, (_, i) => loan(p * 50 + i + 1)))
     const base = fakeKiva(() => listing)
     let detailCalls = 0
@@ -720,7 +731,8 @@ describe('a refresh that fails', () => {
     await prepareData(state, silent)
     expect(detailCalls).toBe(10)
     expect(state.batch).toBe(1)
-    expect(state.allLoans).toHaveLength(500)
+    // All but loan 2, whose detail cannot be processed and which no batch has held.
+    expect(ids(state)).toEqual(Array.from({ length: 500 }, (_, i) => i + 1).filter((id) => id !== 2))
   })
 
   it.each([
@@ -892,5 +904,283 @@ describe("a borrower's age from the model is kept with the loan, across refreshe
     await prepareData(state, silent)
     expect(state.allLoans[0].kls_age ?? null).toBeNull()
     expect(state.allLoans[0]).not.toHaveProperty('kl_age_answer')
+  })
+})
+
+/**
+ * 2026-10-10: Kiva did not answer four requests for loan details, and batch 12571
+ * went out with those 200 loans as the listing alone describes them: no terms, no
+ * story, no borrowers. One such loan made every page give up the whole batch and
+ * fetch the catalog from Kiva itself, which takes minutes.
+ *
+ * The fixtures here are shaped as Kiva's two answers really are. (The `loan()`
+ * helper above puts terms and a story on LISTING loans too, which is why no test
+ * noticed the listing has neither.)
+ */
+describe('a loan is never published without its details', () => {
+  /** A loan as Kiva's listing gives it. */
+  const listed = (id: number, extra: Record<string, unknown> = {}) => ({
+    id,
+    name: `Borrower ${id}`,
+    status: 'fundraising',
+    loan_amount: 1000,
+    funded_amount: 0,
+    basket_amount: 0,
+    lender_count: 0,
+    borrower_count: 1,
+    posted_date: '2026-06-01T00:00:00Z',
+    planned_expiration_date: '2026-07-06T00:00:00Z',
+    sector: 'Agriculture',
+    activity: 'Farming',
+    use: 'to buy seed',
+    location: { country_code: 'KE', country: 'Kenya' },
+    partner_id: 10,
+    description: { languages: ['en'] },
+    tags: [],
+    ...extra,
+  })
+  /** The same loan as Kiva's detail call gives it: the listing's fields (`figures` are its current ones), and what only the detail has. */
+  const detailed = (id: number, figures: Record<string, unknown> = {}, extra: Record<string, unknown> = {}) => ({
+    ...listed(id, figures),
+    description: { languages: ['en'], texts: { en: `The story of borrower ${id}.` } },
+    terms: {
+      disbursal_date: '2026-05-20T07:00:00Z',
+      repayment_interval: 'Monthly',
+      scheduled_payments: [
+        { due_date: '2027-01-01T08:00:00Z', amount: 500 },
+        { due_date: '2027-02-01T08:00:00Z', amount: 500 },
+      ],
+    },
+    borrowers: [{ first_name: 'A', gender: 'F' }],
+    ...extra,
+  })
+
+  type World = {
+    listing: () => Array<ReturnType<typeof listed>>
+    /** Whether this request for details fails; `attempt` counts requests for the same ids from 1. */
+    fails?: (wanted: number[], attempt: number) => boolean
+    /** Kiva's entry for this loan, when it is not the usual one; null is an entry Kiva left empty. */
+    detail?: (id: number) => unknown
+  }
+  /** Kiva with its two answers kept apart, and detail requests that can fail. */
+  function kiva(world: World) {
+    const attempts = new Map<string, number>()
+    const detailCalls: number[][] = []
+    const base = fakeKiva(() => [world.listing() as never])
+    const fetchStub = vi.fn(async (url: string, init?: RequestInit) => {
+      if (typeof url === 'string' && /\/loans\/[\d,]+\.json/.test(url)) {
+        const key = url.split('/loans/')[1].split('.json')[0]
+        const wanted = key.split(',').map(Number)
+        const attempt = (attempts.get(key) ?? 0) + 1
+        attempts.set(key, attempt)
+        detailCalls.push(wanted)
+        if (world.fails?.(wanted, attempt)) throw new Error('Kiva did not answer')
+        const current = new Map(world.listing().map((l) => [l.id, l]))
+        const entry = (id: number) => {
+          const own = world.detail ? world.detail(id) : undefined
+          return own === undefined ? detailed(id, current.get(id)) : own
+        }
+        return { ok: true, status: 200, json: async () => ({ loans: wanted.map(entry) }) } as unknown as Response
+      }
+      return base(url, init)
+    })
+    globalThis.fetch = fetchStub as unknown as typeof fetch
+    return { detailCalls }
+  }
+  /** A refresh, with the clock moved on for each second a failed request waits before its second try. */
+  async function refresh(state: ReturnType<typeof createState>, log: (m: string) => void = silent) {
+    let done = false
+    const run = prepareData(state, log).finally(() => (done = true))
+    for (let i = 0; i < 60 && !done; i++) await vi.advanceTimersByTimeAsync(1000)
+    await run
+  }
+  const servedLoans = (state: ReturnType<typeof createState>) =>
+    state.batches.get(state.batch)!.loanPages.flatMap((gz: Buffer) => JSON.parse(zlib.gunzipSync(gz).toString('utf8'))) as Array<Record<string, unknown> & { id: number }>
+  const servedById = (state: ReturnType<typeof createState>) => new Map(servedLoans(state).map((l) => [l.id, l]))
+  const always = () => true
+
+  it('asks Kiva again when a request for details fails, and the loans keep their details when the second try is answered', async () => {
+    const { detailCalls } = kiva({ listing: () => [listed(1), listed(2), listed(3)], fails: (_ids, attempt) => attempt === 1 })
+    const logs: string[] = []
+    const state = createState()
+    await refresh(state, (m) => logs.push(m))
+    expect(detailCalls).toEqual([[1, 2, 3], [1, 2, 3]])
+    expect(ids(state)).toEqual([1, 2, 3])
+    expect(servedLoans(state).every((l) => l.terms && l.kls_final_repayment)).toBe(true)
+    expect(logs.filter((m) => m.startsWith('Details did not arrive'))).toEqual([])
+  })
+
+  it('serves loans whose details did not arrive as the batch before held them, with the listing’s current figures', async () => {
+    let now = [listed(1), listed(2), listed(3)]
+    let down = false
+    kiva({ listing: () => now, fails: () => down })
+    const state = createState()
+    await refresh(state)
+    expect(ids(state)).toEqual([1, 2, 3])
+
+    // Ten minutes on: loan 2 has raised $400 and gained a tag, loan 3 has funded out, loan 4 is new. Kiva's details are down.
+    now = [listed(1), listed(2, { funded_amount: 400, lender_count: 9, tags: [{ name: '#Woman-Owned Business' }] }), listed(3, { funded_amount: 1000 }), listed(4)]
+    down = true
+    const logs: string[] = []
+    await refresh(state, (m) => logs.push(m))
+
+    expect(state.batch).toBe(2)
+    expect(ids(state)).toEqual([1, 2])
+    const two = state.allLoans.find((l: { id: number }) => l.id === 2)
+    expect(two).toMatchObject({ funded_amount: 400, lender_count: 9, kl_still_needed: 600, kl_percent_funded: 40, kls_tags: ['#Woman-OwnedBusiness'] })
+    expect(two.description.texts.en).toBe('The story of borrower 2.')
+    expect(two.kl_repayments).toHaveLength(2)
+    expect(logs).toContain("Details did not arrive for 4 listed loans: 3 served with the previous batch's details, 1 left out until theirs arrive")
+
+    // What a browser downloads for them is what it would have been had Kiva answered.
+    const carried = servedById(state)
+    const answered = createState()
+    down = false
+    await refresh(answered)
+    const fresh = servedById(answered)
+    expect(carried.get(1)).toEqual(fresh.get(1))
+    expect(carried.get(2)).toEqual(fresh.get(2))
+    expect(carried.get(2)).toMatchObject({ funded_amount: 400, terms: { repayment_interval: 'Monthly' }, klb: { F: 1 }, kls_repaid_in: fresh.get(2)!.kls_repaid_in })
+  })
+
+  it('leaves out a loan no batch has held with its details, and publishes it once they arrive', async () => {
+    let down = (wanted: number[]) => wanted.includes(4)
+    let now = [listed(1), listed(2)]
+    kiva({ listing: () => now, fails: (wanted) => down(wanted) })
+    const state = createState()
+    await refresh(state)
+    now = [listed(1), listed(2), listed(4)]
+    await refresh(state)
+    // Loans 1 and 2 are carried over; the new loan 4 waits.
+    expect(ids(state)).toEqual([1, 2])
+    down = () => false
+    await refresh(state)
+    expect(ids(state)).toEqual([1, 2, 4])
+    expect(servedById(state).get(4)).toMatchObject({ terms: { repayment_interval: 'Monthly' }, kls_has_descr: true })
+  })
+
+  it('puts nothing without terms in the pages a browser downloads, whatever Kiva’s details did', async () => {
+    // A detail with no terms, a detail that is the listing again, a missing entry, a failed request.
+    kiva({
+      listing: () => Array.from({ length: 120 }, (_, i) => listed(i + 1)),
+      fails: (wanted) => wanted.includes(101),
+      detail: (id) => (id === 7 ? detailed(7, {}, { terms: undefined }) : id === 8 ? listed(8) : id === 9 ? null : undefined),
+    })
+    const state = createState()
+    await refresh(state)
+    expect(state.batch).toBe(1)
+    const served = servedLoans(state)
+    expect(served.filter((l) => !l.terms)).toEqual([])
+    expect(served.map((l) => l.id)).toEqual(Array.from({ length: 100 }, (_, i) => i + 1).filter((id) => ![7, 8, 9].includes(id)))
+    expect(state.allLoans.every((l: { terms?: unknown }) => !!l.terms)).toBe(true)
+  })
+
+  it('does not publish a batch that is mostly missing: a server with nothing before stays unready', async () => {
+    const { detailCalls } = kiva({ listing: () => Array.from({ length: 600 }, (_, i) => listed(i + 1)), fails: always })
+    const logs: string[] = []
+    const state = createState()
+    await refresh(state, (m) => logs.push(m))
+    expect(state.batch).toBe(0)
+    expect(state.ready).toBeFalsy()
+    expect(logs.some((m) => m.startsWith('Data preparation failed: Error: details arrived for too few loans to publish: 600 left out, 0 kept'))).toBe(true)
+    // Twelve requests, and a second try for only the first eight: past that Kiva's details are down, not hiccuping.
+    expect(detailCalls).toHaveLength(12 + 8)
+  })
+
+  it('keeps the batch before when the next would be mostly missing', async () => {
+    let now = [listed(1), listed(2)]
+    let down = false
+    kiva({ listing: () => now, fails: () => down })
+    const state = createState()
+    await refresh(state)
+    // Every loan in the listing is new, and Kiva's details are down: nothing to stand in.
+    now = [listed(11), listed(12), listed(13)]
+    down = true
+    await refresh(state)
+    expect(state.batch).toBe(1)
+    expect(ids(state)).toEqual([1, 2])
+  })
+
+  it('after a restart, takes the loans from the cached pages when their details do not arrive', async () => {
+    let down = false
+    let now = [listed(1), listed(2), listed(3)]
+    kiva({ listing: () => now, fails: () => down })
+    const live = createState()
+    await refresh(live)
+
+    // What a warm start restores: the pages, the partners, and each loan's story and schedule.
+    const snap = snapshotOf(live)!
+    const warm = createState()
+    warm.batch = snap.batch
+    warm.klStart = snap.klStart
+    warm.partnersGz = snap.partnersGz
+    warm.optionsGz = snap.optionsGz
+    warm.newestTime = snap.newestTime
+    warm.allLoans = snap.details as never
+    warm.warmDetails = snap.details as never
+    warm.batches.set(snap.batch, { loanPages: snap.loanPages, keywordPages: snap.keywordPages, klStart: snap.klStart, newestTime: snap.newestTime })
+    warm.ready = true
+
+    down = true
+    now = [listed(1), listed(2, { funded_amount: 250 }), listed(3), listed(4)]
+    const logs: string[] = []
+    await refresh(warm, (m) => logs.push(m))
+
+    expect(warm.batch).toBe(snap.batch + 1)
+    expect(ids(warm)).toEqual([1, 2, 3])
+    expect(logs).toContain("Details did not arrive for 4 listed loans: 3 served with the previous batch's details, 1 left out until theirs arrive")
+    const served = servedById(warm)
+    expect(served.get(2)).toMatchObject({ funded_amount: 250, terms: { repayment_interval: 'Monthly' }, klb: { F: 1 }, kls_has_descr: true })
+    // The story and the schedule are still served for it (/graphql, and the next warm start).
+    expect(snapshotOf(warm)!.details.find((d: { id: number }) => d.id === 2)).toMatchObject({ description: { texts: { en: 'The story of borrower 2.' } } })
+    expect(warm.allLoans.find((l: { id: number }) => l.id === 2).kl_repayments).toHaveLength(2)
+  })
+
+  describe('processListed and carryOver', () => {
+    const previous = () => processLoan(detailed(1)).loan
+
+    it('carries a loan over without changing the copy it came from', () => {
+      const before = previous()
+      const frozen = JSON.stringify(before)
+      const { loan, keywords } = carryOver(before, listed(1, { funded_amount: 300, status: 'fundraising' }))!
+      expect(JSON.stringify(before)).toBe(frozen)
+      expect(loan).toMatchObject({ id: 1, funded_amount: 300, kl_still_needed: 700, kl_percent_funded: 30 })
+      expect(loan.kl_processed.getTime()).toBeGreaterThanOrEqual(before.kl_processed.getTime())
+      expect(keywords).toEqual({ id: 1, t: before.kls_use_or_descr_arr })
+    })
+
+    it('carries nothing over from what is not a loan with its details', () => {
+      const stub = { id: 1, description: { texts: { en: 'A story.' } }, kl_repayments: [] } // what a warm start holds before its pages are expanded
+      for (const not of [undefined, null, 'loan', 17, stub, processLoan(listed(1)).loan]) expect(carryOver(not as never, listed(1))).toBeNull()
+    })
+
+    it('counts what was carried over and what was left out', () => {
+      const held = new Map([[1, previous()]])
+      const r = processListed([listed(1), listed(2), listed(3)], [detailed(3)], (id: number) => held.get(id))
+      expect(r.kept.map((p: { loan: { id: number } }) => p.loan.id)).toEqual([1, 3])
+      expect(r).toMatchObject({ processed: 2, carried: 1, withheld: 1 })
+    })
+
+    it('treats a detail that came without terms as no detail', () => {
+      const held = new Map([[1, previous()]])
+      const r = processListed([listed(1), listed(2)], [listed(1), listed(2)] as never, (id: number) => held.get(id))
+      expect(r.kept.map((p: { loan: { id: number; terms?: unknown } }) => [p.loan.id, !!p.loan.terms])).toEqual([[1, true]])
+      expect(r).toMatchObject({ carried: 1, withheld: 1 })
+    })
+
+    it('loses only its own loan to a lookup that throws', () => {
+      const r = processListed([listed(1), listed(2)], [detailed(2)], () => {
+        throw new Error('index gone')
+      })
+      expect(r.kept.map((p: { loan: { id: number } }) => p.loan.id)).toEqual([2])
+      expect(r).toMatchObject({ withheld: 1 })
+    })
+
+    it('does not put a funded loan back by carrying it over', () => {
+      const held = new Map([[1, previous()]])
+      const r = processListed([listed(1, { funded_amount: 1000 })], [], (id: number) => held.get(id))
+      expect(r.kept).toEqual([])
+      expect(r).toMatchObject({ processed: 1, carried: 1, withheld: 0 })
+    })
   })
 })

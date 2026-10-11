@@ -44,6 +44,30 @@ const RETAINED_BATCHES = 2
 const RSS_READY_TIMEOUT_MS = 25_000
 const KIVA_API = 'https://api.kivaws.org/v1'
 const APP_ID = 'org.kiva.kivalens'
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * A request for loan details that fails is made once more after this pause: long
+ * enough for a dropped connection to be made again, and nothing to a refresh
+ * that runs in the background.
+ */
+const DETAIL_RETRY_PAUSE_MS = 1000
+/**
+ * How many such second tries one refresh makes. A blip takes down the four
+ * requests in flight (2026-10-10: four batches, 200 loans), so twice that is
+ * tried again. Past it Kiva's details are down rather than hiccuping, and a
+ * second try would only add its 20-second timeout to every remaining batch
+ * while the previous batch's details stand in anyway (processListed).
+ */
+const DETAIL_RETRIES_PER_REFRESH = 8
+
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** Whole months between today and a date, whichever comes first: how long until a loan is repaid. */
+function monthsFromNow(date) {
+  const today = new Date()
+  return Math.abs((date.getFullYear() - today.getFullYear()) * 12 + (date.getMonth() - today.getMonth()))
+}
 
 // Resident set size + live heap in MB — for diagnosing the dyno's R14 memory
 // pressure (RSS is what Heroku's 512MB quota measures; heapUsed is live JS).
@@ -124,11 +148,51 @@ export async function fetchSearchPage(page) {
 
 /**
  * Full details (description, repayment schedule, borrowers) for up to 50 loans.
- * An entry that is not a loan is dropped; that loan is served from the listing.
+ * An entry that is not a loan is dropped; processListed decides what that loan
+ * is served as.
  */
 export async function fetchDetailBatch(ids) {
   const data = await fetchJSON(`${KIVA_API}/loans/${ids.join(',')}.json?app_id=${APP_ID}`)
   return (data.loans || []).filter((d) => d && typeof d === 'object' && d.id != null)
+}
+
+/** Whether a loan held from an earlier batch has the details a page entry is built from. */
+const hasDetails = (loan) => !!loan && typeof loan === 'object' && !!loan.terms && typeof loan.terms === 'object'
+
+/** What the listing knows that changes between two refreshes; the rest of a loan does not. */
+const LISTING_FIGURES = ['status', 'funded_amount', 'basket_amount', 'lender_count', 'planned_expiration_date']
+
+/**
+ * A loan as an earlier batch held it, with the listing's current figures: what a
+ * loan is served as when Kiva's details for it did not arrive. Its story, terms
+ * and schedule are the same from one refresh to the next; its status, amounts
+ * and tags are in the listing. It is not processed again, because a loan
+ * rebuilt from the cached pages after a restart no longer has the raw schedule
+ * processLoan works from, only what was worked out of it.
+ * Returns null for a loan the earlier batch did not hold with its details.
+ */
+export function carryOver(previous, listed) {
+  if (!hasDetails(previous)) return null
+  const now = Date.now()
+  const loan = { ...previous, kl_processed: new Date(now) }
+  for (const field of LISTING_FIGURES) if (listed[field] !== undefined) loan[field] = listed[field]
+  if (!loan.basket_amount) loan.basket_amount = 0
+  if (!loan.funded_amount) loan.funded_amount = 0
+  loan.kl_still_needed = Math.max(loan.loan_amount - loan.funded_amount - loan.basket_amount, 0)
+  loan.kl_percent_funded = (100 * (loan.funded_amount + loan.basket_amount)) / loan.loan_amount
+  if (Array.isArray(listed.tags)) loan.kls_tags = listed.tags.map((t) => (t.name || '').replace(/\s+/g, ''))
+  if (listed.bonus_credit_eligibility) loan.bonus_credit_eligibility = listed.bonus_credit_eligibility
+  else delete loan.bonus_credit_eligibility
+
+  // The figures that are worked out against today's date, as processLoan does.
+  loan.kl_planned_expiration_date = new Date(loan.planned_expiration_date)
+  loan.kl_expiring_in_days = (loan.kl_planned_expiration_date.getTime() - now) / DAY_MS
+  loan.kl_disbursal_in_days = loan.terms.disbursal_date
+    ? (new Date(loan.terms.disbursal_date).getTime() - now) / DAY_MS
+    : 0
+  if (loan.kls_final_repayment) loan.kls_repaid_in = monthsFromNow(new Date(loan.kls_final_repayment))
+
+  return { loan, keywords: { id: loan.id, t: loan.kls_use_or_descr_arr || [] } }
 }
 
 /**
@@ -136,39 +200,71 @@ export async function fetchDetailBatch(ids) {
  * raising money: Kiva lists some loans as fundraising that are already fully
  * funded (funded_amount >= loan_amount). basket_amount is deliberately ignored:
  * Kiva's basket figures are unreliable and sometimes exceed the amount remaining.
- * A detail that cannot be processed costs only itself: that loan is served from
- * the listing's own data, and a loan whose listing data fails too is skipped.
- * Returns the kept { loan, keywords } and how many were processed at all.
+ *
+ * No loan is kept without its details. One whose details did not arrive (a
+ * request to Kiva that failed, an entry Kiva left out) or cannot be processed
+ * is served as the previous batch held it, with the listing's current figures
+ * (carryOver; `previous` looks a loan up by id). One the previous batch did not
+ * hold either is left out, and the next refresh fetches it again. The listing
+ * does not stand in for the details: it has no terms, story or borrowers, and a
+ * batch holding one such loan made every page give up the whole batch and fetch
+ * the catalog from Kiva itself (2026-10-10, 200 loans of 6,709).
+ * A detail that cannot be processed costs only its own loan, and is believed
+ * where it says the loan has closed.
+ * Returns the kept { loan, keywords }, how many were processed at all, how many
+ * of those were carried over, and how many were left out for want of details.
  */
-export function processListed(searchLoans, details) {
+export function processListed(searchLoans, details, previous = () => undefined) {
   const byId = new Map(details.map((d) => [d.id, d]))
   const kept = []
   let processed = 0
+  let carried = 0
+  let withheld = 0
+  const standIn = (searchLoan) => {
+    try {
+      return carryOver(previous(searchLoan.id), searchLoan)
+    } catch {
+      return null
+    }
+  }
   for (const searchLoan of searchLoans) {
     const detail = byId.get(searchLoan.id)
-    let merged
     let p
-    try {
-      merged = detail ? { ...searchLoan, ...detail } : searchLoan
-      p = processLoan(merged)
-    } catch {
-      // The listing stands in only for a loan the detail itself shows still
-      // raising money (status fundraising, amounts that are numbers and short of
-      // the loan); a detail that says it closed, or cannot say, is believed or
-      // left alone as before, so the listing never puts a funded loan back.
-      if (!detail || !merged || merged.status !== 'fundraising') continue
-      const { funded_amount: funded, loan_amount: amount } = merged
-      if (!(typeof funded === 'number' && typeof amount === 'number' && funded < amount)) continue
+    let stoodIn = false
+    if (detail) {
+      let merged
       try {
-        p = processLoan(searchLoan)
+        merged = { ...searchLoan, ...detail }
+        p = processLoan(merged)
+        // A detail that came without the loan's terms is no detail.
+        if (!hasDetails(p.loan)) {
+          p = standIn(searchLoan)
+          stoodIn = true
+        }
       } catch {
-        continue
+        // The earlier copy stands in only for a loan the detail itself shows still
+        // raising money (status fundraising, amounts that are numbers and short of
+        // the loan); a detail that says it closed, or cannot say, is believed or
+        // left alone, so nothing puts a funded loan back.
+        if (!merged || merged.status !== 'fundraising') continue
+        const { funded_amount: funded, loan_amount: amount } = merged
+        if (!(typeof funded === 'number' && typeof amount === 'number' && funded < amount)) continue
+        p = standIn(searchLoan)
+        stoodIn = true
       }
+    } else {
+      p = standIn(searchLoan)
+      stoodIn = true
+    }
+    if (!p) {
+      withheld++
+      continue
     }
     processed++
+    if (stoodIn) carried++
     if (p.loan.status === 'fundraising' && p.loan.funded_amount < p.loan.loan_amount) kept.push(p)
   }
-  return { kept, processed }
+  return { kept, processed, carried, withheld }
 }
 
 async function fetchAllSearchLoans(state, log) {
@@ -255,6 +351,11 @@ async function fetchTaxonomy() {
  * at once rather than held for the whole catalog; the result keeps the listing's
  * order. Loans that left the listing since the last refresh are looked up too,
  * only to learn whether they funded (observeFundedLoans).
+ *
+ * A request that fails is made once more (DETAIL_RETRY_PAUSE_MS,
+ * DETAIL_RETRIES_PER_REFRESH). Loans whose details still do not arrive are
+ * served as the previous batch held them, or left out (processListed); the
+ * counts come back as `carried` and `withheld`.
  */
 async function fetchAndProcess(state, listing, missingIds, log) {
   const batchSize = 50
@@ -267,6 +368,42 @@ async function fetchAndProcess(state, listing, missingIds, log) {
   let completed = 0
   let processed = 0
   let detailed = 0
+  let carried = 0
+  let withheld = 0
+  let retriesLeft = DETAIL_RETRIES_PER_REFRESH
+
+  // The previous batch's loans by id, read only when a loan's details have not
+  // arrived. After a restart they are still inside the cached pages, so those
+  // are expanded first (rehydrateWarmCache does nothing once the loans are
+  // whole, or when there is no cache). The index follows state.allLoans, which
+  // a warm start that lands mid-refresh replaces.
+  let source
+  let previousById
+  const previous = (id) => {
+    if (!loansFilterable(state)) rehydrateWarmCache(state, log)
+    if (source !== state.allLoans) {
+      source = state.allLoans
+      previousById = new Map((source || []).map((l) => [l.id, l]))
+    }
+    return previousById.get(id)
+  }
+
+  const detailsFor = async (ids) => {
+    try {
+      return await fetchDetailBatch(ids)
+    } catch {
+      if (retriesLeft <= 0 || state.stopped) return []
+      retriesLeft--
+      await pause(DETAIL_RETRY_PAUSE_MS)
+      try {
+        return await fetchDetailBatch(ids)
+      } catch {
+        // Not fatal: the previous batch's details serve these loans.
+        return []
+      }
+    }
+  }
+
   // A bad entry from Kiva costs only its own loan (fetchDetailBatch,
   // observeFundedLoans, processListed), so nothing here is expected to throw.
   // If something does, the other workers stop taking batches and the refresh
@@ -279,18 +416,15 @@ async function fetchAndProcess(state, listing, missingIds, log) {
       const i = next++
       const batch = batches[i]
       try {
-        let details = []
-        try {
-          details = await fetchDetailBatch(batch.loans ? batch.loans.map((l) => l.id) : batch.ids)
-        } catch {
-          // Non-fatal: the listing's own data still serves these loans
-        }
+        const details = await detailsFor(batch.loans ? batch.loans.map((l) => l.id) : batch.ids)
         detailed += details.length
         observeFundedLoans(state, details)
         if (batch.loans) {
-          const r = processListed(batch.loans, details)
+          const r = processListed(batch.loans, details, previous)
           results[i] = r.kept
           processed += r.processed
+          carried += r.carried
+          withheld += r.withheld
         }
         completed++
         if (completed % 10 === 0 || completed === batches.length) {
@@ -307,7 +441,7 @@ async function fetchAndProcess(state, listing, missingIds, log) {
   await Promise.all(workers)
   if (failed) throw failure
   checkStopped(state)
-  return { kept: results.filter(Boolean).flat(), processed, detailed }
+  return { kept: results.filter(Boolean).flat(), processed, detailed, carried, withheld }
 }
 
 async function fetchAllPartners(state, log) {
@@ -445,21 +579,14 @@ export function processLoan(raw) {
       }
 
       loan.kls_final_repayment = new Date(schedPayments[schedPayments.length - 1].due_date)
-      const todayDate = new Date()
-      loan.kls_repaid_in = loan.kls_final_repayment
-        ? Math.abs(
-            (loan.kls_final_repayment.getFullYear() - todayDate.getFullYear()) * 12 +
-              (loan.kls_final_repayment.getMonth() - todayDate.getMonth()),
-          )
-        : 0
+      loan.kls_repaid_in = loan.kls_final_repayment ? monthsFromNow(loan.kls_final_repayment) : 0
     }
   }
 
   loan.kl_planned_expiration_date = new Date(loan.planned_expiration_date)
-  loan.kl_expiring_in_days =
-    (loan.kl_planned_expiration_date.getTime() - now) / (24 * 60 * 60 * 1000)
+  loan.kl_expiring_in_days = (loan.kl_planned_expiration_date.getTime() - now) / DAY_MS
   loan.kl_disbursal_in_days = loan.terms?.disbursal_date
-    ? (new Date(loan.terms.disbursal_date).getTime() - now) / (24 * 60 * 60 * 1000)
+    ? (new Date(loan.terms.disbursal_date).getTime() - now) / DAY_MS
     : 0
 
   if (loan.description?.languages) {
@@ -894,10 +1021,23 @@ export async function prepareData(state, log = console.log) {
     log('Fetching and processing full loan details...')
     const listedIds = new Set(searchLoans.map((loan) => loan.id))
     const missingIds = state.allLoans.filter((loan) => !listedIds.has(loan.id)).map((loan) => loan.id)
-    let { kept: fundable, processed, detailed } = await fetchAndProcess(state, searchLoans, missingIds, log)
+    let { kept: fundable, processed, detailed, carried, withheld } = await fetchAndProcess(state, searchLoans, missingIds, log)
     searchLoans = null
     log(`Fetched details for ${detailed} loans`)
+    if (carried || withheld) {
+      log(
+        `Details did not arrive for ${carried + withheld} listed loans: ${carried} served with the previous batch's details, ` +
+          `${withheld} left out until theirs arrive`,
+      )
+    }
     log(`Processed ${processed} loans`)
+    // A batch that is mostly holes is not a batch. A page shows what it is given
+    // as the whole catalog, so when more loans had to be left out than are kept,
+    // nothing is published: the batch before stays, and a server with none stays
+    // unready, which sends each page to Kiva for its loans.
+    if (withheld > fundable.length) {
+      throw new Error(`details arrived for too few loans to publish: ${withheld} left out, ${fundable.length} kept`)
+    }
     log(`Excluded ${processed - fundable.length} closed or fully-funded loans; ${fundable.length} remain`)
 
     // The model's answers about ages live on the loans being replaced (the previous

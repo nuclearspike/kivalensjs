@@ -22,7 +22,7 @@ import type {
   ProgressEvent,
   RunningTotals,
 } from '../types'
-import { distinct } from '../lib/arrayUtils'
+import { chunk, distinct } from '../lib/arrayUtils'
 import { filterLoans, filterPartners as sharedFilterPartners } from '../../server/loanFilter.mjs'
 import { today } from '../lib/dateUtils'
 import { cl, wait } from '../lib/utils'
@@ -48,6 +48,9 @@ import { catchUpDelayMs } from '../lib/catchUp'
 const BALANCER_TTL_MS = 60 * 60 * 1000
 /** Distinct slice readings kept (lenders x slices x all/active). */
 const BALANCER_CACHE_MAX = 50
+
+/** Loans asked of Kiva in one request when a batch came without them: the most LoanBatch puts in one. */
+const LEFT_OUT_PER_REQUEST = 100
 
 export type NotifyMessage = {
   loan_load_progress?: ProgressEvent
@@ -517,6 +520,14 @@ export class Loans {
       try {
         let receivedPages = 0
         const allLoans: KivaLoan[] = []
+        // Loans the batch held that this page could not use (one sent without its
+        // details, for one). They cost only themselves: the rest of the batch
+        // loads, and Kiva is asked for these once it has.
+        const leftOutIds: number[] = []
+        const leftOut = (loan: unknown) => {
+          const id = loan && typeof loan === 'object' ? (loan as { id?: unknown }).id : undefined
+          if (typeof id === 'number' && Number.isSafeInteger(id) && id > 0) leftOutIds.push(id)
+        }
 
         // Fetch all loan pages in parallel
         const pagePromises = Array.from({ length: pages }, (_, i) => i + 1).map(async (page) => {
@@ -532,8 +543,10 @@ export class Loans {
               label: `Loading loan packets from KivaLens server ${receivedPages} of ${pages}...`,
             },
           })
-          allLoans.push(...ResultProcessors.processLoans(rawLoans))
+          allLoans.push(...ResultProcessors.processLoans(rawLoans, leftOut))
         }
+        // A batch with nothing usable in it is no batch: Kiva has the loans.
+        if (!allLoans.length) throw new Error('The server batch held no loan this page could use')
 
         // Resolve the loan download with all loans
         this.setKivaLoans(allLoans, true, true)
@@ -552,6 +565,12 @@ export class Loans {
 
         this.notify({ loans_loaded: true, loan_load_progress: { complete: true } })
         mark('kl:catalog:done', { source: 'kl' })
+
+        // The loans left out of the batch, with their details, straight from Kiva:
+        // a hundred to a request, and each request on its own, because Kiva
+        // refuses a whole request for one id it does not know, and the other
+        // loans should not wait on that one.
+        for (const ids of chunk(leftOutIds, LEFT_OUT_PER_REQUEST)) void this.newLoanNotice(ids)
 
         // Catch up from Kiva once the snapshot is five minutes old: at once for
         // one built long ago, later for a fresh one (src/lib/catchUp.ts).
@@ -920,8 +939,10 @@ export class Loans {
 
   setKivaLoans(loans: KivaLoan[], reset = true, trustNoDupes = false): void {
     if (!loans.length) return
-    if (loans.length && !(loans[0] as any).kl_processed) {
-      ResultProcessors.processLoans(loans)
+    if (!(loans[0] as any)?.kl_processed) {
+      // Only the loans that could be processed go in (ResultProcessors.processLoans).
+      loans = ResultProcessors.processLoans(loans)
+      if (!loans.length) return
     }
 
     if (reset) {
@@ -1375,9 +1396,11 @@ export class Loans {
       } catch (e) {
         console.log('BAD DATE:', this.startupTime, (e as Error).message)
       }
+      // In the catalog first, then announced: whoever hears new_loans reads the
+      // catalog, and would not find loans that were only on their way in.
+      this.setKivaLoans(loans, false)
       this.notify({ new_loans: loans })
       this.notify({ running_totals_change: this.runningTotals })
-      this.setKivaLoans(loans, false)
     } catch (e) {
       this.notify({ failed: e })
     }

@@ -20,10 +20,63 @@ const commonDescr = [
 // model about those, so the browser never publishes a guess.
 export const getAge = (text: string, name?: string | null, postedDate?: string | null): number | null => ageFrom(readAge(text, name, postedDate))
 
+/**
+ * A loan the KivaLens server sent without its details (terms, repayment
+ * figures, borrowers): what it has of a loan whose details Kiva did not give it.
+ * It is not a loan this page can show, so it is left out of the batch.
+ */
+export class LoanWithoutDetails extends Error {
+  constructor() {
+    super('The server sent a loan without its details')
+    this.name = 'LoanWithoutDetails'
+  }
+}
+
+/**
+ * Tells the error collector, once for a batch, that loans were left out of it
+ * (src/lib/rum/errors.ts hears reportError). The message carries no loan id and
+ * no count, so the same cause is one row however many loans or page loads.
+ */
+function reportLeftOut(error: unknown): void {
+  try {
+    const why = error instanceof Error ? error.message : String(error)
+    const report = (globalThis as { reportError?: (e: unknown) => void }).reportError
+    if (typeof report === 'function') report(new Error(`Loans left out of a batch: ${why}`))
+  } catch {
+    // Reporting a problem must never become one.
+  }
+}
+
 export class ResultProcessors {
-  static processLoans(loans: any[]): any[] {
-    loans.forEach(ResultProcessors.processLoan)
-    return loans
+  /**
+   * Processes each loan in place and returns the ones that could be processed.
+   * A loan that cannot be (an entry that is not a loan, a loan the server sent
+   * without its details) is left out, handed to `leftOut` and reported once for
+   * the batch. It does not let one bad loan throw: the caller would lose the
+   * whole batch with it, and the page would fetch every loan from Kiva instead.
+   */
+  static processLoans(loans: any[], leftOut?: (loan: unknown, error: unknown) => void): any[] {
+    const kept: typeof loans = []
+    let firstError: unknown
+    let failed = false
+    for (const loan of loans) {
+      try {
+        if (!ResultProcessors.processLoan(loan)) throw new Error('An entry in a batch was not a loan')
+        kept.push(loan)
+      } catch (error) {
+        if (!failed) {
+          failed = true
+          firstError = error
+        }
+        try {
+          leftOut?.(loan, error)
+        } catch {
+          // The caller's bookkeeping must not cost the rest of the batch either.
+        }
+      }
+    }
+    if (failed) reportLeftOut(firstError)
+    return kept
   }
 
   static unprocessLoans(loans: any[]): any[] {
@@ -93,10 +146,14 @@ export class ResultProcessors {
   }
 
   static processLoan(loan: any): any {
-    if (typeof loan !== 'object') {
+    if (typeof loan !== 'object' || loan === null) {
       console.trace('processLoan received non-object')
       return
     }
+    // The server sends every loan with its terms. One that came without them
+    // came without its details: processLoans leaves it out, and the catalog asks
+    // Kiva for it (Loans.loadFromKL).
+    if (loan.kls && !loan.terms) throw new LoanWithoutDetails()
 
     loan.kl_processed = new Date()
     loan.kl_name_arr = loan.name.toUpperCase().match(/(\w+)/g)
