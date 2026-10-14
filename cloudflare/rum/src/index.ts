@@ -38,12 +38,15 @@ function cors(origin: string | null, allowed: ReadonlySet<string>): Record<strin
     : {}
 }
 
-/** Read at most one beacon. A forged Content-Length is only a quick rejection;
- * the stream itself is counted so chunked uploads cannot bypass the limit. */
-async function readBeaconBody(request: Request): Promise<string | null> {
+const BEACON_READ_TIMEOUT_MS = 10_000
+/**
+ * Count stream bytes because Content-Length can be forged or absent.
+ * Return null for oversize, undefined for timeout, or the decoded body.
+ */
+async function readBeaconBody(request: Request): Promise<string | null | undefined> {
   const declared = Number(request.headers.get('Content-Length'))
   if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
-    await request.body?.cancel().catch(() => {})
+    void request.body?.cancel().catch(() => {})
     return null
   }
   if (!request.body) return ''
@@ -51,19 +54,33 @@ async function readBeaconBody(request: Request): Promise<string | null> {
   const decoder = new TextDecoder()
   let bytes = 0
   let body = ''
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), BEACON_READ_TIMEOUT_MS)
+  })
+  let canceled = false
   try {
     for (;;) {
-      const { done, value } = await reader.read()
+      const next = await Promise.race([reader.read(), deadline])
+      if (!next) {
+        canceled = true
+        void reader.cancel().catch(() => {})
+        return undefined
+      }
+      const { done, value } = next
       if (done) return body + decoder.decode()
       bytes += value.byteLength
       if (bytes > MAX_BODY_BYTES) {
-        await reader.cancel()
+        canceled = true
+        void reader.cancel().catch(() => {})
         return null
       }
       body += decoder.decode(value, { stream: true })
     }
   } finally {
-    reader.releaseLock()
+    if (timer !== undefined) clearTimeout(timer)
+    // The canceled stream is discarded with this request; no lock handoff is needed.
+    if (!canceled) reader.releaseLock()
   }
 }
 
@@ -111,6 +128,7 @@ export default {
         return new Response(null, { status: 429, headers })
       }
       const body = await readBeaconBody(request)
+      if (body === undefined) return new Response(null, { status: 408, headers })
       if (body === null) return new Response(null, { status: 413, headers })
       const hosts = new Set([...origins].map((o) => new URL(o).host))
       const beacon = parseBeacon(body, new URL(origin).host, hosts)

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -403,5 +403,34 @@ describe('usage statistics', () => {
     } as RequestInit & { duplex: 'half' })
     expect((await worker.fetch(unknownLength as never, env as never, ctx)).status).toBe(413)
     expect(canceled).toBe(true)
+  })
+
+  it('ends a stalled beacon upload without storing it', async () => {
+    vi.useFakeTimers()
+    let controller: ReadableStreamDefaultController<Uint8Array> | undefined
+    let canceled = false
+    const stream = new ReadableStream<Uint8Array>({
+      start(c) { controller = c; c.enqueue(new TextEncoder().encode('{')) },
+      cancel() { canceled = true },
+    })
+    const request = new Request('https://rum.kivalens.org/v1/beacon', {
+      method: 'POST', headers: { Origin: 'https://www.kivalens.org' }, body: stream, duplex: 'half',
+    } as RequestInit & { duplex: 'half' })
+    const waitUntil = vi.fn()
+    const ctx = { waitUntil } as unknown as ExecutionContext
+    const env = { DB: db as unknown as D1Database, ALLOWED_ORIGINS: 'https://www.kivalens.org' }
+    const responsePromise = worker.fetch(request as never, env as never, ctx)
+    let response: Response | undefined
+    void responsePromise.then((value) => { response = value })
+    try {
+      await vi.advanceTimersByTimeAsync(10_001)
+      expect(response?.status).toBe(408)
+      expect(canceled).toBe(true)
+      expect(waitUntil).not.toHaveBeenCalled()
+    } finally {
+      if (!canceled) controller?.close()
+      await responsePromise
+      vi.useRealTimers()
+    }
   })
 })
