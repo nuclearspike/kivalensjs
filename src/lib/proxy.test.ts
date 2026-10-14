@@ -43,6 +43,98 @@ describe('handleProxy', () => {
     expect(await res.text()).toBe('{"ok":true}')
   })
 
+  it('rejects a Kiva redirect outside the allowed endpoint before fetching it', async () => {
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) =>
+      init?.redirect === 'manual'
+        ? new Response(null, { status: 302, headers: { Location: 'http://169.254.169.254/latest/meta-data/' } })
+        : new Response('private metadata', { status: 200 }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const res = (await handleProxy(get('/proxy/kiva/ajax/getGraphData?id=1')))!
+    expect(res.status).toBe(502)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledWith('https://www.kiva.org/ajax/getGraphData?id=1', expect.objectContaining({ redirect: 'manual' }))
+  })
+
+  it('rejects a redirect without waiting for a stalled body cancellation', async () => {
+    vi.useFakeTimers()
+    const stream = new ReadableStream<Uint8Array>({
+      cancel() { return new Promise<void>(() => {}) },
+    })
+    const fetchMock = vi.fn(async () => new Response(stream, {
+      status: 302,
+      headers: { Location: 'http://169.254.169.254/latest/meta-data/' },
+    }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    let response: Response | null | undefined
+    try {
+      void handleProxy(get('/proxy/kiva/ajax/getGraphData?id=1')).then((res) => { response = res })
+      await vi.advanceTimersByTimeAsync(1)
+      expect(response?.status).toBe(502)
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('follows only the research sheet export redirect to its Google content host', async () => {
+    const sheetId = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
+    const googleContent = `https://doc-0c-9c-sheets.googleusercontent.com/export/token1/token2/1792013045000/123456/*/${sheetId}?gid=1&format=csv`
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 307, headers: { Location: googleContent } }))
+      .mockResolvedValueOnce(new Response('id,name\n', { status: 200, headers: { 'Content-Type': 'text/csv' } }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const res = (await handleProxy(get(`/proxy/gdocs/spreadsheets/d/${sheetId}/export?gid=1&format=csv`)))!
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('id,name\n')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenNthCalledWith(2, googleContent, expect.objectContaining({ redirect: 'manual' }))
+  })
+
+  it('rejects a sheet redirect to another document on the same content host', async () => {
+    const sheetId = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
+    const fetchMock = vi.fn(async () => new Response(null, {
+      status: 307,
+      headers: { Location: 'https://doc-0c-9c-sheets.googleusercontent.com/export/token1/token2/1792013045000/123456/*/different-sheet?gid=1&format=csv' },
+    }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const res = (await handleProxy(get(`/proxy/gdocs/spreadsheets/d/${sheetId}/export?gid=1&format=csv`)))!
+    expect(res.status).toBe(502)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects a Google content redirect to a nonstandard port', async () => {
+    const sheetId = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, {
+        status: 307,
+        headers: { Location: `https://doc-0c-9c-sheets.googleusercontent.com:8443/export/token1/token2/1792013045000/123456/*/${sheetId}?gid=1&format=csv` },
+      }))
+      .mockResolvedValueOnce(new Response('unexpected', { status: 200 }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const res = (await handleProxy(get(`/proxy/gdocs/spreadsheets/d/${sheetId}/export?gid=1&format=csv`)))!
+    expect(res.status).toBe(502)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects a Google content redirect outside the export path shape', async () => {
+    const sheetId = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, {
+        status: 307,
+        headers: { Location: `https://doc-0c-9c-sheets.googleusercontent.com/export/unrestricted/path/${sheetId}?gid=1&format=csv` },
+      }))
+      .mockResolvedValueOnce(new Response('unexpected', { status: 200 }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const res = (await handleProxy(get(`/proxy/gdocs/spreadsheets/d/${sheetId}/export?gid=1&format=csv`)))!
+    expect(res.status).toBe(502)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('passes an upstream error status through', async () => {
     globalThis.fetch = vi.fn(async () => new Response('gone', { status: 404, headers: { 'Content-Type': 'text/plain' } })) as unknown as typeof fetch
     const res = (await handleProxy(get('/proxy/gdocs/spreadsheets/d/1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0/export?gid=1&format=csv')))!

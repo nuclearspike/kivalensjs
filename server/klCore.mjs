@@ -1552,19 +1552,46 @@ export async function handleApi(state, request) {
 }
 
 // ---------------------------------------------------------------------------
-// Proxy handler — anonymizing GET proxy to two fixed hosts. Kiva's WAF answers
-// 406 to a browser User-Agent without a full fingerprint, so requests carry only
-// the cluster.js recipe (X-Requested-With / Accept / Referer, and NO User-Agent).
+// Proxy handler — anonymizing GET proxy for fixed Kiva and research-sheet paths.
+// The sheet export redirects to a Google content host; each redirect is checked.
+// Kiva's WAF needs the cluster.js headers and no browser User-Agent.
 // ---------------------------------------------------------------------------
 
+const RESEARCH_SHEET_ID = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
+const RESEARCH_SHEET_EXPORT = `spreadsheets/d/${RESEARCH_SHEET_ID}/export?gid=1&format=csv`
 const PROXY_TARGETS = [
-  { prefix: '/proxy/kiva/', host: 'https://www.kiva.org/', allow: /^ajax\/(?:getGraphData|getSuperGraphData)(?:\?|$)/, kiva: true },
-  { prefix: '/proxy/gdocs/', host: 'https://docs.google.com/', allow: /^spreadsheets\/d\/1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0\/export\?gid=1&format=csv$/, kiva: false },
+  { prefix: '/proxy/kiva/', host: 'https://www.kiva.org/', allow: (rest) => /^ajax\/(?:getGraphData|getSuperGraphData)(?:\?|$)/.test(rest), kiva: true },
+  { prefix: '/proxy/gdocs/', host: 'https://docs.google.com/', allow: (rest) => rest === RESEARCH_SHEET_EXPORT, kiva: false },
 ]
 
 const NULL_BODY_STATUSES = new Set([204, 205, 304])
+const PROXY_REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 const PROXY_MAX_BYTES = 4 * 1024 * 1024
+const PROXY_MAX_REDIRECTS = 3
 const PROXY_TIMEOUT_MS = 15_000
+
+function allowedProxyRedirect(target, url) {
+  if (url.protocol !== 'https:' || url.username || url.password) return false
+  if (target.kiva)
+    return url.host === 'www.kiva.org' && target.allow(url.pathname.slice(1) + url.search)
+  if (url.host === 'docs.google.com')
+    return url.pathname.slice(1) + url.search === RESEARCH_SHEET_EXPORT
+  const path = url.pathname.split('/')
+  return url.port === ''
+    && /^doc-[a-z0-9-]+-sheets\.googleusercontent\.com$/.test(url.hostname)
+    && path.length === 8
+    && path[0] === ''
+    && path[1] === 'export'
+    && /^[a-z0-9_-]+$/i.test(path[2])
+    && /^[a-z0-9_-]+$/i.test(path[3])
+    && /^\d{10,16}$/.test(path[4])
+    && /^\d+$/.test(path[5])
+    && path[6] === '*'
+    && path[7] === RESEARCH_SHEET_ID
+    && url.searchParams.size === 2
+    && url.searchParams.get('gid') === '1'
+    && url.searchParams.get('format') === 'csv'
+}
 
 async function readProxyResponse(upstream) {
   const declared = Number(upstream.headers.get('content-length'))
@@ -1606,7 +1633,7 @@ export async function handleProxy(request) {
   if (request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 })
 
   const rest = url.slice(target.prefix.length) // path + query, no leading slash
-  if (!target.allow.test(rest)) return new Response('Forbidden', { status: 403 })
+  if (!target.allow(rest)) return new Response('Forbidden', { status: 403 })
 
   const headers = target.kiva
     ? {
@@ -1617,10 +1644,19 @@ export async function handleProxy(request) {
     : { Accept: '*/*' }
 
   try {
-    const upstream = await fetch(target.host + rest, {
-      headers,
-      signal: AbortSignal.any([request.signal, AbortSignal.timeout(PROXY_TIMEOUT_MS)]),
-    })
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(PROXY_TIMEOUT_MS)])
+    let upstreamUrl = new URL(target.host + rest)
+    let upstream
+    for (let redirects = 0; ; redirects++) {
+      upstream = await fetch(upstreamUrl.href, { headers, signal, redirect: 'manual' })
+      if (!PROXY_REDIRECT_STATUSES.has(upstream.status)) break
+      const location = upstream.headers.get('location')
+      void upstream.body?.cancel().catch(() => {})
+      if (!location || redirects >= PROXY_MAX_REDIRECTS) return text('Proxy redirect rejected', { status: 502 })
+      const nextUrl = new URL(location, upstreamUrl)
+      if (!allowedProxyRedirect(target, nextUrl)) return text('Proxy redirect rejected', { status: 502 })
+      upstreamUrl = nextUrl
+    }
     // Buffer up to 4 MiB so an upstream failure cannot reach the browser as a
     // truncated success, and a large response cannot exhaust the server's memory.
     const body = NULL_BODY_STATUSES.has(upstream.status) ? null : await readProxyResponse(upstream)
