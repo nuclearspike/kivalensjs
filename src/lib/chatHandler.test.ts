@@ -65,4 +65,30 @@ describe('handleChat', () => {
     expect(got[0]).toMatchObject({ type: 'error', message: expect.stringMatching(/monthly budget/) })
     expect(got.at(-1)).toEqual({ type: 'done' })
   })
+
+  it('keeps private AI logs behind a header credential, never a URL key', async () => {
+    vi.stubEnv('AI_LOGS_KEY', 'test-admin-key')
+    const usage = memoryUsage()
+    await usage.pushLog({ at: '2026-10-14T12:00:00Z', userMessage: 'private lender message' })
+    configureRuntime({ usage })
+    const request = (path: string, authorization?: string) =>
+      new Request(`http://localhost${path}`, { headers: authorization ? { Authorization: authorization } : {} })
+
+    expect((await handleChat(createState(), request('/api/ai-logs?key=test-admin-key')))!.status).toBe(403)
+    expect((await handleChat(createState(), request('/api/ai-logs', 'Bearer wrong')))!.status).toBe(403)
+    const response = (await handleChat(createState(), request('/api/ai-logs?n=1', 'Bearer test-admin-key')))!
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Cache-Control')).toBe('no-store')
+    expect((await response.json()).logs[0].userMessage).toBe('private lender message')
+  })
+
+  it('never sends a manual digest from a GET or from a URL key', async () => {
+    vi.stubEnv('AI_LOGS_KEY', 'test-admin-key')
+    const get = new Request('http://localhost/api/ai-digest-test?key=test-admin-key', {
+      headers: { Authorization: 'Bearer test-admin-key' },
+    })
+    const postWithUrlKey = new Request('http://localhost/api/ai-digest-test?key=test-admin-key', { method: 'POST' })
+    expect((await handleChat(createState(), get))!.status).toBe(405)
+    expect((await handleChat(createState(), postWithUrlKey))!.status).toBe(403)
+  })
 })

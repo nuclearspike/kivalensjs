@@ -27,6 +27,16 @@ function KivaLink({ path, children }: { path: string; children: React.ReactNode 
   )
 }
 
+function safeWebsiteUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  try {
+    const url = new URL(value)
+    return (url.protocol === 'https:' || url.protocol === 'http:') && !url.username && !url.password ? url.href : null
+  } catch {
+    return null
+  }
+}
+
 export default function PartnerDetail({ partner, showStatus = true }: PartnerDetailProps) {
   const { t, sector, date, number, currency, percent } = useI18n()
   const navigate = useNavigate()
@@ -68,6 +78,7 @@ export default function PartnerDetail({ partner, showStatus = true }: PartnerDet
   const countryNames = partner.countries?.map((c) => c.name).join(', ') ?? '(unknown)'
   const atheistScore = partner.atheistScore
   const showAtheistResearch = !!atheistScore
+  const website = safeWebsiteUrl((partner as unknown as { url?: string }).url)
 
   return (
     <div className="PartnerDetail">
@@ -158,12 +169,12 @@ export default function PartnerDetail({ partner, showStatus = true }: PartnerDet
             <dd>{t(partner.charges_fees_and_interest ? 'yes' : 'no')}</dd>
             <dt>{t('currency_ex_loss')}</dt>
             <dd>{percent(partner.currency_exchange_loss_rate, 3)}</dd>
-            {(partner as unknown as { url?: string }).url ? (
+            {website ? (
               <>
                 <dt>{t('website')}</dt>
                 <dd>
-                  <a href={(partner as unknown as { url?: string }).url} target="_blank" rel="noreferrer">
-                    {(partner as unknown as { url?: string }).url}
+                  <a href={website} target="_blank" rel="noopener noreferrer">
+                    {website}
                   </a>
                 </dd>
               </>

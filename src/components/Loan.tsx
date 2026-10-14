@@ -13,6 +13,7 @@ import { useLoanStore, useCriteriaStore, useUtilsStore } from '../stores'
 import { translateText } from '../api/aiChat'
 import type { KivaLoan } from '../types'
 import KivaImage from './KivaImage'
+import LoanDescription from './LoanDescription'
 import PartnerDetail from './PartnerDetail'
 import { getKivaLoans } from '../api/kiva'
 import { lendAmountFor } from '../lib/kivaCheckout'
@@ -553,7 +554,7 @@ export default function Loan({ loanId: loanIdProp }: { loanId?: number } = {}) {
                     )}
                   </div>
                 )}
-                <p dangerouslySetInnerHTML={{ __html: translation && !showOriginal ? translation : descriptionText }} />
+                <LoanDescription html={translation && !showOriginal ? translation : descriptionText} />
               </div>
             )}
           </div>

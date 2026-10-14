@@ -1,4 +1,4 @@
-import { parseBeacon } from './beacon'
+import { MAX_BODY_BYTES, parseBeacon } from './beacon'
 import { DASHBOARD_CSP, dashboardCss, dashboardHtml, dashboardJs } from './dashboard'
 import { authorized, parseStatsQuery, stats } from './stats'
 import { beaconStatements, nightly, type SqlDatabase } from './store'
@@ -36,6 +36,35 @@ function cors(origin: string | null, allowed: ReadonlySet<string>): Record<strin
   return origin && allowed.has(origin)
     ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Max-Age': '86400', Vary: 'Origin' }
     : {}
+}
+
+/** Read at most one beacon. A forged Content-Length is only a quick rejection;
+ * the stream itself is counted so chunked uploads cannot bypass the limit. */
+async function readBeaconBody(request: Request): Promise<string | null> {
+  const declared = Number(request.headers.get('Content-Length'))
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    await request.body?.cancel().catch(() => {})
+    return null
+  }
+  if (!request.body) return ''
+  const reader = request.body.getReader()
+  const decoder = new TextDecoder()
+  let bytes = 0
+  let body = ''
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) return body + decoder.decode()
+      bytes += value.byteLength
+      if (bytes > MAX_BODY_BYTES) {
+        await reader.cancel()
+        return null
+      }
+      body += decoder.decode(value, { stream: true })
+    }
+  } finally {
+    reader.releaseLock()
+  }
 }
 
 async function statsResponse(request: Request, env: Env, url: URL): Promise<Response> {
@@ -81,7 +110,8 @@ export default {
       if (env.BEACON_LIMIT && !(await env.BEACON_LIMIT.limit({ key: ip })).success) {
         return new Response(null, { status: 429, headers })
       }
-      const body = await request.text()
+      const body = await readBeaconBody(request)
+      if (body === null) return new Response(null, { status: 413, headers })
       const hosts = new Set([...origins].map((o) => new URL(o).host))
       const beacon = parseBeacon(body, new URL(origin).host, hosts)
       if ('refused' in beacon) {
