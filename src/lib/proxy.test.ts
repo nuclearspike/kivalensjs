@@ -135,6 +135,81 @@ describe('handleProxy', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it('does not promote upstream HTML to a same-origin document', async () => {
+    const html = '<h1>Upstream error</h1>'
+    const sheetId = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
+    for (const [path, expectedType] of [
+      ['/proxy/kiva/ajax/getGraphData?id=1', 'application/json; charset=utf-8'],
+      [`/proxy/gdocs/spreadsheets/d/${sheetId}/export?gid=1&format=csv`, 'text/csv; charset=utf-8'],
+    ]) {
+      globalThis.fetch = vi.fn(async () => new Response(html, {
+        status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })) as unknown as typeof fetch
+      const res = (await handleProxy(get(path)))!
+      expect(res.status).toBe(503)
+      expect(res.headers.get('content-type')).toBe(expectedType)
+      expect(await res.text()).toBe(html)
+    }
+  })
+
+  it('rejects a successful upstream HTML page so data callers can recover', async () => {
+    const html = '<h1>Sign in</h1>'
+    const sheetId = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
+    for (const path of [
+      '/proxy/kiva/ajax/getGraphData?id=1',
+      `/proxy/gdocs/spreadsheets/d/${sheetId}/export?gid=1&format=csv`,
+    ]) {
+      globalThis.fetch = vi.fn(async () => new Response(html, {
+        status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })) as unknown as typeof fetch
+      const res = (await handleProxy(get(path)))!
+      expect(res.status).toBe(502)
+      expect(await res.text()).not.toContain(html)
+    }
+  })
+
+  it('rejects an HTML page after an approved sheet redirect', async () => {
+    const sheetId = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
+    const googleContent = `https://doc-0c-9c-sheets.googleusercontent.com/export/token1/token2/1792013045000/123456/*/${sheetId}?gid=1&format=csv`
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 307, headers: { Location: googleContent } }))
+      .mockResolvedValueOnce(new Response('<h1>Sign in</h1>', { status: 200, headers: { 'Content-Type': 'text/html' } }))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const res = (await handleProxy(get(`/proxy/gdocs/spreadsheets/d/${sheetId}/export?gid=1&format=csv`)))!
+    expect(res.status).toBe(502)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenNthCalledWith(2, googleContent, expect.objectContaining({ redirect: 'manual' }))
+  })
+
+  it('lets the A+ sheet helper recover from a successful upstream HTML page', async () => {
+    vi.stubGlobal('location', { protocol: 'https:', host: 'www.kivalens.org' })
+    try {
+      const { req } = await import('../api/kivajs/req')
+      const csv = 'id,secularRating\n1,5\n'
+      let googleRequests = 0
+      const fetchMock = vi.fn(async (input: string | URL | Request) => {
+        const url = String(input)
+        if (url.startsWith('https://www.kivalens.org/proxy/gdocs/'))
+          return (await handleProxy(new Request(url)))!
+        if (url.startsWith('https://docs.google.com/')) {
+          googleRequests++
+          return googleRequests === 1
+            ? new Response('<h1>Sign in</h1>', { status: 200, headers: { 'Content-Type': 'text/html' } })
+            : new Response(csv, { status: 200, headers: { 'Content-Type': 'text/csv' } })
+        }
+        throw new Error(`Unexpected fetch: ${url}`)
+      }) as unknown as typeof fetch
+      globalThis.fetch = fetchMock
+
+      expect(await req.gdocs.atheist.get()).toBe(csv)
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      expect(googleRequests).toBe(2)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('passes an upstream error status through', async () => {
     globalThis.fetch = vi.fn(async () => new Response('gone', { status: 404, headers: { 'Content-Type': 'text/plain' } })) as unknown as typeof fetch
     const res = (await handleProxy(get('/proxy/gdocs/spreadsheets/d/1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0/export?gid=1&format=csv')))!
