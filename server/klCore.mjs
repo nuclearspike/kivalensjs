@@ -1558,11 +1558,46 @@ export async function handleApi(state, request) {
 // ---------------------------------------------------------------------------
 
 const PROXY_TARGETS = [
-  { prefix: '/proxy/kiva/', host: 'https://www.kiva.org/', allow: /^ajax\//, kiva: true },
-  { prefix: '/proxy/gdocs/', host: 'https://docs.google.com/', allow: /^spreadsheets\//, kiva: false },
+  { prefix: '/proxy/kiva/', host: 'https://www.kiva.org/', allow: /^ajax\/(?:getGraphData|getSuperGraphData)(?:\?|$)/, kiva: true },
+  { prefix: '/proxy/gdocs/', host: 'https://docs.google.com/', allow: /^spreadsheets\/d\/1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0\/export\?gid=1&format=csv$/, kiva: false },
 ]
 
 const NULL_BODY_STATUSES = new Set([204, 205, 304])
+const PROXY_MAX_BYTES = 4 * 1024 * 1024
+const PROXY_TIMEOUT_MS = 15_000
+
+async function readProxyResponse(upstream) {
+  const declared = Number(upstream.headers.get('content-length'))
+  if (Number.isFinite(declared) && declared > PROXY_MAX_BYTES) {
+    await upstream.body?.cancel().catch(() => {})
+    return null
+  }
+  if (!upstream.body) return new Uint8Array(0)
+  const reader = upstream.body.getReader()
+  const chunks = []
+  let size = 0
+  try {
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      size += value.byteLength
+      if (size > PROXY_MAX_BYTES) {
+        await reader.cancel()
+        return null
+      }
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+  const bytes = new Uint8Array(size)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return bytes
+}
 
 export async function handleProxy(request) {
   const url = pathOf(request)
@@ -1582,11 +1617,14 @@ export async function handleProxy(request) {
     : { Accept: '*/*' }
 
   try {
-    const upstream = await fetch(target.host + rest, { headers })
-    // The body is read whole rather than streamed: the answers are small, and a
-    // stream that fails halfway would reach the browser as a truncated 200. A
-    // status that has no body (204, 304...) cannot be given one, even empty.
-    const body = NULL_BODY_STATUSES.has(upstream.status) ? null : await upstream.arrayBuffer()
+    const upstream = await fetch(target.host + rest, {
+      headers,
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(PROXY_TIMEOUT_MS)]),
+    })
+    // Buffer up to 4 MiB so an upstream failure cannot reach the browser as a
+    // truncated success, and a large response cannot exhaust the server's memory.
+    const body = NULL_BODY_STATUSES.has(upstream.status) ? null : await readProxyResponse(upstream)
+    if (body === null && !NULL_BODY_STATUSES.has(upstream.status)) return text('Proxy response too large', { status: 502 })
     return new Response(body, {
       status: upstream.status,
       headers: {

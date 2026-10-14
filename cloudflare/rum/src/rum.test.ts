@@ -382,4 +382,26 @@ describe('usage statistics', () => {
     const body = (await ok200.json()) as { totals: { browsers: number } }
     expect(body.totals.browsers).toBeGreaterThanOrEqual(0)
   })
+
+  it('rejects an oversized beacon before consuming an unbounded request body', async () => {
+    const ctx = { waitUntil: () => {} } as unknown as ExecutionContext
+    const env = { DB: db as unknown as D1Database, ALLOWED_ORIGINS: 'https://www.kivalens.org' }
+    const url = 'https://rum.kivalens.org/v1/beacon'
+    const origin = { Origin: 'https://www.kivalens.org' }
+    const declared = new Request(url, {
+      method: 'POST', headers: { ...origin, 'Content-Length': String(MAX_BODY_BYTES + 1) }, body: 'x',
+    })
+    expect((await worker.fetch(declared as never, env as never, ctx)).status).toBe(413)
+
+    let canceled = false
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) { controller.enqueue(new Uint8Array(32 * 1024)) },
+      cancel() { canceled = true },
+    })
+    const unknownLength = new Request(url, {
+      method: 'POST', headers: origin, body: stream, duplex: 'half',
+    } as RequestInit & { duplex: 'half' })
+    expect((await worker.fetch(unknownLength as never, env as never, ctx)).status).toBe(413)
+    expect(canceled).toBe(true)
+  })
 })

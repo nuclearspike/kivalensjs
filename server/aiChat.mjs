@@ -22,7 +22,7 @@ import {
 } from './aiUsage.mjs'
 import { sendDigestNow } from './digest.mjs'
 import { cache } from './runtime.mjs'
-import { eventStream, json, pathOf, readBody, text } from './http.mjs'
+import { eventStream, json, readBody, text } from './http.mjs'
 import { KIVA_LEND_AMOUNT, lendAmountFor } from './lendAmount.mjs'
 import crypto from 'node:crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
@@ -1762,34 +1762,49 @@ async function runChat(state, payload, stream, signal) {
   })
 }
 
-// Admin-only view of recent interactions + this month's spend. Gated by the
-// AI_LOGS_KEY env var: GET /api/ai-logs?key=<AI_LOGS_KEY>&n=100
+// Admin-only routes carry their key in Authorization, where it stays out of
+// URLs, browser history, and routine request-path logs. Hash before comparing so
+// a wrong key's prefix and length do not change the comparison time.
+function adminAuthorized(request) {
+  const key = process.env.AI_LOGS_KEY
+  const header = request.headers.get('Authorization') || ''
+  const given = header.startsWith('Bearer ') ? header.slice(7).trim() : ''
+  if (!key || !given) return false
+  const expected = crypto.createHash('sha256').update(key).digest()
+  const received = crypto.createHash('sha256').update(given).digest()
+  return crypto.timingSafeEqual(expected, received)
+}
+
+const PRIVATE_HEADERS = { 'Cache-Control': 'no-store', 'Vary': 'Authorization' }
+
+// GET /api/ai-logs?n=100 with Authorization: Bearer <AI_LOGS_KEY>.
 async function handleAiLogs(request) {
-  const adminKey = process.env.AI_LOGS_KEY
+  if (request.method !== 'GET') return text('Method Not Allowed', { status: 405, headers: PRIVATE_HEADERS })
+  if (!adminAuthorized(request)) return text('Forbidden', { status: 403, headers: PRIVATE_HEADERS })
   const url = new URL(request.url)
-  if (!adminKey || url.searchParams.get('key') !== adminKey) return text('Forbidden', { status: 403 })
-  const n = Math.min(Number(url.searchParams.get('n')) || 100, 500)
+  const requested = Number(url.searchParams.get('n'))
+  const n = Number.isSafeInteger(requested) && requested > 0 ? Math.min(requested, 500) : 100
   try {
     const [spent, logs] = await Promise.all([getMonthlySpend(), getRecentLogs(n)])
-    return new Response(JSON.stringify({ month: monthKey(), budgetUsd: BUDGET_USD, spentUsd: Number(spent.toFixed(4)), count: logs.length, logs }, null, 2), {
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    })
+    return json({ month: monthKey(), budgetUsd: BUDGET_USD, spentUsd: Number(spent.toFixed(4)), count: logs.length, logs }, { headers: PRIVATE_HEADERS })
   } catch {
-    return new Response('error', { status: 500 })
+    return text('error', { status: 500, headers: PRIVATE_HEADERS })
   }
 }
 
-// Admin-only: send the digest for a day right now (default today), gated by
-// AI_LOGS_KEY. GET /api/ai-digest-test?key=<AI_LOGS_KEY>&day=YYYY-MM-DD
+// POST /api/ai-digest-test?day=YYYY-MM-DD with Authorization: Bearer <AI_LOGS_KEY>.
+// A safe GET, even with a valid key, can never send email.
 async function handleDigestTest(request) {
-  const adminKey = process.env.AI_LOGS_KEY
+  if (request.method !== 'POST') return text('Method Not Allowed', { status: 405, headers: PRIVATE_HEADERS })
+  if (!adminAuthorized(request)) return text('Forbidden', { status: 403, headers: PRIVATE_HEADERS })
   const url = new URL(request.url)
-  if (!adminKey || url.searchParams.get('key') !== adminKey) return text('Forbidden', { status: 403 })
   const day = url.searchParams.get('day') || new Date().toISOString().slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(`${day}T00:00:00Z`)))
+    return json({ error: 'invalid_day' }, { status: 400, headers: PRIVATE_HEADERS })
   try {
-    return json(await sendDigestNow(day))
-  } catch (e) {
-    return new Response(String(e), { status: 500 })
+    return json(await sendDigestNow(day), { headers: PRIVATE_HEADERS })
+  } catch {
+    return json({ error: 'digest_failed' }, { status: 500, headers: PRIVATE_HEADERS })
   }
 }
 
@@ -1857,14 +1872,14 @@ async function handleTranslate(request, waitUntil) {
  * none, since its process keeps running anyway.
  */
 export async function handleChat(state, request, { waitUntil } = {}) {
-  const url = pathOf(request)
-  if (url.startsWith('/api/ai-enabled')) {
+  const pathname = new URL(request.url).pathname
+  if (pathname === '/api/ai-enabled') {
     return json({ enabled: askEnabled() && !!getClient() }, { headers: { 'Cache-Control': 'no-store' } })
   }
-  if (url.startsWith('/api/ai-digest-test')) return handleDigestTest(request)
-  if (url.startsWith('/api/ai-logs')) return handleAiLogs(request)
-  if (url.startsWith('/api/translate')) return handleTranslate(request, waitUntil)
-  if (!url.startsWith('/api/chat')) return null
+  if (pathname === '/api/ai-digest-test') return handleDigestTest(request)
+  if (pathname === '/api/ai-logs') return handleAiLogs(request)
+  if (pathname === '/api/translate') return handleTranslate(request, waitUntil)
+  if (pathname !== '/api/chat') return null
   if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })
   const body = await readBody(request, MAX_BODY_BYTES)
   if (body.tooLarge) return new Response('Payload too large', { status: 413 })
