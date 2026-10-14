@@ -1657,6 +1657,11 @@ export async function handleProxy(request) {
       if (!allowedProxyRedirect(target, nextUrl)) return text('Proxy redirect rejected', { status: 502 })
       upstreamUrl = nextUrl
     }
+    const upstreamType = (upstream.headers.get('content-type') || '').split(';', 1)[0].trim().toLowerCase()
+    if (upstream.ok && (upstreamType === 'text/html' || upstreamType === 'application/xhtml+xml')) {
+      void upstream.body?.cancel().catch(() => {})
+      return text('Proxy upstream did not return data', { status: 502 })
+    }
     // Buffer up to 4 MiB so an upstream failure cannot reach the browser as a
     // truncated success, and a large response cannot exhaust the server's memory.
     const body = NULL_BODY_STATUSES.has(upstream.status) ? null : await readProxyResponse(upstream)
@@ -1665,7 +1670,8 @@ export async function handleProxy(request) {
       status: upstream.status,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Content-Type': upstream.headers.get('content-type') || 'application/json',
+        // Upstream HTML errors must not become same-origin HTML documents.
+        'Content-Type': target.kiva ? 'application/json; charset=utf-8' : 'text/csv; charset=utf-8',
       },
     })
   } catch (err) {
