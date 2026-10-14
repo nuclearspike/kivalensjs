@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { handleChat } from '../../server/aiChat.mjs'
+import { sendDigestNow } from '../../server/digest.mjs'
 import { createState } from '../../server/klCore.mjs'
 import { configureRuntime, memoryUsage, resetRuntime } from '../../server/runtime.mjs'
+
+vi.mock('../../server/digest.mjs', () => ({
+  sendDigestNow: vi.fn(async () => ({ ok: true })),
+}))
 
 /**
  * Ask KivaLens's HTTP edge (handleChat): a Fetch Request in, a Response (a
@@ -11,6 +16,7 @@ import { configureRuntime, memoryUsage, resetRuntime } from '../../server/runtim
 
 afterEach(() => {
   vi.unstubAllEnvs()
+  vi.mocked(sendDigestNow).mockClear()
   resetRuntime()
 })
 
@@ -90,5 +96,32 @@ describe('handleChat', () => {
     const postWithUrlKey = new Request('http://localhost/api/ai-digest-test?key=test-admin-key', { method: 'POST' })
     expect((await handleChat(createState(), get))!.status).toBe(405)
     expect((await handleChat(createState(), postWithUrlKey))!.status).toBe(403)
+  })
+
+  it('rejects invalid dates and defaults only an omitted digest day', async () => {
+    vi.stubEnv('AI_LOGS_KEY', 'test-admin-key')
+    const request = (day: string) => new Request(`http://localhost/api/ai-digest-test?day=${day}`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer test-admin-key' },
+    })
+
+    for (const day of ['', '2026-02-31', '2026-04-31', '2026-02-29']) {
+      expect((await handleChat(createState(), request(day)))!.status).toBe(400)
+    }
+    expect(sendDigestNow).not.toHaveBeenCalled()
+
+    expect((await handleChat(createState(), request('2024-02-29')))!.status).toBe(200)
+    expect(sendDigestNow).toHaveBeenCalledExactlyOnceWith('2024-02-29')
+
+    vi.mocked(sendDigestNow).mockClear()
+    const before = new Date().toISOString().slice(0, 10)
+    const omitted = new Request('http://localhost/api/ai-digest-test', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer test-admin-key' },
+    })
+    expect((await handleChat(createState(), omitted))!.status).toBe(200)
+    const after = new Date().toISOString().slice(0, 10)
+    expect(sendDigestNow).toHaveBeenCalledTimes(1)
+    expect([before, after]).toContain(vi.mocked(sendDigestNow).mock.calls[0][0])
   })
 })

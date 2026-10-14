@@ -1798,8 +1798,9 @@ async function handleDigestTest(request) {
   if (request.method !== 'POST') return text('Method Not Allowed', { status: 405, headers: PRIVATE_HEADERS })
   if (!adminAuthorized(request)) return text('Forbidden', { status: 403, headers: PRIVATE_HEADERS })
   const url = new URL(request.url)
-  const day = url.searchParams.get('day') || new Date().toISOString().slice(0, 10)
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(`${day}T00:00:00Z`)))
+  const day = url.searchParams.get('day') ?? new Date().toISOString().slice(0, 10)
+  const parsedDay = /^\d{4}-\d{2}-\d{2}$/.test(day) ? new Date(`${day}T00:00:00Z`) : null
+  if (!parsedDay || Number.isNaN(parsedDay.getTime()) || parsedDay.toISOString().slice(0, 10) !== day)
     return json({ error: 'invalid_day' }, { status: 400, headers: PRIVATE_HEADERS })
   try {
     return json(await sendDigestNow(day), { headers: PRIVATE_HEADERS })
