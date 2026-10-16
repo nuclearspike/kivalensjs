@@ -43,6 +43,37 @@ describe('handleProxy', () => {
     expect(await res.text()).toBe('{"ok":true}')
   })
 
+  it('passes on Kiva’s JSON, which Kiva labels text/html, as JSON', async () => {
+    // Issue #74: every portfolio-balancing request answered 502 while Kiva answered 200 with data.
+    // The body is Kiva's answer for one lender's partner slice, cut down; the label is Kiva's own.
+    const json = '{"lookup":{"58":"Fundaci\\u00f3n Paraguaya"},"data":[{"name":"58","value":"312"}],"last_updated":1792050645}'
+    for (const path of ['/proxy/kiva/ajax/getSuperGraphData?sliceBy=partner&include=active', '/proxy/kiva/ajax/getGraphData?graphName=x&id=1']) {
+      globalThis.fetch = vi.fn(async () => new Response(json, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } })) as unknown as typeof fetch
+      const res = (await handleProxy(get(path)))!
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8')
+      expect(await res.text()).toBe(json)
+    }
+  })
+
+  it('passes on Kiva’s own error answer, which is JSON too: the caller reads it', async () => {
+    // Kiva's answer for a lender with no loans in the slice asked for.
+    const json = '{"error":"Could not retrieve stats."}'
+    globalThis.fetch = vi.fn(async () => new Response(json, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } })) as unknown as typeof fetch
+    const res = (await handleProxy(get('/proxy/kiva/ajax/getSuperGraphData?sliceBy=country&include=active')))!
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe(json)
+  })
+
+  it('refuses a successful Kiva answer that is not JSON, whatever its label', async () => {
+    for (const [body, type] of [['<h1>Sign in</h1>', 'text/html; charset=utf-8'], ['<h1>Sign in</h1>', 'application/json'], ['', 'application/json'], ['{"cut', 'application/json']]) {
+      globalThis.fetch = vi.fn(async () => new Response(body, { status: 200, headers: { 'Content-Type': type } })) as unknown as typeof fetch
+      const res = (await handleProxy(get('/proxy/kiva/ajax/getSuperGraphData?id=1')))!
+      expect(res.status).toBe(502)
+      expect(await res.text()).toBe('Proxy upstream did not return data')
+    }
+  })
+
   it('rejects a Kiva redirect outside the allowed endpoint before fetching it', async () => {
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) =>
       init?.redirect === 'manual'

@@ -1593,6 +1593,16 @@ function allowedProxyRedirect(target, url) {
     && url.searchParams.get('format') === 'csv'
 }
 
+/** Whether bytes are a JSON document. */
+function isJsonText(bytes) {
+  try {
+    JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function readProxyResponse(upstream) {
   const declared = Number(upstream.headers.get('content-length'))
   if (Number.isFinite(declared) && declared > PROXY_MAX_BYTES) {
@@ -1657,8 +1667,12 @@ export async function handleProxy(request) {
       if (!allowedProxyRedirect(target, nextUrl)) return text('Proxy redirect rejected', { status: 502 })
       upstreamUrl = nextUrl
     }
+    // A successful HTML page from Google is a sign-in or error page, not the sheet.
+    // Kiva is not judged by its label: it sends the JSON of these calls as
+    // text/html, so its answer is judged by its body below. Refusing Kiva's label
+    // would refuse every answer Kiva gives.
     const upstreamType = (upstream.headers.get('content-type') || '').split(';', 1)[0].trim().toLowerCase()
-    if (upstream.ok && (upstreamType === 'text/html' || upstreamType === 'application/xhtml+xml')) {
+    if (upstream.ok && !target.kiva && (upstreamType === 'text/html' || upstreamType === 'application/xhtml+xml')) {
       void upstream.body?.cancel().catch(() => {})
       return text('Proxy upstream did not return data', { status: 502 })
     }
@@ -1666,6 +1680,7 @@ export async function handleProxy(request) {
     // truncated success, and a large response cannot exhaust the server's memory.
     const body = NULL_BODY_STATUSES.has(upstream.status) ? null : await readProxyResponse(upstream)
     if (body === null && !NULL_BODY_STATUSES.has(upstream.status)) return text('Proxy response too large', { status: 502 })
+    if (upstream.ok && target.kiva && body !== null && !isJsonText(body)) return text('Proxy upstream did not return data', { status: 502 })
     return new Response(body, {
       status: upstream.status,
       headers: {
