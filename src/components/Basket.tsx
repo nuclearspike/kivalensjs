@@ -169,7 +169,7 @@ function BasketRepaymentChart({
   return (
     <div className="card mb-3">
       <div className="card-body p-2">
-        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div className="d-flex align-items-baseline justify-content-between flex-wrap gap-2">
           <h4 className="mb-0">{t('repayments')}: {t('count_months', { count: data.length })}</h4>
           {/* The breakdown is off by default: one bar per month is the question
               most lenders are asking. The choice is remembered. */}
