@@ -1,0 +1,163 @@
+{
+  "recordedAt": "2026-10-16T05:18:02.439Z",
+  "source": "https://api.kivaws.org/v1/loans/search.json?status=fundraising&page=1",
+  "how": "the server's fetchSearchPage(1); body only",
+  "loans": [
+    {
+      "id": 3261253,
+      "name": "Maria Telie",
+      "description": {
+        "languages": [
+          "en"
+        ]
+      },
+      "status": "fundraising",
+      "funded_amount": 0,
+      "basket_amount": 0,
+      "image": {
+        "id": 6371202,
+        "template_id": 1
+      },
+      "activity": "Pigs",
+      "sector": "Agriculture",
+      "themes": [
+        "Underfunded Areas"
+      ],
+      "use": "to buy feed.",
+      "location": {
+        "country_code": "PH",
+        "country": "Philippines",
+        "town": "Ormoc City, Leyte",
+        "geo": {
+          "level": "town",
+          "pairs": "11.038428 124.61927",
+          "type": "point"
+        }
+      },
+      "partner_id": 125,
+      "posted_date": "2026-10-16T04:42:53Z",
+      "planned_expiration_date": "2026-11-20T05:42:53Z",
+      "loan_amount": 800,
+      "borrower_count": 1,
+      "lender_count": 0,
+      "bonus_credit_eligibility": true,
+      "tags": [
+        {
+          "name": "#Woman-Owned Business",
+          "id": "6"
+        },
+        {
+          "name": "#Animals",
+          "id": "11"
+        },
+        {
+          "name": "#Parent",
+          "id": "16"
+        }
+      ]
+    },
+    {
+      "id": 3261252,
+      "name": "Julius",
+      "description": {
+        "languages": [
+          "en"
+        ]
+      },
+      "status": "fundraising",
+      "funded_amount": 0,
+      "basket_amount": 0,
+      "image": {
+        "id": 6371936,
+        "template_id": 1
+      },
+      "activity": "Internet Cafe",
+      "sector": "Services",
+      "themes": [
+        "Underfunded Areas"
+      ],
+      "use": "to buy computer parts.",
+      "location": {
+        "country_code": "PH",
+        "country": "Philippines",
+        "town": "Carmen, Cebu",
+        "geo": {
+          "level": "town",
+          "pairs": "10.593704 124.018626",
+          "type": "point"
+        }
+      },
+      "partner_id": 125,
+      "posted_date": "2026-10-16T04:42:53Z",
+      "planned_expiration_date": "2026-11-20T05:42:52Z",
+      "loan_amount": 575,
+      "borrower_count": 1,
+      "lender_count": 0,
+      "bonus_credit_eligibility": true,
+      "tags": [
+        {
+          "name": "#Single",
+          "id": "14"
+        },
+        {
+          "name": "#Technology",
+          "id": "38"
+        },
+        {
+          "name": "#Repair Renew Replace",
+          "id": "39"
+        }
+      ]
+    },
+    {
+      "id": 3261251,
+      "name": "Evelyn",
+      "description": {
+        "languages": [
+          "en"
+        ]
+      },
+      "status": "fundraising",
+      "funded_amount": 0,
+      "basket_amount": 0,
+      "image": {
+        "id": 6371955,
+        "template_id": 1
+      },
+      "activity": "General Store",
+      "sector": "Retail",
+      "themes": [
+        "Underfunded Areas"
+      ],
+      "use": "to buy canned goods, noodles, toiletries and soft drinks.",
+      "location": {
+        "country_code": "PH",
+        "country": "Philippines",
+        "town": "Ormoc City, Leyte",
+        "geo": {
+          "level": "town",
+          "pairs": "11.038428 124.61927",
+          "type": "point"
+        }
+      },
+      "partner_id": 125,
+      "posted_date": "2026-10-16T04:42:52Z",
+      "planned_expiration_date": "2026-11-20T05:42:52Z",
+      "loan_amount": 650,
+      "borrower_count": 1,
+      "lender_count": 0,
+      "bonus_credit_eligibility": true,
+      "tags": [
+        {
+          "name": "#Woman-Owned Business",
+          "id": "6"
+        },
+        {
+          "name": "#Parent",
+          "id": "16"
+        }
+      ]
+    }
+  ],
+  "cut": "the first 3 of 100 loans"
+}

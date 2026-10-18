@@ -1,0 +1,674 @@
+{
+  "recordedAt": "2026-10-16T05:18:02.439Z",
+  "source": "https://api.kivaws.org/v1/loans/<ids>.json",
+  "how": "the server's fetchDetailBatch for the loans in kiva-search-page.json; body only",
+  "loans": [
+    {
+      "id": 3261253,
+      "name": "Maria Telie",
+      "description": {
+        "languages": [
+          "en"
+        ],
+        "texts": {
+          "en": "Maria Telie has been into hog fattening for 10 years. She is a married woman and has two dependent children. Her husband works as a driver.\n\nThis time, she wants to continue to grow her hog raising livelihood. She requested a loan and it was used to buy feed. This helps her to raise quality hogs and be able to roll out her capital. She is striving hard to continue to expand her hog raising livelihood and improve the quality of life, respectively."
+        }
+      },
+      "status": "fundraising",
+      "funded_amount": 0,
+      "basket_amount": 0,
+      "image": {
+        "id": 6371202,
+        "template_id": 1
+      },
+      "activity": "Pigs",
+      "sector": "Agriculture",
+      "themes": [
+        "Underfunded Areas"
+      ],
+      "use": "to buy feed.",
+      "location": {
+        "country_code": "PH",
+        "country": "Philippines",
+        "town": "Ormoc City, Leyte",
+        "geo": {
+          "level": "town",
+          "pairs": "11.038428 124.61927",
+          "type": "point"
+        }
+      },
+      "partner_id": 125,
+      "posted_date": "2026-10-16T04:42:53Z",
+      "planned_expiration_date": "2026-11-20T05:42:53Z",
+      "loan_amount": 800,
+      "lender_count": 0,
+      "bonus_credit_eligibility": true,
+      "tags": [
+        {
+          "name": "#Woman-Owned Business",
+          "id": "6"
+        },
+        {
+          "name": "#Animals",
+          "id": "11"
+        },
+        {
+          "name": "#Parent",
+          "id": "16"
+        }
+      ],
+      "borrowers": [
+        {
+          "first_name": "Maria Telie",
+          "last_name": "",
+          "gender": "F",
+          "pictured": true
+        }
+      ],
+      "terms": {
+        "disbursal_date": "2026-09-23T07:00:00Z",
+        "disbursal_currency": "PHP",
+        "disbursal_amount": 50000,
+        "repayment_interval": "Monthly",
+        "repayment_term": 12,
+        "loan_amount": 800,
+        "local_payments": [
+          {
+            "due_date": "2026-10-05T07:00:00Z",
+            "amount": 2158
+          },
+          {
+            "due_date": "2026-10-19T07:00:00Z",
+            "amount": 2062
+          },
+          {
+            "due_date": "2026-11-02T08:00:00Z",
+            "amount": 2118
+          },
+          {
+            "due_date": "2026-11-16T08:00:00Z",
+            "amount": 2135
+          },
+          {
+            "due_date": "2026-12-07T08:00:00Z",
+            "amount": 1614
+          },
+          {
+            "due_date": "2026-12-21T08:00:00Z",
+            "amount": 2276
+          },
+          {
+            "due_date": "2027-01-04T08:00:00Z",
+            "amount": 2338
+          },
+          {
+            "due_date": "2027-01-18T08:00:00Z",
+            "amount": 2402
+          },
+          {
+            "due_date": "2027-02-01T08:00:00Z",
+            "amount": 2467
+          },
+          {
+            "due_date": "2027-02-15T08:00:00Z",
+            "amount": 2445
+          },
+          {
+            "due_date": "2027-03-01T08:00:00Z",
+            "amount": 2518
+          },
+          {
+            "due_date": "2027-03-15T07:00:00Z",
+            "amount": 2668
+          },
+          {
+            "due_date": "2027-04-05T07:00:00Z",
+            "amount": 2431
+          },
+          {
+            "due_date": "2027-04-19T07:00:00Z",
+            "amount": 2788
+          },
+          {
+            "due_date": "2027-05-03T07:00:00Z",
+            "amount": 2866
+          },
+          {
+            "due_date": "2027-05-17T07:00:00Z",
+            "amount": 2959
+          },
+          {
+            "due_date": "2027-06-07T07:00:00Z",
+            "amount": 2880
+          },
+          {
+            "due_date": "2027-06-21T07:00:00Z",
+            "amount": 3110
+          },
+          {
+            "due_date": "2027-07-05T07:00:00Z",
+            "amount": 3197
+          },
+          {
+            "due_date": "2027-07-19T07:00:00Z",
+            "amount": 2568
+          }
+        ],
+        "scheduled_payments": [
+          {
+            "due_date": "2026-12-01T08:00:00Z",
+            "amount": 34.53
+          },
+          {
+            "due_date": "2026-12-01T08:00:00Z",
+            "amount": 32.99
+          },
+          {
+            "due_date": "2027-01-01T08:00:00Z",
+            "amount": 33.89
+          },
+          {
+            "due_date": "2027-01-01T08:00:00Z",
+            "amount": 34.16
+          },
+          {
+            "due_date": "2027-02-01T08:00:00Z",
+            "amount": 25.82
+          },
+          {
+            "due_date": "2027-02-01T08:00:00Z",
+            "amount": 36.42
+          },
+          {
+            "due_date": "2027-03-01T08:00:00Z",
+            "amount": 37.41
+          },
+          {
+            "due_date": "2027-03-01T08:00:00Z",
+            "amount": 38.43
+          },
+          {
+            "due_date": "2027-04-01T07:00:00Z",
+            "amount": 39.47
+          },
+          {
+            "due_date": "2027-04-01T07:00:00Z",
+            "amount": 39.12
+          },
+          {
+            "due_date": "2027-05-01T07:00:00Z",
+            "amount": 40.29
+          },
+          {
+            "due_date": "2027-05-01T07:00:00Z",
+            "amount": 42.69
+          },
+          {
+            "due_date": "2027-06-01T07:00:00Z",
+            "amount": 38.89
+          },
+          {
+            "due_date": "2027-06-01T07:00:00Z",
+            "amount": 44.61
+          },
+          {
+            "due_date": "2027-07-01T07:00:00Z",
+            "amount": 45.86
+          },
+          {
+            "due_date": "2027-07-01T07:00:00Z",
+            "amount": 47.34
+          },
+          {
+            "due_date": "2027-08-01T07:00:00Z",
+            "amount": 46.08
+          },
+          {
+            "due_date": "2027-08-01T07:00:00Z",
+            "amount": 49.76
+          },
+          {
+            "due_date": "2027-09-01T07:00:00Z",
+            "amount": 51.15
+          },
+          {
+            "due_date": "2027-09-01T07:00:00Z",
+            "amount": 41.09
+          }
+        ],
+        "loss_liability": {
+          "nonpayment": "lender",
+          "currency_exchange": "lender",
+          "currency_exchange_coverage_rate": "0"
+        }
+      },
+      "payments": [],
+      "journal_totals": {
+        "entries": 0,
+        "bulkEntries": 0
+      }
+    },
+    {
+      "id": 3261252,
+      "name": "Julius",
+      "description": {
+        "languages": [
+          "en"
+        ],
+        "texts": {
+          "en": "Julius resides in the province of Cebu. He is 47 years old and single. To earn an income, he runs a computer shop. He has been in this business for 11 years.\n\nCurrently, he asks for a loan of PHP 35,000 through Kiva’s field partner, CEVI (a microfinance NGO) in the Philippines. He will use this loan to buy computer parts.\n\nJulius wants to improve this business in the future and become productive."
+        }
+      },
+      "status": "fundraising",
+      "funded_amount": 0,
+      "basket_amount": 0,
+      "image": {
+        "id": 6371936,
+        "template_id": 1
+      },
+      "activity": "Internet Cafe",
+      "sector": "Services",
+      "themes": [
+        "Underfunded Areas"
+      ],
+      "use": "to buy computer parts.",
+      "location": {
+        "country_code": "PH",
+        "country": "Philippines",
+        "town": "Carmen, Cebu",
+        "geo": {
+          "level": "town",
+          "pairs": "10.593704 124.018626",
+          "type": "point"
+        }
+      },
+      "partner_id": 125,
+      "posted_date": "2026-10-16T04:42:53Z",
+      "planned_expiration_date": "2026-11-20T05:42:52Z",
+      "loan_amount": 575,
+      "lender_count": 0,
+      "bonus_credit_eligibility": true,
+      "tags": [
+        {
+          "name": "#Single",
+          "id": "14"
+        },
+        {
+          "name": "#Technology",
+          "id": "38"
+        },
+        {
+          "name": "#Repair Renew Replace",
+          "id": "39"
+        }
+      ],
+      "borrowers": [
+        {
+          "first_name": "Julius",
+          "last_name": "",
+          "gender": "M",
+          "pictured": true
+        }
+      ],
+      "terms": {
+        "disbursal_date": "2026-09-15T07:00:00Z",
+        "disbursal_currency": "PHP",
+        "disbursal_amount": 35000,
+        "repayment_interval": "Monthly",
+        "repayment_term": 8,
+        "loan_amount": 575,
+        "local_payments": [
+          {
+            "due_date": "2026-10-06T07:00:00Z",
+            "amount": 2053
+          },
+          {
+            "due_date": "2026-10-20T07:00:00Z",
+            "amount": 2630
+          },
+          {
+            "due_date": "2026-11-03T08:00:00Z",
+            "amount": 2702
+          },
+          {
+            "due_date": "2026-11-17T08:00:00Z",
+            "amount": 2750
+          },
+          {
+            "due_date": "2026-12-01T08:00:00Z",
+            "amount": 2827
+          },
+          {
+            "due_date": "2026-12-15T08:00:00Z",
+            "amount": 2926
+          },
+          {
+            "due_date": "2027-01-05T08:00:00Z",
+            "amount": 2746
+          },
+          {
+            "due_date": "2027-01-19T08:00:00Z",
+            "amount": 3080
+          },
+          {
+            "due_date": "2027-02-02T08:00:00Z",
+            "amount": 3163
+          },
+          {
+            "due_date": "2027-02-16T08:00:00Z",
+            "amount": 3219
+          },
+          {
+            "due_date": "2027-03-02T08:00:00Z",
+            "amount": 3316
+          },
+          {
+            "due_date": "2027-03-16T07:00:00Z",
+            "amount": 3588
+          }
+        ],
+        "scheduled_payments": [
+          {
+            "due_date": "2026-12-01T08:00:00Z",
+            "amount": 33.73
+          },
+          {
+            "due_date": "2026-12-01T08:00:00Z",
+            "amount": 43.21
+          },
+          {
+            "due_date": "2027-01-01T08:00:00Z",
+            "amount": 44.39
+          },
+          {
+            "due_date": "2027-01-01T08:00:00Z",
+            "amount": 45.18
+          },
+          {
+            "due_date": "2027-02-01T08:00:00Z",
+            "amount": 46.44
+          },
+          {
+            "due_date": "2027-02-01T08:00:00Z",
+            "amount": 48.07
+          },
+          {
+            "due_date": "2027-03-01T08:00:00Z",
+            "amount": 45.11
+          },
+          {
+            "due_date": "2027-03-01T08:00:00Z",
+            "amount": 50.6
+          },
+          {
+            "due_date": "2027-04-01T07:00:00Z",
+            "amount": 51.96
+          },
+          {
+            "due_date": "2027-04-01T07:00:00Z",
+            "amount": 52.88
+          },
+          {
+            "due_date": "2027-05-01T07:00:00Z",
+            "amount": 54.48
+          },
+          {
+            "due_date": "2027-05-01T07:00:00Z",
+            "amount": 58.95
+          }
+        ],
+        "loss_liability": {
+          "nonpayment": "lender",
+          "currency_exchange": "lender",
+          "currency_exchange_coverage_rate": "0"
+        }
+      },
+      "payments": [],
+      "journal_totals": {
+        "entries": 0,
+        "bulkEntries": 0
+      }
+    },
+    {
+      "id": 3261251,
+      "name": "Evelyn",
+      "description": {
+        "languages": [
+          "en"
+        ],
+        "texts": {
+          "en": "Evelyn has operated a sari-sari (variety) store for the past six years. She sells various commodities ranging from noodles, canned goods, soft drinks, sugar, eggs, and soap, to beverages. She is a married woman with two dependent children. Her husband's occupation is a farmer.\n\nShe wanted to continue to improve her capital. That is why she has decided to request a loan. She will use it to buy canned goods, noodles, toiletries and soft drinks. With these, she can boost her inventory and maintain her sales and profit.\n\nShe is hoping for your support to continue to improve her existing project to become more productive in the future."
+        }
+      },
+      "status": "fundraising",
+      "funded_amount": 0,
+      "basket_amount": 0,
+      "image": {
+        "id": 6371955,
+        "template_id": 1
+      },
+      "activity": "General Store",
+      "sector": "Retail",
+      "themes": [
+        "Underfunded Areas"
+      ],
+      "use": "to buy canned goods, noodles, toiletries and soft drinks.",
+      "location": {
+        "country_code": "PH",
+        "country": "Philippines",
+        "town": "Ormoc City, Leyte",
+        "geo": {
+          "level": "town",
+          "pairs": "11.038428 124.61927",
+          "type": "point"
+        }
+      },
+      "partner_id": 125,
+      "posted_date": "2026-10-16T04:42:52Z",
+      "planned_expiration_date": "2026-11-20T05:42:52Z",
+      "loan_amount": 650,
+      "lender_count": 0,
+      "bonus_credit_eligibility": true,
+      "tags": [
+        {
+          "name": "#Woman-Owned Business",
+          "id": "6"
+        },
+        {
+          "name": "#Parent",
+          "id": "16"
+        }
+      ],
+      "borrowers": [
+        {
+          "first_name": "Evelyn",
+          "last_name": "",
+          "gender": "F",
+          "pictured": true
+        }
+      ],
+      "terms": {
+        "disbursal_date": "2026-09-29T07:00:00Z",
+        "disbursal_currency": "PHP",
+        "disbursal_amount": 40000,
+        "repayment_interval": "Monthly",
+        "repayment_term": 12,
+        "loan_amount": 650,
+        "local_payments": [
+          {
+            "due_date": "2026-10-01T07:00:00Z",
+            "amount": 2421
+          },
+          {
+            "due_date": "2026-10-15T07:00:00Z",
+            "amount": 1643
+          },
+          {
+            "due_date": "2026-11-05T08:00:00Z",
+            "amount": 1200
+          },
+          {
+            "due_date": "2026-11-19T08:00:00Z",
+            "amount": 1688
+          },
+          {
+            "due_date": "2026-12-03T08:00:00Z",
+            "amount": 1736
+          },
+          {
+            "due_date": "2026-12-17T08:00:00Z",
+            "amount": 1813
+          },
+          {
+            "due_date": "2027-01-07T08:00:00Z",
+            "amount": 1462
+          },
+          {
+            "due_date": "2027-01-21T08:00:00Z",
+            "amount": 1901
+          },
+          {
+            "due_date": "2027-02-04T08:00:00Z",
+            "amount": 1953
+          },
+          {
+            "due_date": "2027-02-18T08:00:00Z",
+            "amount": 1936
+          },
+          {
+            "due_date": "2027-03-04T08:00:00Z",
+            "amount": 1994
+          },
+          {
+            "due_date": "2027-03-18T07:00:00Z",
+            "amount": 2112
+          },
+          {
+            "due_date": "2027-04-01T07:00:00Z",
+            "amount": 2169
+          },
+          {
+            "due_date": "2027-04-15T07:00:00Z",
+            "amount": 2214
+          },
+          {
+            "due_date": "2027-05-06T07:00:00Z",
+            "amount": 2083
+          },
+          {
+            "due_date": "2027-05-20T07:00:00Z",
+            "amount": 2345
+          },
+          {
+            "due_date": "2027-06-03T07:00:00Z",
+            "amount": 2408
+          },
+          {
+            "due_date": "2027-06-17T07:00:00Z",
+            "amount": 2467
+          },
+          {
+            "due_date": "2027-07-01T07:00:00Z",
+            "amount": 2536
+          },
+          {
+            "due_date": "2027-07-15T07:00:00Z",
+            "amount": 1919
+          }
+        ],
+        "scheduled_payments": [
+          {
+            "due_date": "2026-12-01T08:00:00Z",
+            "amount": 39.34
+          },
+          {
+            "due_date": "2026-12-01T08:00:00Z",
+            "amount": 26.7
+          },
+          {
+            "due_date": "2027-01-01T08:00:00Z",
+            "amount": 19.5
+          },
+          {
+            "due_date": "2027-01-01T08:00:00Z",
+            "amount": 27.43
+          },
+          {
+            "due_date": "2027-02-01T08:00:00Z",
+            "amount": 28.21
+          },
+          {
+            "due_date": "2027-02-01T08:00:00Z",
+            "amount": 29.46
+          },
+          {
+            "due_date": "2027-03-01T08:00:00Z",
+            "amount": 23.76
+          },
+          {
+            "due_date": "2027-03-01T08:00:00Z",
+            "amount": 30.89
+          },
+          {
+            "due_date": "2027-04-01T07:00:00Z",
+            "amount": 31.74
+          },
+          {
+            "due_date": "2027-04-01T07:00:00Z",
+            "amount": 31.46
+          },
+          {
+            "due_date": "2027-05-01T07:00:00Z",
+            "amount": 32.4
+          },
+          {
+            "due_date": "2027-05-01T07:00:00Z",
+            "amount": 34.32
+          },
+          {
+            "due_date": "2027-06-01T07:00:00Z",
+            "amount": 35.25
+          },
+          {
+            "due_date": "2027-06-01T07:00:00Z",
+            "amount": 35.98
+          },
+          {
+            "due_date": "2027-07-01T07:00:00Z",
+            "amount": 33.85
+          },
+          {
+            "due_date": "2027-07-01T07:00:00Z",
+            "amount": 38.1
+          },
+          {
+            "due_date": "2027-08-01T07:00:00Z",
+            "amount": 39.13
+          },
+          {
+            "due_date": "2027-08-01T07:00:00Z",
+            "amount": 40.09
+          },
+          {
+            "due_date": "2027-09-01T07:00:00Z",
+            "amount": 41.21
+          },
+          {
+            "due_date": "2027-09-01T07:00:00Z",
+            "amount": 31.18
+          }
+        ],
+        "loss_liability": {
+          "nonpayment": "lender",
+          "currency_exchange": "lender",
+          "currency_exchange_coverage_rate": "0"
+        }
+      },
+      "payments": [],
+      "journal_totals": {
+        "entries": 0,
+        "bulkEntries": 0
+      }
+    }
+  ]
+}

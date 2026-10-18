@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { handleProxy } from '../../server/klCore.mjs'
+import { recorded, recordedResponse } from '../test/upstream'
 
 /** The proxy serves only the Kiva graph calls and KivaLens's one research sheet. */
 
@@ -26,7 +27,8 @@ describe('handleProxy', () => {
   })
 
   it('asks Kiva the way its firewall accepts and passes the answer back', async () => {
-    const fetchMock = vi.fn(async () => new Response('{"ok":true}', { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } }))
+    // Kiva's real answer, label and all (src/test/fixtures/upstream).
+    const fetchMock = vi.fn(async () => recordedResponse('kiva-supergraph-partner-all.json'))
     globalThis.fetch = fetchMock as unknown as typeof fetch
     const res = (await handleProxy(get('/proxy/kiva/ajax/getSuperGraphData?id=1')))!
     expect(fetchMock).toHaveBeenCalledWith('https://www.kiva.org/ajax/getSuperGraphData?id=1', expect.objectContaining({
@@ -40,37 +42,44 @@ describe('handleProxy', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('access-control-allow-origin')).toBe('*')
     expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8')
-    expect(await res.text()).toBe('{"ok":true}')
+    expect(await res.text()).toBe(recorded('kiva-supergraph-partner-all.json').body)
   })
 
   it('passes on Kiva’s JSON, which Kiva labels text/html, as JSON', async () => {
-    // Issue #74: every portfolio-balancing request answered 502 while Kiva answered 200 with data.
-    // The body is Kiva's answer for one lender's partner slice, cut down; the label is Kiva's own.
-    const json = '{"lookup":{"58":"Fundaci\\u00f3n Paraguaya"},"data":[{"name":"58","value":"312"}],"last_updated":1792050645}'
-    for (const path of ['/proxy/kiva/ajax/getSuperGraphData?sliceBy=partner&include=active', '/proxy/kiva/ajax/getGraphData?graphName=x&id=1']) {
-      globalThis.fetch = vi.fn(async () => new Response(json, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } })) as unknown as typeof fetch
+    // Issue #74: every portfolio-balancing read and team graph answered 502 while Kiva answered 200 with data.
+    for (const [path, name] of [
+      ['/proxy/kiva/ajax/getSuperGraphData?sliceBy=partner&include=all', 'kiva-supergraph-partner-all.json'],
+      ['/proxy/kiva/ajax/getGraphData?graphName=team_loan_count&id=1', 'kiva-graphdata-team.json'],
+    ]) {
+      globalThis.fetch = vi.fn(async () => recordedResponse(name)) as unknown as typeof fetch
       const res = (await handleProxy(get(path)))!
       expect(res.status).toBe(200)
       expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8')
-      expect(await res.text()).toBe(json)
+      expect(await res.text()).toBe(recorded(name).body)
     }
   })
 
-  it('passes on Kiva’s own error answer, which is JSON too: the caller reads it', async () => {
-    // Kiva's answer for a lender with no loans in the slice asked for.
-    const json = '{"error":"Could not retrieve stats."}'
-    globalThis.fetch = vi.fn(async () => new Response(json, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } })) as unknown as typeof fetch
+  it('passes on Kiva’s own answer for an empty slice, which is JSON too: the caller reads it', async () => {
+    globalThis.fetch = vi.fn(async () => recordedResponse('kiva-supergraph-country-active-empty.json')) as unknown as typeof fetch
     const res = (await handleProxy(get('/proxy/kiva/ajax/getSuperGraphData?sliceBy=country&include=active')))!
     expect(res.status).toBe(200)
-    expect(await res.text()).toBe(json)
+    expect(await res.text()).toBe('{"error":"Could not retrieve stats."}')
   })
 
-  it('refuses a successful Kiva answer that is not JSON, whatever its label', async () => {
-    for (const [body, type] of [['<h1>Sign in</h1>', 'text/html; charset=utf-8'], ['<h1>Sign in</h1>', 'application/json'], ['', 'application/json'], ['{"cut', 'application/json']]) {
-      globalThis.fetch = vi.fn(async () => new Response(body, { status: 200, headers: { 'Content-Type': type } })) as unknown as typeof fetch
-      const res = (await handleProxy(get('/proxy/kiva/ajax/getSuperGraphData?id=1')))!
-      expect(res.status).toBe(502)
-      expect(await res.text()).toBe('Proxy upstream did not return data')
+  it('refuses a successful Kiva answer that is not JSON, whatever its label, and says so in the server log without the query', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      for (const [body, type] of [['<h1>Sign in</h1>', 'text/html; charset=utf-8'], ['<h1>Sign in</h1>', 'application/json'], ['', 'application/json'], ['{"cut', 'application/json']]) {
+        globalThis.fetch = vi.fn(async () => new Response(body, { status: 200, headers: { 'Content-Type': type } })) as unknown as typeof fetch
+        const res = (await handleProxy(get('/proxy/kiva/ajax/getSuperGraphData?subject_id=somelender&id=1')))!
+        expect(res.status).toBe(502)
+        expect(await res.text()).toBe('Proxy upstream did not return data')
+      }
+      expect(warn).toHaveBeenCalledTimes(4)
+      expect(String(warn.mock.calls[0][0])).toBe('[proxy] refused /proxy/kiva/ajax/getSuperGraphData: Proxy upstream did not return data (upstream 200 text/html, not JSON)')
+      for (const call of warn.mock.calls) expect(String(call[0])).not.toContain('somelender')
+    } finally {
+      warn.mockRestore()
     }
   })
 
@@ -110,15 +119,17 @@ describe('handleProxy', () => {
 
   it('follows only the research sheet export redirect to its Google content host', async () => {
     const sheetId = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
-    const googleContent = `https://doc-0c-9c-sheets.googleusercontent.com/export/token1/token2/1792013045000/123456/*/${sheetId}?gid=1&format=csv`
+    // Google's real redirect and answer; the recording replaced the tokens and account number, put back here.
+    const sheet = recorded('google-sheet-export.json')
+    const googleContent = sheet.redirect!.location.replace(/<token>/g, 'tok3n').replace('<number>', '123456')
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(null, { status: 307, headers: { Location: googleContent } }))
-      .mockResolvedValueOnce(new Response('id,name\n', { status: 200, headers: { 'Content-Type': 'text/csv' } }))
+      .mockResolvedValueOnce(new Response(null, { status: sheet.redirect!.status, headers: { Location: googleContent } }))
+      .mockResolvedValueOnce(recordedResponse('google-sheet-export.json'))
     globalThis.fetch = fetchMock as unknown as typeof fetch
 
     const res = (await handleProxy(get(`/proxy/gdocs/spreadsheets/d/${sheetId}/export?gid=1&format=csv`)))!
     expect(res.status).toBe(200)
-    expect(await res.text()).toBe('id,name\n')
+    expect(await res.text()).toBe(sheet.body)
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock).toHaveBeenNthCalledWith(2, googleContent, expect.objectContaining({ redirect: 'manual' }))
   })

@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-10-16T05:18:02.439Z",
+  "source": "https://docs.google.com/spreadsheets/d/1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0/export?gid=1&format=csv",
+  "how": "plain requests; the redirect target's path keeps its shape, its tokens and account number replaced",
+  "redirect": {
+    "status": 307,
+    "location": "https://doc-0c-9c-sheets.googleusercontent.com/export/<token>/<token>/1792127885000/<number>/*/1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0?gid=1&format=csv"
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "text/csv; charset=utf-8",
+    "cache-control": "no-cache, no-store, max-age=0, must-revalidate"
+  },
+  "body": "ID,X,Name,Link to Lend,Country,Kiva Status,Default Rate,Loans At Risk Rate (after the 1st of the month),\"Kiva Risk Rating\n(5 best)\",\"Secular Rating \n(1-4)\",Religious Affiliation,Comments on secular rating,\"Social Rating\n(1-4)\",Comments on social rating,MFI Link,By,Date,Status update & Review comments,P,J,MFI Name,index,MFI Name Check\r",
+  "cut": "the first 3 rows of 388"
+}

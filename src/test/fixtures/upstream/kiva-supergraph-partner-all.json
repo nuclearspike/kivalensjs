@@ -1,0 +1,12 @@
+{
+  "recordedAt": "2026-10-16T05:18:02.439Z",
+  "source": "https://www.kiva.org/ajax/getSuperGraphData?sliceBy=partner&include=all&measure=count&subject_id=<lender>&type=lender&granularity=cumulative",
+  "how": "fetched with the proxy's own request headers (KIVA_AJAX_HEADERS)",
+  "status": 200,
+  "headers": {
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "no-store"
+  },
+  "body": "{\"lookup\":{\"58\":\"Fundación Paraguaya\",\"59\":\"Fundación Pro Mujer\",\"93\":\"EDAPROSPO\",\"119\":\"Asociación Arariwa\",\"123\":\"Alalay sa Kaunlaran (ASKI)\",\"130\":\"Vision Fund Mexico\",\"137\":\"Fundación ESPOIR\",\"-1\":null},\"data\":[{\"name\":\"-1\",\"value\":\"456\"},{\"name\":\"58\",\"value\":\"312\"},{\"name\":\"119\",\"value\":\"234\"},{\"name\":\"137\",\"value\":\"232\"},{\"name\":\"130\",\"value\":\"230\"},{\"name\":\"123\",\"value\":\"203\"},{\"name\":\"59\",\"value\":\"198\"},{\"name\":\"93\",\"value\":\"148\"}],\"last_updated\":1792050645}",
+  "cut": "the 8 largest of 153 partners, re-serialised"
+}

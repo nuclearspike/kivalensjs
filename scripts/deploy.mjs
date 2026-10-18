@@ -1,0 +1,266 @@
+#!/usr/bin/env node
+// Deploys one commit to www.kivalens.org, and is the only way a commit should get there.
+//
+//   node scripts/deploy.mjs <commit> --dry-run    every step but the two pushes, and the live checks on
+//                                                  production as it is
+//   node scripts/deploy.mjs <commit> --yes        the deploy
+//   [--gate <summary.json>]                        reuse a passed gate run of the same commit
+//   [--site <url>] [--app <name>]                  another site and Heroku app, to test this script
+//
+// In order: GitHub's and Heroku's master must both fast-forward to the commit; the release gate
+// (scripts/gate.mjs) passes; the live checks (scripts/smoke-live.mjs) run on production as it is, so a
+// failure afterwards can be told apart from one that was already there; push to GitHub, then to Heroku;
+// wait until the live page serves the gated build's entry script, byte for byte; run the live checks
+// again; read the server log since the release. A failure at any step ends in a banner that says what
+// failed, what production is running, and the rollback command. The script does not roll back by itself:
+// a person decides that, with the failure in front of them. Records go to analysis/deploys/ in the main
+// checkout.
+import { execFileSync, spawn } from 'node:child_process'
+import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const args = process.argv.slice(2)
+const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null }
+const TAKES_VALUE = ['--gate', '--site', '--app']
+const APP = opt('--app') ?? 'kivalens'
+const SITE = (opt('--site') ?? 'https://www.kivalens.org').replace(/\/$/, '')
+const BRANCH = 'master'
+const LIVE_WAIT_MS = 6 * 60_000
+const dryRun = args.includes('--dry-run')
+const yes = args.includes('--yes')
+const commitArg = args.find((a, i) => !a.startsWith('--') && !TAKES_VALUE.includes(args[i - 1]))
+if (!commitArg || dryRun === yes) {
+  console.error('usage: node scripts/deploy.mjs <commit> --dry-run | --yes  [--gate <summary.json>] [--site <url>] [--app <name>]')
+  process.exit(2)
+}
+
+const git = (...a) => execFileSync('git', a, { cwd: REPO, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
+const sha = git('rev-parse', '--verify', `${commitArg}^{commit}`)
+const short = sha.slice(0, 8)
+const MAIN = path.dirname(path.resolve(REPO, git('rev-parse', '--git-common-dir')))
+const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+const rec = path.join(MAIN, 'analysis', 'deploys', `${stamp}_${short}${dryRun ? '_dry-run' : ''}`)
+fs.mkdirSync(rec, { recursive: true })
+
+const summary = { commit: sha, dryRun, startedAt: new Date().toISOString(), steps: [] }
+function say(line = '') {
+  console.log(line)
+  fs.appendFileSync(path.join(rec, 'deploy.log'), line + '\n')
+}
+function done(name, detail) {
+  summary.steps.push({ name, ok: true, detail })
+  say(`PASS  ${name} — ${detail}`)
+}
+function save() {
+  summary.endedAt = new Date().toISOString()
+  fs.writeFileSync(path.join(rec, 'summary.json'), JSON.stringify(summary, null, 2) + '\n')
+}
+
+// Runs a command, showing its output and keeping it in <name>.log.
+function run(name, cmd, cmdArgs, { quiet = false } = {}) {
+  return new Promise((resolve) => {
+    const file = fs.createWriteStream(path.join(rec, `${name}.log`))
+    const child = spawn(cmd, cmdArgs, { cwd: REPO, env: process.env })
+    let text = ''
+    const take = (chunk) => {
+      text += chunk
+      file.write(chunk)
+      if (!quiet) process.stdout.write(chunk)
+    }
+    child.stdout.on('data', take)
+    child.stderr.on('data', take)
+    child.on('error', (e) => take(`\n${e}\n`))
+    child.on('close', (status) => file.end(() => resolve({ status, text })))
+  })
+}
+
+let previous = null
+let pushedOrigin = false
+let released = null
+function fail(name, reason) {
+  summary.steps.push({ name, ok: false, detail: reason })
+  summary.outcome = 'failed'
+  save()
+  const prev = previous ? `v${previous.version} (${previous.description})` : 'the release before'
+  say('')
+  say('!'.repeat(78))
+  say(`DEPLOY FAILED at "${name}": ${reason}`)
+  if (released) {
+    say(`Production is running v${released.version}, this commit, and it failed the step above.`)
+    say(`The release before it is ${prev}. To go back to it:`)
+    say(`    heroku rollback v${previous?.version ?? '<version>'} -a ${APP}`)
+    say('Decide with the failure in front of you: if the step that failed was already failing before')
+    say('the deploy (see smoke-before.json), rolling back does not fix it.')
+  } else {
+    say(previous ? `Nothing was released. Production still runs ${prev}.` : 'Nothing was released.')
+    if (pushedOrigin) say(`GitHub's ${BRANCH} is at ${short}, ahead of production; the next deploy takes it from there.`)
+  }
+  say(`Record: ${rec}`)
+  say('!'.repeat(78))
+  process.exit(1)
+}
+
+async function releases(n) {
+  const r = await run('heroku-releases', 'heroku', ['releases', '-a', APP, '-n', String(n), '--json'], { quiet: true })
+  const start = r.text.indexOf('[')
+  if (r.status !== 0 || start < 0) return null
+  try {
+    return JSON.parse(r.text.slice(start))
+  } catch {
+    return null
+  }
+}
+
+async function liveEntry() {
+  const res = await fetch(`${SITE}/`, { headers: { 'Cache-Control': 'no-cache' }, signal: AbortSignal.timeout(20_000) })
+  const entry = /\/assets\/index-[\w-]+\.js/.exec(await res.text())?.[0] ?? null
+  return entry
+}
+async function sha256Of(url) {
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) })
+  if (!res.ok) throw new Error(`${url} answered ${res.status}`)
+  return crypto.createHash('sha256').update(Buffer.from(await res.arrayBuffer())).digest('hex')
+}
+
+say(`${dryRun ? 'DRY RUN: ' : ''}deploy ${sha} to ${SITE} (Heroku app ${APP})`)
+say(`record: ${rec}`)
+
+// 1. Both remotes must fast-forward to the commit.
+for (const remote of ['origin', 'heroku']) {
+  const f = await run(`fetch-${remote}`, 'git', ['fetch', remote, BRANCH], { quiet: true })
+  if (f.status !== 0) fail('remotes', `git fetch ${remote} failed: ${f.text.trim().split('\n').at(-1)}`)
+  const head = git('rev-parse', `refs/remotes/${remote}/${BRANCH}`)
+  summary[`${remote}Before`] = head
+  if (head === sha) {
+    done(`${remote} ${BRANCH}`, `already at ${short}`)
+    continue
+  }
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', head, sha], { cwd: REPO })
+  } catch {
+    fail('remotes', `${short} is not a fast-forward of ${remote}/${BRANCH} (${head.slice(0, 8)}). Rebase onto it first.`)
+  }
+  const n = git('rev-list', '--count', `${head}..${sha}`)
+  done(`${remote} ${BRANCH}`, `${head.slice(0, 8)} → ${short}, ${n} commit${n === '1' ? '' : 's'}`)
+}
+
+// 2. What production runs now, for the rollback command.
+const before = await releases(1)
+if (!before?.length) fail('heroku', `the Heroku CLI could not read ${APP}'s releases (log in with "heroku login")`)
+previous = before[0]
+summary.previousRelease = { version: previous.version, description: previous.description }
+done('production now', `v${previous.version}, ${previous.description}`)
+
+// 3. The gate.
+let gate
+const gateFile = opt('--gate')
+if (gateFile) {
+  gate = JSON.parse(fs.readFileSync(gateFile, 'utf8'))
+  if (gate.commit !== sha) fail('gate', `${gateFile} is a gate run of ${gate.commit?.slice(0, 8)}, not ${short}`)
+  if (!gate.passed || !gate.entry) fail('gate', `${gateFile} did not pass`)
+  done('gate', `reused ${gateFile}`)
+} else {
+  say('\nrunning the gate (several minutes)…')
+  const g = await run('gate', 'node', [path.join(REPO, 'scripts', 'gate.mjs'), sha, '--out', path.join(rec, 'gate')])
+  gate = JSON.parse(fs.readFileSync(path.join(rec, 'gate', 'summary.json'), 'utf8'))
+  if (g.status !== 0 || !gate.passed) fail('gate', `failed: ${gate.steps.filter((s) => !s.ok).map((s) => `${s.name} (${s.detail})`).join(', ') || 'see gate/'}`)
+  done('gate', gate.steps.map((s) => `${s.name} ${s.detail}`).join('; '))
+}
+summary.entry = gate.entry
+
+// 4. Production as it is, so a later failure can be compared with one that was already there.
+say('\nlive checks on production before the deploy:')
+const pre = await run('smoke-before', 'node', [path.join(REPO, 'scripts', 'smoke-live.mjs'), '--url', SITE, '--json', path.join(rec, 'smoke-before.json')])
+summary.smokeBefore = pre.status === 0 ? 'passed' : 'failed'
+if (pre.status === 0) done('production before', 'every live check passes')
+else say(`NOTE  production before — some checks already fail; the deploy goes ahead, and they are compared afterwards`)
+
+if (dryRun) {
+  say('\nDRY RUN: would now run')
+  say(`    git push origin ${sha}:refs/heads/${BRANCH}`)
+  say(`    git push heroku ${sha}:refs/heads/${BRANCH}`)
+  say(`then wait for ${gate.entry.path} (sha256 ${gate.entry.sha256.slice(0, 16)}…) on ${SITE} and run the live checks.`)
+  summary.outcome = 'dry run'
+  save()
+  process.exit(0)
+}
+
+// 5. Push: GitHub first, so the code on GitHub is never behind the code that is live.
+for (const remote of ['origin', 'heroku']) {
+  if (summary[`${remote}Before`] === sha) continue
+  say(`\npushing to ${remote}…`)
+  const p = await run(`${remote}-push`, 'git', ['push', remote, `${sha}:refs/heads/${BRANCH}`])
+  if (p.status !== 0) {
+    const last = p.text.trim().split('\n').slice(-3).join(' | ')
+    fail(`push to ${remote}`, `git push exited ${p.status}: ${last}`)
+  }
+  if (remote === 'origin') pushedOrigin = true
+  done(`push to ${remote}`, 'done')
+}
+
+// 6. The release this push made.
+const after = await releases(1)
+const newest = after?.[0]
+if (!newest || newest.version === previous.version) fail('release', 'Heroku made no new release')
+if (!String(newest.description).includes(sha.slice(0, 7))) fail('release', `the newest release is v${newest.version}, "${newest.description}", not this commit`)
+released = newest
+summary.release = { version: newest.version, description: newest.description, status: newest.status }
+if (newest.status !== 'succeeded') fail('release', `v${newest.version} is ${newest.status}`)
+done('release', `v${newest.version}`)
+
+// 7. The live site serves this build.
+say('\nwaiting for the live site to serve this build…')
+const deadline = Date.now() + LIVE_WAIT_MS
+let seen = null
+for (;;) {
+  try {
+    seen = await liveEntry()
+    if (seen === gate.entry.path) {
+      const live = await sha256Of(`${SITE}${seen}`)
+      if (live !== gate.entry.sha256) fail('live build', `${seen} on ${SITE} has sha256 ${live.slice(0, 16)}…, the gated build ${gate.entry.sha256.slice(0, 16)}…`)
+      done('live build', `${seen}, the gated build byte for byte`)
+      break
+    }
+  } catch (e) {
+    seen = `(no answer: ${e.message})`
+  }
+  if (Date.now() > deadline) fail('live build', `after ${LIVE_WAIT_MS / 60_000} minutes ${SITE} serves ${seen}, not ${gate.entry.path}`)
+  await new Promise((r) => setTimeout(r, 10_000))
+}
+
+// 8. The live checks, given time for the server's first own batch.
+say('\nlive checks on the new release:')
+const post = await run('smoke-after', 'node', [path.join(REPO, 'scripts', 'smoke-live.mjs'), '--url', SITE, '--wait', '420', '--json', path.join(rec, 'smoke-after.json')])
+if (post.status !== 0) {
+  const read = (f) => { try { return JSON.parse(fs.readFileSync(path.join(rec, f), 'utf8')).results } catch { return [] } }
+  const was = new Map(read('smoke-before.json').map((r) => [r.name, r.ok]))
+  const failed = read('smoke-after.json').filter((r) => !r.ok)
+  fail('live checks', failed.map((r) => `${r.name}: ${r.detail}${was.get(r.name) === false ? ' (also failed before the deploy)' : ''}`).join('; ') || 'see smoke-after.log')
+}
+done('live checks', 'every live check passes')
+
+// 9. The server's own log since the release.
+const logs = await run('heroku-logs', 'heroku', ['logs', '-a', APP, '-n', '1500'], { quiet: true })
+const since = Date.parse(newest.created_at)
+const stampOf = (l) => Date.parse(l.slice(0, 32).split(' ')[0])
+const stamped = logs.text.split('\n').filter((l) => Number.isFinite(stampOf(l)))
+const lines = stamped.filter((l) => stampOf(l) >= since)
+// Heroku hands back at most 1,500 lines; on a busy server they may start after the release.
+if (stamped.length && stampOf(stamped[0]) > since) say(`NOTE  server log — the ${stamped.length} lines Heroku returns start ${stamped[0].slice(0, 19)}, after the release`)
+const crashed = lines.filter((l) => /State changed from \w+ to crashed|code=H10/.test(l))
+const errors = lines.filter((l) => /status=5\d\d|at=error|\[proxy\] (refused|error)|Error:/.test(l))
+summary.logs = { lines: lines.length, crashed: crashed.length, errors: errors.length }
+if (crashed.length) fail('server log', `the app crashed after the release: ${crashed[0].slice(0, 200)}`)
+if (errors.length) {
+  say(`WARN  server log — ${errors.length} error line${errors.length === 1 ? '' : 's'} since the release; read ${errors.length === 1 ? 'it' : 'them'} in heroku-logs.log:`)
+  for (const l of errors.slice(0, 5)) say(`        ${l.slice(0, 220)}`)
+} else {
+  done('server log', `${lines.length} line${lines.length === 1 ? '' : 's'} since the release, no errors`)
+}
+
+summary.outcome = errors.length ? 'deployed, with errors in the server log to read' : 'deployed'
+save()
+say(`\nDEPLOYED ${short} as v${newest.version} on ${SITE}${errors.length ? `, with ${errors.length} error line${errors.length === 1 ? '' : 's'} in the server log to read` : ''}. Record: ${rec}`)

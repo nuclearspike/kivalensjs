@@ -29,3 +29,6 @@ dist-ssr
 # Local-only Worker secrets for wrangler dev (e.g. the collector's test STATS_KEY)
 .dev.vars
 .dev.vars.*
+
+# Records of gate runs and deploys (scripts/gate.mjs, scripts/deploy.mjs), and other local notes
+/analysis/

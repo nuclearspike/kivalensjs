@@ -91,11 +91,13 @@ const fromKiva = (id: number) => ({
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body) }) as unknown as Response
 
 /** The KivaLens server and Kiva, as far as a catalog load reaches them. */
-function fakeNetwork(pages: unknown[][], kivaRefuses: (ids: number[]) => boolean = () => false) {
+function fakeNetwork(pages: unknown[][], kivaRefuses: (ids: number[]) => boolean = () => false, failing: (url: string) => number | undefined = () => undefined) {
   const asked: string[] = []
   const fetchStub = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input)
     asked.push(url)
+    const status = failing(url)
+    if (status) return { ok: false, status, json: async () => ({}), text: async () => '' } as unknown as Response
     if (url.endsWith('/api/start')) return ok({ batch: 7, pages: pages.length, loanLengths: pages.map(() => 1000), descrLengths: pages.map(() => 100), builtAt: Date.now() })
     if (url.includes('/api/partners')) return ok([{ id: 10, name: 'Test MFI', status: 'active', countries: [{ iso_code: 'KE', region: 'Africa' }], start_date: '2010-01-01T00:00:00Z' }])
     let m
@@ -276,5 +278,46 @@ describe('processing a batch of loans', () => {
     expect(ids()).toEqual([2])
     kl.setKivaLoans([withoutDetails(3)] as never, false)
     expect(ids()).toEqual([2])
+  })
+})
+
+// The page carries on past each of these, the slower way or with less; without a report nothing records it.
+describe('a failure the catalog carries on past is reported', () => {
+  const messages = () => reported.map((e) => e.message)
+  const reportedOnce = (message: string) => vi.waitFor(() => expect(messages().filter((m) => m === message)).toHaveLength(1), { timeout: 4000 })
+
+  it('no batch ready on this site, so the whole catalog comes from Kiva', async () => {
+    const { fetchStub, asked } = fakeNetwork([])
+    load(fetchStub as unknown as typeof fetch)
+    await reportedOnce('This site had no loan batch ready, so the catalog was loaded from Kiva')
+    await vi.waitFor(() => expect(asked.some((u) => u.includes('loans/search.json'))).toBe(true))
+  })
+
+  it('this site’s batch failing, so the catalog comes from Kiva', async () => {
+    const { fetchStub } = fakeNetwork([[served(81)]], undefined, (url) => (/\/api\/loans\/7\/\d+$/.test(url) ? 503 : undefined))
+    load(fetchStub as unknown as typeof fetch)
+    await reportedOnce('Loading the catalog from this site failed, so it was loaded from Kiva: HTTP 503')
+  })
+
+  it('the loans changed since the batch', async () => {
+    const { fetchStub } = fakeNetwork([[served(82)]], undefined, (url) => (url.includes('/api/since/7') ? 503 : undefined))
+    const { until } = load(fetchStub as unknown as typeof fetch)
+    await until((m) => m.loans_loaded)
+    await reportedOnce('Reading the loans changed since the batch from this site failed: HTTP 503')
+  })
+
+  it('the loan descriptions, without which a keyword search finds nothing', async () => {
+    const { fetchStub } = fakeNetwork([[served(83)]], undefined, (url) => (url.includes('/keywords/') ? 503 : undefined))
+    load(fetchStub as unknown as typeof fetch)
+    await reportedOnce('Loading loan descriptions from this site failed: HTTP 503')
+  })
+
+  it('this site’s partners, read from Kiva instead, and Kiva failing too, each once', async () => {
+    const { fetchStub } = fakeNetwork([[served(84)]], undefined, (url) => (url.includes('/api/partners') ? 503 : undefined))
+    const { until } = load(fetchStub as unknown as typeof fetch)
+    await reportedOnce('Reading partners from this site failed, so they were read from Kiva: HTTP 503')
+    await vi.waitFor(() => expect(messages().filter((m) => m.startsWith('Reading partners from Kiva failed: '))).toHaveLength(1), { timeout: 4000 })
+    await until((m) => m.failed)
+    expect(messages().filter((m) => m.startsWith('Reading partners'))).toHaveLength(2)
   })
 })

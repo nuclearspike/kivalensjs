@@ -1,0 +1,11 @@
+{
+  "recordedAt": "2026-10-16T05:18:02.439Z",
+  "source": "https://www.kiva.org/ajax/getSuperGraphData?sliceBy=country&include=active&measure=count&subject_id=<lender>&type=lender&granularity=cumulative",
+  "how": "fetched with the proxy's own request headers (KIVA_AJAX_HEADERS)",
+  "status": 200,
+  "headers": {
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "no-store"
+  },
+  "body": "{\"error\":\"Could not retrieve stats.\"}"
+}

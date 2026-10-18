@@ -1,6 +1,7 @@
 import { formatDate, today, startOfNextMonth, clearTime, monthsBetween } from '../../lib/dateUtils'
 import { groupBy, percentWhere } from '../../lib/arrayUtils'
 import { read as readAge, ageFrom } from '../../../server/borrowerAge.mjs'
+import { reportProblem } from '../../lib/reportProblem'
 // Types used implicitly via the loan/partner objects passed to processing methods
 // import type { KivaLoan, Partner } from '../../types'
 
@@ -32,19 +33,9 @@ export class LoanWithoutDetails extends Error {
   }
 }
 
-/**
- * Tells the error collector, once for a batch, that loans were left out of it
- * (src/lib/rum/errors.ts hears reportError). The message carries no loan id and
- * no count, so the same cause is one row however many loans or page loads.
- */
+/** Tells the error collector, once for a batch, that loans were left out of it (src/lib/reportProblem.ts). */
 function reportLeftOut(error: unknown): void {
-  try {
-    const why = error instanceof Error ? error.message : String(error)
-    const report = (globalThis as { reportError?: (e: unknown) => void }).reportError
-    if (typeof report === 'function') report(new Error(`Loans left out of a batch: ${why}`))
-  } catch {
-    // Reporting a problem must never become one.
-  }
+  reportProblem(`Loans left out of a batch: ${error instanceof Error ? error.message : String(error)}`)
 }
 
 export class ResultProcessors {

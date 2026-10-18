@@ -15,6 +15,7 @@ import { LenderTeams } from '../api/kivajs/LenderTeams'
 import { useUtilsStore } from '../stores'
 import LenderIdPitch from './LenderIdPitch'
 import { useI18n, type Locale } from '../i18n'
+import { reasonOf, reportProblem } from '../lib/reportProblem'
 
 interface Team {
   id: number
@@ -96,6 +97,7 @@ export default function Teams() {
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : t('failed_load_teams'))
+        reportProblem(`Reading the lender's teams from Kiva failed: ${reasonOf(err)}`)
       })
       .finally(() => {
         setLoadingTeams(false)
@@ -143,6 +145,7 @@ export default function Teams() {
         .catch((err) => {
           // Scope graph-fetch failures to the chart pane; never unmount the page.
           setGraphError(err instanceof Error ? err.message : t('failed_load_team_graph_data'))
+          reportProblem(`Reading a team graph from Kiva failed: ${reasonOf(err)}`)
         })
         .finally(() => {
           inFlight.current.delete(flightKey)

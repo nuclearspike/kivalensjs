@@ -1,0 +1,12 @@
+{
+  "recordedAt": "2026-10-16T05:18:02.439Z",
+  "source": "https://www.kiva.org/ajax/getGraphData?graphName=team_loan_count&id=1",
+  "how": "fetched with the proxy's own request headers (KIVA_AJAX_HEADERS)",
+  "status": 200,
+  "headers": {
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "no-store"
+  },
+  "body": "{\"title\":\"Total Loan Count\",\"graphData\":[[\"1218769009000\",1],[\"1222439455000\",2],[\"1226535830000\",3],[\"1229632363000\",4],[\"1233241866000\",7],[\"1235050614000\",8],[\"1235946352000\",9],[\"1236614090000\",11],[\"1237731641000\",12],[\"1240655904000\",13],[\"1242153413000\",14],[\"1243873890000\",16]]}",
+  "cut": "the first 12 of 68 points, re-serialised"
+}

@@ -75,3 +75,15 @@ refreshes the dataset every 10 minutes, and proxies Kiva's `getGraphData` and
 the A+ Google-Sheet through `/proxy/*` with the header recipe Kiva's WAF
 requires (no browser `User-Agent`). It has **zero runtime dependencies** (Node
 builtins only).
+
+## Releasing
+
+Rules for changes and releases are in [AGENTS.md](AGENTS.md). In short:
+
+```bash
+node scripts/gate.mjs <commit>               # build a clean copy and run every check
+node scripts/deploy.mjs <commit> --dry-run   # everything but the pushes
+node scripts/deploy.mjs <commit> --yes       # push, wait for the live build, check the live site
+node scripts/smoke-live.mjs                  # check the live site's features at any time
+node scripts/record-upstream-fixtures.mjs    # re-record Kiva's and Google's answers for the tests
+```

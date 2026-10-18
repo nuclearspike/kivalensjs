@@ -39,6 +39,7 @@ import { LenderFundraisingLoans } from './kivajs/LenderFundraisingLoans'
 import { processPartnerReligions } from './kivajs/normalizeReligion'
 import { mark } from '../lib/rum/marks'
 import { catchUpDelayMs } from '../lib/catchUp'
+import { reasonOf, reportProblem } from '../lib/reportProblem'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,6 +52,8 @@ const BALANCER_CACHE_MAX = 50
 
 /** Loans asked of Kiva in one request when a batch came without them: the most LoanBatch puts in one. */
 const LEFT_OUT_PER_REQUEST = 100
+/** Reported when the page loads the whole catalog from Kiva, the slow way, because this site had none to give. */
+const NO_BATCH_READY = 'This site had no loan batch ready, so the catalog was loaded from Kiva'
 
 export type NotifyMessage = {
   loan_load_progress?: ProgressEvent
@@ -356,8 +359,19 @@ export class Loans {
         cb(message)
       } catch (e) {
         console.error('Loans.notify listener error', e)
+        reportProblem(`A catalog listener failed: ${reasonOf(e)}`)
       }
     }
+  }
+
+  /**
+   * A step that failed and is carried on without: told to the listeners, and to
+   * the error collector (src/lib/reportProblem.ts), since nothing on the page
+   * throws it.
+   */
+  private fail(step: string, error: unknown): void {
+    reportProblem(`${step} failed: ${reasonOf(error)}`)
+    this.notify({ failed: error })
   }
 
   // ---- Init ----
@@ -399,7 +413,7 @@ export class Loans {
         await wait(1000)
         this.backgroundResync()
       })
-      .catch((e) => this.notify({ failed: e }))
+      .catch((e) => this.fail('Loading the catalog', e))
 
     this.setLender(baseOptions.kiva_lender_id)
 
@@ -422,8 +436,8 @@ export class Loans {
     const fetchPartnersFromKiva = async () => {
       try {
         await this.getAllPartners()
-      } catch (e) {
-        this.notify({ failed: e })
+      } catch {
+        // getAllPartners has told the listeners and the error collector.
       }
     }
 
@@ -450,6 +464,7 @@ export class Loans {
         await fetchPartnersFromKL()
       } catch (e) {
         cl('KL partner load failed, falling back to Kiva', e)
+        reportProblem(`Reading partners from this site failed, so they were read from Kiva: ${reasonOf(e)}`)
         await fetchPartnersFromKiva()
       }
     }
@@ -485,7 +500,7 @@ export class Loans {
           this.resolveLoansProcessed()
         }
       } catch (e) {
-        this.notify({ failed: e })
+        this.fail('Loading the catalog from Kiva', e)
       }
     }
 
@@ -496,6 +511,7 @@ export class Loans {
       if (!klStart.pages) {
         // KL server just restarted and hasn't built its batch yet — fall back
         cl('KL server has no pages ready, falling back to Kiva')
+        reportProblem(NO_BATCH_READY)
         return loadFromKiva()
       }
 
@@ -558,6 +574,7 @@ export class Loans {
           if (sinceLast?.length) this.setKivaLoans(sinceLast, false)
         } catch (e) {
           cl('since-batch fetch failed (non-fatal)', e)
+          reportProblem(`Reading the loans changed since the batch from this site failed: ${reasonOf(e)}`)
         }
 
         // Ensure partners are loaded before filtering (filter needs partner IDs)
@@ -577,6 +594,7 @@ export class Loans {
         wait(catchUpDelayMs(klStart.builtAt)).then(() => this.backgroundResync())
       } catch (e) {
         cl('KL loan load failed, falling back to Kiva', e)
+        reportProblem(`Loading the catalog from this site failed, so it was loaded from Kiva: ${reasonOf(e)}`)
         return loadFromKiva()
       }
 
@@ -610,6 +628,7 @@ export class Loans {
           this.notify({ all_descriptions_loaded: true })
         } catch (e) {
           cl('KL description download failed (non-fatal)', e)
+          reportProblem(`Loading loan descriptions from this site failed: ${reasonOf(e)}`)
         } finally {
           this.notify({
             filter_dependency_event: {
@@ -666,6 +685,7 @@ export class Loans {
         loadFromKL(klStart)
       } else {
         cl('KL server not available or has no data — loading from Kiva')
+        reportProblem(NO_BATCH_READY)
         loadFromKiva()
       }
     }
@@ -1110,6 +1130,7 @@ export class Loans {
       })
       .catch((e) => {
         this.balancerFailed.add(key)
+        reportProblem(`Reading portfolio figures from Kiva failed: ${reasonOf(e)}`)
         throw e
       })
       .finally(() => {
@@ -1166,7 +1187,7 @@ export class Loans {
       const loans = await searchInstance.start()
       this.setKivaLoans(loans)
     } catch (e) {
-      this.notify({ failed: e })
+      this.fail('Searching Kiva', e)
     }
   }
 
@@ -1209,7 +1230,7 @@ export class Loans {
       this.processPartners(partners as Partner[])
       await this.getAtheistList()
     } catch (e) {
-      this.notify({ failed: e })
+      this.fail('Reading partners from Kiva', e)
       throw e
     }
   }
@@ -1266,7 +1287,8 @@ export class Loans {
         const lfl = new LenderFundraisingLoans(lenderId)
         const ids = await (lfl as any).ids()
         processIds(ids)
-      } catch {
+      } catch (e) {
+        reportProblem(`Reading the lender's own loans from Kiva failed: ${reasonOf(e)}`)
         markFailed()
       }
     })
@@ -1364,7 +1386,7 @@ export class Loans {
         this.setKivaLoans(newLoans, false)
       }
     } catch (e) {
-      this.notify({ failed: e })
+      this.fail('Refreshing loans from Kiva', e)
     }
   }
 
@@ -1402,7 +1424,7 @@ export class Loans {
       this.notify({ new_loans: loans })
       this.notify({ running_totals_change: this.runningTotals })
     } catch (e) {
-      this.notify({ failed: e })
+      this.fail('Fetching new loans from Kiva', e)
     }
   }
 
@@ -1421,7 +1443,7 @@ export class Loans {
       this.resolveLoansProcessed()
       this.notify({ secondary_load: 'complete' })
     } catch (e) {
-      this.notify({ failed: e })
+      this.fail('Loading the rest of the catalog from Kiva', e)
     }
   }
 
@@ -1474,7 +1496,7 @@ export class Loans {
 
       if (shouldNotify) this.notify({ backgroundResync: { state: 'done' } })
     } catch (e) {
-      this.notify({ failed: e })
+      this.fail('Catching up from Kiva', e)
     }
   }
 

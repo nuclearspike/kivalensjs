@@ -4,6 +4,7 @@ import { storyPrint } from '../../server/borrowerAgeAI.mjs'
 import { configureRuntime, memoryCache, resetRuntime } from '../../server/runtime.mjs'
 import { filterLoans } from '../../server/loanFilter.mjs'
 import zlib from 'node:zlib'
+import { recorded } from '../test/upstream'
 
 /**
  * Kiva's fundraising listing is LIVE: loans fund out and new ones post while the
@@ -1134,6 +1135,18 @@ describe('a loan is never published without its details', () => {
     // The story and the schedule are still served for it (/graphql, and the next warm start).
     expect(snapshotOf(warm)!.details.find((d: { id: number }) => d.id === 2)).toMatchObject({ description: { texts: { en: 'The story of borrower 2.' } } })
     expect(warm.allLoans.find((l: { id: number }) => l.id === 2).kl_repayments).toHaveLength(2)
+  })
+
+  it('on Kiva\u2019s real shapes: a listing entry alone is never kept, the same loan with its detail is', () => {
+    const listing = recorded('kiva-search-page.json').loans!
+    const details = recorded('kiva-loan-details.json').loans!
+    const fundraising = listing.filter((l) => l.status === 'fundraising' && (l.funded_amount as number) < (l.loan_amount as number))
+    const withDetails = processListed(listing, details)
+    expect(withDetails.kept.map((p: { loan: { id: number } }) => p.loan.id).sort()).toEqual(fundraising.map((l) => l.id).sort())
+    expect(withDetails.kept.every((p: { loan: { terms?: unknown; kls_has_descr?: boolean } }) => !!p.loan.terms && p.loan.kls_has_descr)).toBe(true)
+    const listingOnly = processListed(listing, [])
+    expect(listingOnly.kept).toEqual([])
+    expect(listingOnly.withheld).toBe(listing.length)
   })
 
   describe('processListed and carryOver', () => {

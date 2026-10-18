@@ -1557,7 +1557,14 @@ export async function handleApi(state, request) {
 // Kiva's WAF needs the cluster.js headers and no browser User-Agent.
 // ---------------------------------------------------------------------------
 
-const RESEARCH_SHEET_ID = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
+/** What the proxy sends Kiva for its graph calls; scripts/record-upstream-fixtures.mjs sends the same. */
+export const KIVA_AJAX_HEADERS = Object.freeze({
+  'X-Requested-With': 'XMLHttpRequest',
+  Accept: 'application/json, text/javascript, */*; q=0.01',
+  Referer: 'https://www.kiva.org/',
+})
+
+export const RESEARCH_SHEET_ID = '1KP7ULBAyavnohP4h8n2J2yaXNpIRnyIXdjJj_AwtwK0'
 const RESEARCH_SHEET_EXPORT = `spreadsheets/d/${RESEARCH_SHEET_ID}/export?gid=1&format=csv`
 const PROXY_TARGETS = [
   { prefix: '/proxy/kiva/', host: 'https://www.kiva.org/', allow: (rest) => /^ajax\/(?:getGraphData|getSuperGraphData)(?:\?|$)/.test(rest), kiva: true },
@@ -1645,13 +1652,16 @@ export async function handleProxy(request) {
   const rest = url.slice(target.prefix.length) // path + query, no leading slash
   if (!target.allow(rest)) return new Response('Forbidden', { status: 403 })
 
-  const headers = target.kiva
-    ? {
-        'X-Requested-With': 'XMLHttpRequest',
-        Accept: 'application/json, text/javascript, */*; q=0.01',
-        Referer: 'https://www.kiva.org/',
-      }
-    : { Accept: '*/*' }
+  // A refused answer reaches the page as a failure the page handles itself, so it
+  // is also written to the server's log, where a later look can find it. The
+  // query is left out: it carries the lender's id.
+  const where = `${target.prefix}${rest.split('?', 1)[0]}`
+  const refuse = (reason, detail = '') => {
+    console.warn(`[proxy] refused ${where}: ${reason}${detail ? ` (${detail})` : ''}`)
+    return text(reason, { status: 502 })
+  }
+
+  const headers = target.kiva ? KIVA_AJAX_HEADERS : { Accept: '*/*' }
 
   try {
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(PROXY_TIMEOUT_MS)])
@@ -1662,9 +1672,9 @@ export async function handleProxy(request) {
       if (!PROXY_REDIRECT_STATUSES.has(upstream.status)) break
       const location = upstream.headers.get('location')
       void upstream.body?.cancel().catch(() => {})
-      if (!location || redirects >= PROXY_MAX_REDIRECTS) return text('Proxy redirect rejected', { status: 502 })
+      if (!location || redirects >= PROXY_MAX_REDIRECTS) return refuse('Proxy redirect rejected', `upstream ${upstream.status}`)
       const nextUrl = new URL(location, upstreamUrl)
-      if (!allowedProxyRedirect(target, nextUrl)) return text('Proxy redirect rejected', { status: 502 })
+      if (!allowedProxyRedirect(target, nextUrl)) return refuse('Proxy redirect rejected', `to ${nextUrl.host}`)
       upstreamUrl = nextUrl
     }
     // A successful HTML page from Google is a sign-in or error page, not the sheet.
@@ -1674,13 +1684,13 @@ export async function handleProxy(request) {
     const upstreamType = (upstream.headers.get('content-type') || '').split(';', 1)[0].trim().toLowerCase()
     if (upstream.ok && !target.kiva && (upstreamType === 'text/html' || upstreamType === 'application/xhtml+xml')) {
       void upstream.body?.cancel().catch(() => {})
-      return text('Proxy upstream did not return data', { status: 502 })
+      return refuse('Proxy upstream did not return data', `upstream ${upstream.status} ${upstreamType}`)
     }
     // Buffer up to 4 MiB so an upstream failure cannot reach the browser as a
     // truncated success, and a large response cannot exhaust the server's memory.
     const body = NULL_BODY_STATUSES.has(upstream.status) ? null : await readProxyResponse(upstream)
-    if (body === null && !NULL_BODY_STATUSES.has(upstream.status)) return text('Proxy response too large', { status: 502 })
-    if (upstream.ok && target.kiva && body !== null && !isJsonText(body)) return text('Proxy upstream did not return data', { status: 502 })
+    if (body === null && !NULL_BODY_STATUSES.has(upstream.status)) return refuse('Proxy response too large', `upstream ${upstream.status}`)
+    if (upstream.ok && target.kiva && body !== null && !isJsonText(body)) return refuse('Proxy upstream did not return data', `upstream ${upstream.status} ${upstreamType || 'no type'}, not JSON`)
     return new Response(body, {
       status: upstream.status,
       headers: {
@@ -1690,7 +1700,7 @@ export async function handleProxy(request) {
       },
     })
   } catch (err) {
-    console.error('[proxy] error:', err?.message || err)
+    console.error(`[proxy] error on ${where}:`, err?.message || err)
     return new Response('Proxy error', { status: 502 })
   }
 }
