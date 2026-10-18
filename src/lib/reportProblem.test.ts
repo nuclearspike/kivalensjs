@@ -48,5 +48,7 @@ describe('reasonOf', () => {
     revoke()
     expect(reasonOf(proxy)).toBe('unknown reason')
     expect(reasonOf({ status: Number.NaN, message: 'Load failed' })).toBe('Load failed')
+    expect(reasonOf({ status: -1, message: 'Load failed' })).toBe('Load failed')
+    expect(reasonOf({ status: 2.5, message: 'Load failed' })).toBe('Load failed')
   })
 })

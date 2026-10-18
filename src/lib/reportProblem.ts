@@ -20,7 +20,7 @@
 export function reasonOf(error: unknown): string {
   try {
     const status = (error as { status?: unknown } | null)?.status
-    if (typeof error === 'object' && Number.isInteger(status)) return `HTTP ${status}`
+    if (typeof error === 'object' && Number.isInteger(status) && (status as number) >= 0 && (status as number) < 1000) return `HTTP ${status}`
     const message = (error as { message?: unknown } | null)?.message
     const text = typeof message === 'string' ? message : typeof error === 'string' ? error : ''
     return text.trim().split('\n', 1)[0].slice(0, 120) || 'unknown reason'
