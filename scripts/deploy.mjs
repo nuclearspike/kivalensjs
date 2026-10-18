@@ -65,15 +65,19 @@ function run(name, cmd, cmdArgs, { quiet = false } = {}) {
     const file = fs.createWriteStream(path.join(rec, `${name}.log`))
     const child = spawn(cmd, cmdArgs, { cwd: REPO, env: process.env })
     let text = ''
+    let stdout = ''
     const take = (chunk) => {
       text += chunk
       file.write(chunk)
       if (!quiet) process.stdout.write(chunk)
     }
-    child.stdout.on('data', take)
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk
+      take(chunk)
+    })
     child.stderr.on('data', take)
     child.on('error', (e) => take(`\n${e}\n`))
-    child.on('close', (status) => file.end(() => resolve({ status, text })))
+    child.on('close', (status) => file.end(() => resolve({ status, text, stdout })))
   })
 }
 
@@ -103,12 +107,16 @@ function fail(name, reason) {
   process.exit(1)
 }
 
+// Heroku's releases, newest first, from the CLI's standard output alone: the CLI writes warnings to
+// standard error (Node deprecation notices, "update available"), and those can hold a "[" of their own.
+let releasesProblem = ''
 async function releases(n) {
   const r = await run('heroku-releases', 'heroku', ['releases', '-a', APP, '-n', String(n), '--json'], { quiet: true })
-  const start = r.text.indexOf('[')
-  if (r.status !== 0 || start < 0) return null
+  releasesProblem = r.text.trim().split('\n').filter((l) => !/DeprecationWarning|trace-deprecation|update available/.test(l)).at(-1) ?? ''
+  if (r.status !== 0) return null
   try {
-    return JSON.parse(r.text.slice(start))
+    const list = JSON.parse(r.stdout)
+    return Array.isArray(list) ? list : null
   } catch {
     return null
   }
@@ -149,7 +157,7 @@ for (const remote of ['origin', 'heroku']) {
 
 // 2. What production runs now, for the rollback command.
 const before = await releases(1)
-if (!before?.length) fail('heroku', `the Heroku CLI could not read ${APP}'s releases (log in with "heroku login")`)
+if (!before?.length) fail('heroku', `the Heroku CLI could not read ${APP}'s releases${releasesProblem ? `: ${releasesProblem.slice(0, 160)}` : ''} (see heroku-releases.log; "heroku login" if it is signed out)`)
 previous = before[0]
 summary.previousRelease = { version: previous.version, description: previous.description }
 done('production now', `v${previous.version}, ${previous.description}`)
@@ -204,6 +212,7 @@ for (const remote of ['origin', 'heroku']) {
 // 6. The release this push made.
 const after = await releases(1)
 const newest = after?.[0]
+if (!after) fail('release', `could not read Heroku's releases after the push${releasesProblem ? `: ${releasesProblem.slice(0, 160)}` : ''}`)
 if (!newest || newest.version === previous.version) fail('release', 'Heroku made no new release')
 if (!String(newest.description).includes(sha.slice(0, 7))) fail('release', `the newest release is v${newest.version}, "${newest.description}", not this commit`)
 released = newest
