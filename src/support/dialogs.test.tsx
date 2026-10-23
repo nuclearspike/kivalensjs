@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { I18nProvider } from '../i18n'
+import { I18nProvider, type Locale } from '../i18n'
 import SupportHost from './SupportHost'
 import FeedbackDialog from './FeedbackDialog'
 import MyReportsDialog from './MyReportsDialog'
@@ -16,7 +16,7 @@ import { MemoryStore, resetSupportStoreForTests, type StoredReport } from './sto
 /**
  * The shared Feedback and My Reports as a lender meets them, against a fake
  * service. Each behaviour here is one the shared definition requires of every
- * HumansAreUseful app (definition 1.1.21, screens.feedback / screens.myReports).
+ * HumansAreUseful app (retained definition 1.1.22, screens.feedback / screens.myReports).
  */
 
 type Call = { path: string; body: { client: Record<string, unknown>; payload: Record<string, unknown> } }
@@ -104,20 +104,70 @@ describe('Send Feedback', () => {
     expect(shown).toHaveTextContent(`(${client.locale})`)
   })
 
-  it('asks for an address only with consent, and will not send a malformed one', async () => {
-    openFeedback('bug')
-    type(screen.getByRole('textbox'), 'Needs a reply.')
-    expect(screen.queryByLabelText('Email address (optional)')).toBeNull()
-    fireEvent.click(screen.getByLabelText('You may contact me about this report'))
-    // Optional even with consent: an empty address sends anonymously.
+  it.each(['idea', 'bug', 'language'] as const)('requires an address after selecting contact for %s, including keyboard send', async (kind) => {
+    useSupportStore.setState({ draft: { ...EMPTY_DRAFT, message: 'Needs a reply.', language: { code: 'sw', label: 'Swahili' } } })
+    openFeedback(kind)
+    expect(screen.queryByLabelText('Email address')).toBeNull()
     expect(send()).toBeEnabled()
-    const email = screen.getByLabelText('Email address (optional)')
-    type(email, 'not-an-address')
-    expect(screen.getByText('Enter a valid email address.')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('You may contact me about this report'))
     expect(send()).toBeDisabled()
+    const email = screen.getByLabelText('Email address')
+    expect(email).toBeRequired()
+    expect(email).not.toHaveAttribute('maxlength')
+    await act(async () => fireEvent.keyDown(email, { key: 'Enter', ctrlKey: true }))
+    expect(calls.some((call) => call.path === '/v1/feedback')).toBe(false)
+    for (const value of ['   ', 'not-an-address', `${'a'.repeat(309)}@example.com`]) {
+      type(email, value)
+      expect(email).toHaveValue(value.trim())
+      expect(send()).toBeDisabled()
+      expect(email).toHaveAttribute('aria-invalid', 'true')
+      expect(screen.getByText('Enter a valid email address.')).toBeInTheDocument()
+    }
     type(email, 'lender@example.com')
     expect(send()).toBeEnabled()
-    expect(await screen.findByText(/Sending: your message, your email/)).toBeInTheDocument()
+    expect(email).toHaveAttribute('aria-invalid', 'false')
+    fireEvent.click(send())
+    await waitFor(() => expect(calls.some((call) => call.path === '/v1/feedback')).toBe(true))
+    const payload = calls.find((call) => call.path === '/v1/feedback')!.body.payload
+    expect(payload).toMatchObject({
+      kind: kind === 'idea' ? 'suggestion' : kind === 'language' ? 'languageRequest' : 'bug',
+      contact: { email: 'lender@example.com', communicationConsent: true },
+    })
+  })
+
+  it.each([
+    ['en', 'Email address'],
+    ['de', 'E-Mail-Adresse'],
+    ['fr', 'Adresse e-mail'],
+    ['es', 'Correo electrónico'],
+    ['pt-BR', 'Endereço de e-mail'],
+    ['ja', 'メールアドレス'],
+    ['zh-Hans', '电子邮件地址'],
+    ['it', 'Indirizzo email'],
+    ['nl', 'E-mailadres'],
+  ] as const)('reveals a required neutral email label in %s', async (locale: Locale, label) => {
+    window.localStorage.setItem('KivaLensLocale', locale)
+    openFeedback('bug')
+    expect(screen.queryByRole('textbox', { name: label })).toBeNull()
+    fireEvent.click(screen.getByRole('checkbox'))
+    const email = await screen.findByRole('textbox', { name: label })
+    expect(email).toBeRequired()
+  })
+
+  it.each(['lender@example.com', 'not-an-address'])('turning contact off allows an anonymous send without the retained address %s', async (value) => {
+    openFeedback('bug')
+    type(screen.getByRole('textbox'), 'No email updates.')
+    const consent = screen.getByLabelText('You may contact me about this report')
+    fireEvent.click(consent)
+    type(screen.getByLabelText('Email address'), value)
+    fireEvent.click(consent)
+    expect(screen.queryByLabelText('Email address')).toBeNull()
+    expect(send()).toBeEnabled()
+    fireEvent.click(send())
+    await waitFor(() => expect(calls.some((call) => call.path === '/v1/feedback')).toBe(true))
+    const payload = calls.find((call) => call.path === '/v1/feedback')!.body.payload
+    expect(payload).not.toHaveProperty('contact')
+    expect(JSON.stringify(payload)).not.toContain(value)
   })
 
   it('on acceptance closes, starts the next report fresh, and thanks the lender', async () => {

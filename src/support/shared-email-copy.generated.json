@@ -1,0 +1,16 @@
+{
+  "canonical": "humansareuseful/shared-support-and-more-apps/definition/strings.json",
+  "version": "1.2.2",
+  "sourceSha256": "sha256:7daeedc4fc1339c084d2984663e6fc2a021aced24d5a07626c0e8237457d4f94",
+  "strings": {
+    "feedback.email.label": {
+      "en": "Email address",
+      "de": "E-Mail-Adresse",
+      "fr": "Adresse e-mail",
+      "es": "Correo electrónico",
+      "pt-BR": "Endereço de e-mail",
+      "ja": "メールアドレス",
+      "zh-Hans": "电子邮件地址"
+    }
+  }
+}

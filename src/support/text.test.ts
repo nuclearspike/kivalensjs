@@ -5,7 +5,7 @@ import path from 'node:path'
 import catalog from './shared-support.json'
 import lock from './shared-support.lock.json'
 import { EXTRA_LOCALES } from './extraLocales'
-import { reportHeadline, supportKey, supportText } from './text'
+import { reportHeadline, supportKey, supportText, SUPPORT_CATALOG } from './text'
 import { LOCALES, translate } from '../i18n'
 
 const dir = path.join(process.cwd(), 'src/support')
@@ -18,7 +18,7 @@ function renderedKeys(): string[] {
     const source = readFileSync(path.join(dir, file), 'utf8')
     for (const m of source.matchAll(/\bs\(\s*'([a-zA-Z.]+)'/g)) keys.add(supportKey(m[1]))
     for (const m of source.matchAll(/'((?:feedback|reports|facts|common|menu)\.[a-zA-Z.]+)'/g)) {
-      if (m[1] in catalog.strings || m[1] in (catalog.entryPoints.web_app.copyVariants as Record<string, string>)) keys.add(supportKey(m[1]))
+      if (m[1] in SUPPORT_CATALOG.strings || m[1] in (catalog.entryPoints.web_app.copyVariants as Record<string, string>)) keys.add(supportKey(m[1]))
     }
   }
   for (const status of Object.keys(catalog.reports.statuses)) {
@@ -47,9 +47,11 @@ describe('every rendered string, in all nine languages', () => {
   const keys = renderedKeys()
 
   it('exists in the shared definition', () => {
-    const missing = keys.filter((k) => !(k in catalog.strings))
+    const missing = keys.filter((k) => !(k in SUPPORT_CATALOG.strings))
     expect(missing).toEqual([])
     expect(keys.length).toBeGreaterThan(90)
+    expect(keys).toContain('feedback.email.label')
+    expect(keys).not.toContain('feedback.optionalEmail')
   })
 
   it('has Italian and Dutch, with the same placeholders as English', () => {
@@ -57,14 +59,14 @@ describe('every rendered string, in all nine languages', () => {
       for (const key of keys) {
         const value = EXTRA_LOCALES[locale][key]
         expect(value, `${locale}:${key}`).toBeTruthy()
-        expect(placeholders(value), `${locale}:${key}`).toBe(placeholders((catalog.strings as Record<string, { en: string }>)[key].en))
+        expect(placeholders(value), `${locale}:${key}`).toBe(placeholders(SUPPORT_CATALOG.strings[key].en))
       }
     }
   })
 
   it('carries no Italian or Dutch for a key the definition does not have', () => {
     for (const locale of ['it', 'nl'] as const) {
-      expect(Object.keys(EXTRA_LOCALES[locale]).filter((k) => !(k in catalog.strings))).toEqual([])
+      expect(Object.keys(EXTRA_LOCALES[locale]).filter((k) => !(k in SUPPORT_CATALOG.strings))).toEqual([])
     }
   })
 

@@ -1,4 +1,5 @@
 import catalog from './shared-support.json'
+import emailCopy from './shared-email-copy.generated.json'
 import { EXTRA_LOCALES } from './extraLocales'
 import type { Locale } from '../i18n'
 
@@ -6,7 +7,8 @@ import type { Locale } from '../i18n'
  * The shared support copy in the lender's language.
  *
  * The seven shared languages come from the vendored definition snapshot
- * (shared-support.json, pinned by shared-support.lock.json); Italian and Dutch
+ * (shared-support.json, pinned by shared-support.lock.json), plus the narrowly
+ * generated canonical email-label amendment; Italian and Dutch
  * from KivaLens's own translations of the same keys. Where the definition names
  * a web wording for a key ("this browser" for "this device", "Reload the page"
  * for "Update the app"), the web wording is used. A key never falls back to
@@ -14,7 +16,7 @@ import type { Locale } from '../i18n'
  */
 
 type Strings = Record<string, Record<string, string>>
-const STRINGS = catalog.strings as Strings
+const STRINGS: Strings = { ...catalog.strings, ...emailCopy.strings }
 const VARIANTS = catalog.entryPoints.web_app.copyVariants as Record<string, string>
 
 export function supportKey(key: string): string {
@@ -30,7 +32,7 @@ export function supportText(locale: Locale, key: string, params?: Record<string,
   return value.replace(/\{([a-zA-Z]+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match))
 }
 
-export const SUPPORT_CATALOG = catalog
+export const SUPPORT_CATALOG = { ...catalog, strings: STRINGS }
 
 /**
  * The first nonempty line the lender wrote, at most 160 whole characters, with

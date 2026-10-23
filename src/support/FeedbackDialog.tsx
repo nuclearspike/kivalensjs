@@ -11,7 +11,7 @@ import { useSupportStore, type FeedbackKindId } from './supportStore'
 import type { ClientFacts } from './protocol'
 
 /**
- * Send Feedback, as every HumansAreUseful app has it (definition 1.1.21,
+ * Send Feedback, as every HumansAreUseful app has it (retained definition 1.1.22,
  * screens.feedback, realized for a page dialog by entryPoints.web_app).
  *
  * One entry, the kind chosen inside: Idea, Bug or Language. Switching kind keeps
@@ -71,9 +71,9 @@ export default function FeedbackDialog() {
   }, [draft.kind])
 
   const email = draft.email.trim()
-  // The address is optional even with consent (the native composer sends
-  // without one); only a malformed address stops the send.
-  const emailInvalid = draft.consent && email.length > 0 && !EMAIL.test(email)
+  // Choosing contact requires a usable destination; turning it off omits any retained address.
+  const emailInvalid = draft.consent && (!EMAIL.test(email) || email.length > 320)
+  const emailErrorVisible = emailInvalid && (touched || draft.email.length > 0)
   const bodyValid =
     draft.kind === 'language' ? Boolean(draft.language?.label.trim()) : draft.message.trim().length >= MIN
   const valid = bodyValid && !emailInvalid
@@ -276,20 +276,21 @@ export default function FeedbackDialog() {
             {draft.consent && (
               <div className="kl-support-email">
                 <label className="form-label mb-0" htmlFor={ids.email}>
-                  {s('feedback.optionalEmail')}
+                  {s('feedback.email.label')}
                 </label>
                 <input
                   id={ids.email}
                   className="form-control"
                   type="email"
+                  required
                   autoComplete="email"
                   placeholder={s('feedback.email.placeholder')}
                   value={draft.email}
-                  aria-invalid={emailInvalid}
+                  aria-invalid={emailErrorVisible}
                   onChange={(e) => setDraft({ email: e.target.value })}
                 />
-                <div className={`form-text${emailInvalid ? ' text-danger' : ''}`}>
-                  {emailInvalid ? s('feedback.invalidEmail') : s('feedback.emailDetail')}
+                <div className={`form-text${emailErrorVisible ? ' text-danger' : ''}`}>
+                  {emailErrorVisible ? s('feedback.invalidEmail') : s('feedback.emailDetail')}
                 </div>
               </div>
             )}
